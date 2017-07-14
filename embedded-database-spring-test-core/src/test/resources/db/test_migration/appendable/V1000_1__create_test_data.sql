@@ -1,0 +1,1 @@
+insert into test.person (id, first_name, last_name) values (2, 'Tom', 'Hanks');

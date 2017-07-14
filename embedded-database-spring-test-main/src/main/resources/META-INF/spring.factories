@@ -1,0 +1,7 @@
+# ContextCustomizerFactories for the Spring TestContext Framework
+org.springframework.test.context.ContextCustomizerFactory = \
+  io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory
+
+# TestExecutionListeners for the Spring TestContext Framework
+org.springframework.test.context.TestExecutionListener = \
+  io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener

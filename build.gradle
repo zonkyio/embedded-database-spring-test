@@ -1,0 +1,94 @@
+
+plugins {
+    id 'net.researchgate.release' version '2.6.0'
+}
+
+// it's a workaround for https://github.com/researchgate/gradle-release/issues/186
+task build(dependsOn: [':embedded-database-spring-test-core:build', ':embedded-database-spring-test-main:build'])
+
+allprojects {
+    group 'io.zonky'
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
+
+    sourceCompatibility = 1.8
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        testCompile group: 'junit', name: 'junit', version: '4.12'
+        testCompile group: 'org.mockito', name: 'mockito-all', version: '1.9.5'
+        testCompile group: 'org.assertj', name: 'assertj-core', version: '3.6.1'
+        testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Javadoc) {
+        options.encoding = 'UTF-8'
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+
+    test {
+        useJUnit()
+    }
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                artifact sourcesJar
+                artifact javadocJar
+            }
+        }
+    }
+
+    release {
+        git {
+            requireBranch = '^(master|\\d+\\.\\d+\\.x)$'
+        }
+    }
+}
+
+project(':embedded-database-spring-test-core') {
+    dependencies {
+        compile group: 'org.springframework', name: 'spring-context', version: '4.3.10.RELEASE'
+        compile group: 'org.springframework', name: 'spring-test', version: '4.3.10.RELEASE'
+        compile group: 'com.opentable.components', name: 'otj-pg-embedded', version: '0.9.0'
+        compile group: 'org.flywaydb.flyway-test-extensions', name: 'flyway-spring-test', version: '4.2.0.1'
+        compile group: 'com.google.guava', name: 'guava', version: '23.0'
+    }
+}
+
+project(':embedded-database-spring-test-main') {
+    dependencies {
+        compile project(':embedded-database-spring-test-core')
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                artifactId 'embedded-database-spring-test'
+            }
+        }
+    }
+}

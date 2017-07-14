@@ -1,0 +1,28 @@
+# Class files #
+target/
+*.class
+
+# Gradle files #
+.gradle/
+build/
+
+# Package files #
+*.jar
+*.war
+*.ear
+
+# Eclipse specific files #
+.classpath
+.project
+.settings/
+
+# Idea specific files #
+.idea/
+*.iml
+*.iws
+
+# Virtual machine crash logs
+hs_err_pid*
+
+# Gradle wrapper files
+!gradle/wrapper/
