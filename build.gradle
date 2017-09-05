@@ -23,10 +23,10 @@ subprojects {
     }
 
     dependencies {
-        testCompile group: 'junit', name: 'junit', version: '4.12'
-        testCompile group: 'org.mockito', name: 'mockito-all', version: '1.9.5'
-        testCompile group: 'org.assertj', name: 'assertj-core', version: '3.6.1'
-        testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+        testCompile 'junit:junit:4.12'
+        testCompile 'org.mockito:mockito-all:1.9.5'
+        testCompile 'org.assertj:assertj-core:3.6.1'
+        testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
 
     tasks.withType(JavaCompile) {
@@ -59,6 +59,15 @@ subprojects {
                 artifact sourcesJar
                 artifact javadocJar
             }
+            all {
+                pom.withXml {
+                    asNode().dependencies.'*'.findAll() {
+                        it.scope.text() == 'runtime' && project.configurations.compile.allDependencies.find { dep ->
+                            dep.name == it.artifactId.text()
+                        }
+                    }.each { it.scope*.value = 'compile'}
+                }
+            }
         }
     }
 
@@ -71,11 +80,11 @@ subprojects {
 
 project(':embedded-database-spring-test-core') {
     dependencies {
-        compile group: 'org.springframework', name: 'spring-context', version: '4.3.10.RELEASE'
-        compile group: 'org.springframework', name: 'spring-test', version: '4.3.10.RELEASE'
-        compile group: 'com.opentable.components', name: 'otj-pg-embedded', version: '0.9.0'
-        compile group: 'org.flywaydb.flyway-test-extensions', name: 'flyway-spring-test', version: '4.2.0.1'
-        compile group: 'com.google.guava', name: 'guava', version: '23.0'
+        compile 'org.springframework:spring-context:4.3.10.RELEASE'
+        compile 'org.springframework:spring-test:4.3.10.RELEASE'
+        compile 'com.opentable.components:otj-pg-embedded:0.9.0'
+        compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:4.2.0.1'
+        compile 'com.google.guava:guava:23.0'
     }
 }
 
