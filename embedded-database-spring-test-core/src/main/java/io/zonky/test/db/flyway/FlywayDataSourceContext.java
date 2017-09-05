@@ -135,6 +135,7 @@ public class FlywayDataSourceContext implements TargetSource {
         // not included in equals and hashCode methods
         private final ClassLoader classLoader;
         private final DataSource dataSource;
+        private final FlywayCallback[] callbacks; // the callbacks are modified during the migration
 
         // included in equals and hashCode methods
         // but it will work only for empty arrays (that is common use-case)
@@ -142,7 +143,6 @@ public class FlywayDataSourceContext implements TargetSource {
         // on classes implementing these interfaces,
         // note the properties require special treatment suitable for arrays
         private final MigrationResolver[] resolvers;
-        private final FlywayCallback[] callbacks;
 
         // included in equals and hashCode methods
         // but these properties require special treatment suitable for arrays
@@ -391,7 +391,6 @@ public class FlywayDataSourceContext implements TargetSource {
                     mixed == that.mixed &&
                     group == that.group &&
                     Arrays.equals(resolvers, that.resolvers) &&
-                    Arrays.equals(callbacks, that.callbacks) &&
                     Arrays.equals(locations, that.locations) &&
                     Arrays.equals(schemas, that.schemas) &&
                     Objects.equals(baselineVersion, that.baselineVersion) &&
@@ -412,8 +411,7 @@ public class FlywayDataSourceContext implements TargetSource {
         @Override
         public int hashCode() {
             return Objects.hash(
-                    Arrays.hashCode(resolvers), Arrays.hashCode(callbacks),
-                    Arrays.hashCode(locations), Arrays.hashCode(schemas),
+                    Arrays.hashCode(resolvers), Arrays.hashCode(locations), Arrays.hashCode(schemas),
                     baselineVersion, target, placeholders, table, baselineDescription,
                     repeatableSqlMigrationPrefix, sqlMigrationSeparator, sqlMigrationPrefix,
                     sqlMigrationSuffix, placeholderPrefix, placeholderSuffix, encoding,
