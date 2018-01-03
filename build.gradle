@@ -1,19 +1,22 @@
+import java.util.regex.Matcher
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
 }
 
-// it's a workaround for https://github.com/researchgate/gradle-release/issues/186
-task build(dependsOn: [':embedded-database-spring-test-core:build', ':embedded-database-spring-test-main:build'])
+ext {
+    ossrhUsername = project.findProperty('ossrhUsername')
+    ossrhPassword = project.findProperty('ossrhPassword')
+}
 
 allprojects {
-    group 'io.zonky'
+    group 'io.zonky.test'
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
-    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
 
     sourceCompatibility = 1.8
 
@@ -42,39 +45,93 @@ subprojects {
         useJUnit()
     }
 
-    task sourcesJar(type: Jar, dependsOn: classes) {
+    task sourcesJar(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.allSource
     }
 
-    task javadocJar(type: Jar, dependsOn: javadoc) {
+    task javadocJar(type: Jar) {
         classifier = 'javadoc'
-        from javadoc.destinationDir
+        from javadoc
     }
 
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                from components.java
-                artifact sourcesJar
-                artifact javadocJar
-            }
-            all {
-                pom.withXml {
-                    asNode().dependencies.'*'.findAll() {
-                        it.scope.text() == 'runtime' && project.configurations.compile.allDependencies.find { dep ->
-                            dep.name == it.artifactId.text()
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+    signing {
+        required { gradle.taskGraph.hasTask("uploadArchives") }
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'embedded-database-spring-test'
+                    packaging 'jar'
+                    description 'A library for creating isolated embedded databases for Spring-powered integration tests.'
+                    url 'https://github.com/zonkyio/embedded-database-spring-test'
+
+                    scm {
+                        connection 'scm:git:git://github.com/zonkyio/embedded-database-spring-test.git'
+                        developerConnection 'scm:git:ssh://github.com:zonkyio/embedded-database-spring-test.git'
+                        url 'https://github.com/zonkyio/embedded-database-spring-test/tree/master'
+                    }
+
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
                         }
-                    }.each { it.scope*.value = 'compile'}
+                    }
+
+                    developers {
+                        developer {
+                            name 'Roman Pichlik'
+                            email 'roman.pichlik@zonky.cz'
+                        }
+                        developer {
+                            name 'Tomas Vanek'
+                            email 'tomas.vanek@zonky.cz'
+                        }
+                        developer {
+                            name 'Developers Zonky'
+                            email 'developers@zonky.cz'
+                        }
+                    }
                 }
             }
         }
     }
 
     release {
+        tagTemplate = 'v${version}'
+        versionPatterns = [
+            // increments the minor version: "1.0.0-SNAPSHOT" => "1.1.0-SNAPSHOT"
+            /(\d+)\.\d+([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}.0${m[0][2]}") }
+        ]
         git {
             requireBranch = '^(master|\\d+\\.\\d+\\.x)$'
         }
+    }
+}
+
+project(':embedded-database-spring-test-autoconfigure') {
+    archivesBaseName = 'embedded-database-spring-test'
+
+    dependencies {
+        compile project(':embedded-database-spring-test-core')
     }
 }
 
@@ -88,16 +145,24 @@ project(':embedded-database-spring-test-core') {
     }
 }
 
-project(':embedded-database-spring-test-main') {
-    dependencies {
-        compile project(':embedded-database-spring-test-core')
+task updateReadmeVersion() {
+    doLast {
+        def version = project.version.toString()
+        ant.replaceregexp(file: 'README.md', match: '<version>\\d+\\.\\d+\\.\\d+</version>', replace: "<version>$version</version>", flags: 'g', byline: true)
     }
+}
 
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifactId 'embedded-database-spring-test'
-            }
-        }
+// workaround for https://github.com/researchgate/gradle-release/issues/186
+task build(group: 'build') {
+    subprojects.each {
+        dependsOn "${it.path}:build"
+    }
+}
+
+runBuildTasks.dependsOn updateReadmeVersion
+
+afterReleaseBuild {
+    subprojects.each {
+        dependsOn "${it.path}:uploadArchives"
     }
 }

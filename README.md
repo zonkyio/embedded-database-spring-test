@@ -19,7 +19,7 @@ Add the Maven dependency:
 
 ```xml
 <dependency>
-  <groupId>io.zonky</groupId>
+  <groupId>io.zonky.test</groupId>
   <artifactId>embedded-database-spring-test</artifactId>
   <version>1.0.0</version>
   <scope>test</scope>
@@ -110,13 +110,13 @@ public class FlywayMigrationIntegrationTest {
 ```
 
 ## Building from Source
-The project uses a [Gradle][]-based build system. In the instructions
-below, [`./gradlew`][] is invoked from the root of the source tree and serves as
+The project uses a [Gradle](http://gradle.org)-based build system. In the instructions
+below, [`./gradlew`](http://vimeo.com/34436402) is invoked from the root of the source tree and serves as
 a cross-platform, self-contained bootstrap mechanism for the build.
 
 ### Prerequisites
 
-[Git][] and [JDK 8 or later][JDK8 build]
+[Git](http://help.github.com/set-up-git-redirect) and [JDK 8 or later](http://www.oracle.com/technetwork/java/javase/downloads)
 
 Be sure that your `JAVA_HOME` environment variable points to the `jdk1.8.0` folder
 extracted from the JDK download.
@@ -139,4 +139,4 @@ extracted from the JDK download.
 * [Guava](https://github.com/google/guava) (23.0)
 
 ## License
-The project is released under version 2.0 of the [Apache License][].
+The project is released under version 2.0 of the [Apache License](http://www.apache.org/licenses/LICENSE-2.0.html).

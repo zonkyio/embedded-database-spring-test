@@ -1,4 +1,4 @@
 rootProject.name = 'embedded-database-spring-test'
 
 include 'embedded-database-spring-test-core'
-include 'embedded-database-spring-test-main'
+include 'embedded-database-spring-test-autoconfigure'
