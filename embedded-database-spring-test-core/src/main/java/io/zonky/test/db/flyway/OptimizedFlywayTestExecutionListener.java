@@ -112,7 +112,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    private void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
+    protected void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
         if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB() && !annotation.invokeBaselineDB()) {
 
             ApplicationContext applicationContext = testContext.getApplicationContext();
@@ -133,7 +133,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         ReflectionTestUtils.invokeMethod(this, "dbResetWithAnnotation", testContext, annotation);
     }
 
-    private static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
+    protected static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
         if (isAppendable(flywayBean, annotation)) {
             dataSourceContext.reload(flywayBean);
         } else {
@@ -154,7 +154,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     /**
      * Checks if test migrations are appendable to core migrations.
      */
-    private static boolean isAppendable(Flyway flyway, FlywayTest annotation) {
+    protected static boolean isAppendable(Flyway flyway, FlywayTest annotation) {
         if (annotation.overrideLocations()) {
             return false;
         }
@@ -172,7 +172,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         return coreVersion.compareTo(testVersion) < 0;
     }
 
-    private static MigrationVersion findFirstVersion(Flyway flyway, String... locations) {
+    protected static MigrationVersion findFirstVersion(Flyway flyway, String... locations) {
         CompositeMigrationResolver resolver = createMigrationResolver(flyway, locations);
         List<ResolvedMigration> migrations = resolver.resolveMigrations();
 
@@ -183,7 +183,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    private static MigrationVersion findLastVersion(Flyway flyway, String... locations) {
+    protected static MigrationVersion findLastVersion(Flyway flyway, String... locations) {
         CompositeMigrationResolver resolver = createMigrationResolver(flyway, locations);
         List<ResolvedMigration> migrations = resolver.resolveMigrations();
 
@@ -194,7 +194,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    private static CompositeMigrationResolver createMigrationResolver(Flyway flyway, String... locations) {
+    protected static CompositeMigrationResolver createMigrationResolver(Flyway flyway, String... locations) {
         Scanner scanner = new Scanner(flyway.getClassLoader());
 
         for (MigrationResolver resolver : flyway.getResolvers()) {
@@ -205,14 +205,14 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                 new Locations(locations), createPlaceholderReplacer(flyway), flyway.getResolvers());
     }
 
-    private static PlaceholderReplacer createPlaceholderReplacer(Flyway flyway) {
+    protected static PlaceholderReplacer createPlaceholderReplacer(Flyway flyway) {
         if (flyway.isPlaceholderReplacement()) {
             return new PlaceholderReplacer(flyway.getPlaceholders(), flyway.getPlaceholderPrefix(), flyway.getPlaceholderSuffix());
         }
         return PlaceholderReplacer.NO_PLACEHOLDERS;
     }
 
-    private static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, Flyway flywayBean) {
+    protected static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, Flyway flywayBean) {
         Map<String, Flyway> flywayBeans = context.getBeansOfType(Flyway.class);
         String flywayBeanName = flywayBeans.entrySet().stream()
                 .filter(e -> e.getValue() == flywayBean)
