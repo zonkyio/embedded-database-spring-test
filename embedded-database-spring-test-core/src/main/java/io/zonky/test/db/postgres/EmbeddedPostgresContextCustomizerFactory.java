@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.postgres;
 
+import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.EmbeddedDatabaseType;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
@@ -23,6 +24,7 @@ import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.flywaydb.test.annotation.FlywayTests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -37,6 +39,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
@@ -44,7 +47,9 @@ import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
+import java.lang.reflect.AnnotatedElement;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of the {@link org.springframework.test.context.ContextCustomizerFactory} interface,
@@ -81,7 +86,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         @Override
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
             Class<?> testClass = mergedConfig.getTestClass();
-            FlywayTest flywayAnnotation = AnnotatedElementUtils.findMergedAnnotation(testClass, FlywayTest.class);
+            FlywayTests flywayAnnotations = findFlywayTestAnnotations(testClass);
 
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
             RootBeanDefinition registrarDefinition = new RootBeanDefinition();
@@ -90,7 +95,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             registrarDefinition.getConstructorArgumentValues()
                     .addIndexedArgumentValue(0, databaseAnnotation);
             registrarDefinition.getConstructorArgumentValues()
-                    .addIndexedArgumentValue(1, flywayAnnotation);
+                    .addIndexedArgumentValue(1, flywayAnnotations);
 
             registry.registerBeanDefinition("preloadableEmbeddedPostgresRegistrar", registrarDefinition);
         }
@@ -115,11 +120,11 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
     private static class PreloadableEmbeddedPostgresRegistrar implements BeanDefinitionRegistryPostProcessor {
 
         private final AutoConfigureEmbeddedDatabase databaseAnnotation;
-        private final FlywayTest flywayAnnotation;
+        private final FlywayTests flywayAnnotations;
 
-        private PreloadableEmbeddedPostgresRegistrar(AutoConfigureEmbeddedDatabase databaseAnnotation, FlywayTest flywayAnnotation) {
+        private PreloadableEmbeddedPostgresRegistrar(AutoConfigureEmbeddedDatabase databaseAnnotation, FlywayTests flywayAnnotations) {
             this.databaseAnnotation = databaseAnnotation;
-            this.flywayAnnotation = flywayAnnotation;
+            this.flywayAnnotations = flywayAnnotations;
         }
 
         @Override
@@ -131,7 +136,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
             dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
 
-            BeanDefinitionHolder flywayInfo = getFlywayBeanDefinition(beanFactory, flywayAnnotation);
+            BeanDefinitionHolder flywayInfo = getFlywayBeanDefinition(beanFactory, flywayAnnotations);
             if (flywayInfo == null) {
                 dataSourceDefinition.setBeanClass(EmptyEmbeddedPostgresDataSourceFactoryBean.class);
             } else {
@@ -201,7 +206,13 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         throw new IllegalStateException("No primary DataSource found, embedded version will not be used");
     }
 
-    protected static BeanDefinitionHolder getFlywayBeanDefinition(ConfigurableListableBeanFactory beanFactory, FlywayTest annotation) {
+    protected static BeanDefinitionHolder getFlywayBeanDefinition(ConfigurableListableBeanFactory beanFactory, FlywayTests annotations) {
+        if (annotations != null && annotations.value().length > 1) {
+            return null; // optimized loading is not supported yet when using multiple flyway test annotations
+        }
+
+        FlywayTest annotation = annotations != null && annotations.value().length == 1 ? annotations.value()[0] : null;
+
         if (annotation != null && StringUtils.isNotBlank(annotation.flywayName())) {
             BeanDefinition beanDefinition = beanFactory.getBeanDefinition(annotation.flywayName());
             return new BeanDefinitionHolder(beanDefinition, annotation.flywayName());
@@ -227,5 +238,20 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         }
 
         return null;
+    }
+
+    private static FlywayTests findFlywayTestAnnotations(AnnotatedElement element) {
+        FlywayTests flywayContainerAnnotation = AnnotatedElementUtils.findMergedAnnotation(element, FlywayTests.class);
+        FlywayTest flywayAnnotation = AnnotatedElementUtils.findMergedAnnotation(element, FlywayTest.class);
+
+        if (flywayContainerAnnotation != null) {
+            return flywayContainerAnnotation;
+        }
+        if (flywayAnnotation == null) {
+            return null;
+        }
+
+        Map<String, Object> attributes = ImmutableMap.of("value", new FlywayTest[] { flywayAnnotation });
+        return AnnotationUtils.synthesizeAnnotation(attributes, FlywayTests.class, null);
     }
 }

@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.tuple;
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
-public class MultipleFlywayBeansIntegrationTest {
+public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 

@@ -19,7 +19,6 @@ package io.zonky.test.db.flyway;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
@@ -32,6 +31,8 @@ import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.flywaydb.test.annotation.FlywayTests;
 import org.flywaydb.test.junit.FlywayTestExecutionListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -54,6 +55,8 @@ import java.util.Map;
  * @see <a href="https://www.postgresql.org/docs/9.6/static/manage-ag-templatedbs.html">Template Databases</a>
  */
 public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(OptimizedFlywayTestExecutionListener.class);
 
     /**
      * The order value must be less than {@link org.springframework.test.context.transaction.TransactionalTestExecutionListener}.
@@ -78,6 +81,9 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         FlywayTests containerAnnotation = AnnotationUtils.findAnnotation(testClass, FlywayTests.class);
         if (containerAnnotation != null) {
             FlywayTest[] annotations = containerAnnotation.value();
+            if (annotations.length > 1) {
+                logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
+            }
             for (FlywayTest annotation : annotations) {
                 optimizedDbReset(testContext, annotation);
             }
@@ -94,6 +100,9 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         FlywayTests containerAnnotation = AnnotationUtils.findAnnotation(testMethod, FlywayTests.class);
         if (containerAnnotation != null) {
             FlywayTest[] annotations = containerAnnotation.value();
+            if (annotations.length > 1) {
+                logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
+            }
             for (FlywayTest annotation : annotations) {
                 optimizedDbReset(testContext, annotation);
             }
@@ -108,8 +117,8 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
             ApplicationContext applicationContext = testContext.getApplicationContext();
 
-            FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, annotation.flywayName());
             Flyway flywayBean = ReflectionTestUtils.invokeMethod(this, "getBean", applicationContext, Flyway.class, annotation.flywayName());
+            FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
 
             if (dataSourceContext != null && flywayBean != null) {
                 prepareDataSourceContext(dataSourceContext, flywayBean, annotation);
@@ -203,16 +212,22 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         return PlaceholderReplacer.NO_PLACEHOLDERS;
     }
 
-    private static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, String flywayName) {
+    private static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, Flyway flywayBean) {
+        Map<String, Flyway> flywayBeans = context.getBeansOfType(Flyway.class);
+        String flywayBeanName = flywayBeans.entrySet().stream()
+                .filter(e -> e.getValue() == flywayBean)
+                .map(Map.Entry::getKey)
+                .findFirst().orElse("default");
+
         try {
-            if (StringUtils.isBlank(flywayName)) {
-                return context.getBean(FlywayDataSourceContext.class);
-            } else {
-                return context.getBean(flywayName + "DataSourceContext", FlywayDataSourceContext.class);
-            }
-        } catch (BeansException e) {
-            return null;
-        }
+            return context.getBean(flywayBeanName + "DataSourceContext", FlywayDataSourceContext.class);
+        } catch (BeansException e) {}
+
+        try {
+            return context.getBean(FlywayDataSourceContext.class);
+        } catch (BeansException e) {}
+
+        return null;
     }
 
     private static FlywayTest copyAnnotation(FlywayTest annotation, boolean invokeCleanDB, boolean invokeBaselineDB, boolean invokeMigrateDB) {
