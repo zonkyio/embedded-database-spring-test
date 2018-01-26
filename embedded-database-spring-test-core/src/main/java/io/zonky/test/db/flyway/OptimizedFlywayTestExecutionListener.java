@@ -154,13 +154,24 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             return true;
         }
 
-        MigrationVersion testVersion = findLastVersion(flyway, annotation.locationsForMigrate());
+        MigrationVersion testVersion = findFirstVersion(flyway, annotation.locationsForMigrate());
         if (testVersion == MigrationVersion.EMPTY) {
             return true;
         }
 
         MigrationVersion coreVersion = findLastVersion(flyway, flyway.getLocations());
         return coreVersion.compareTo(testVersion) < 0;
+    }
+
+    private static MigrationVersion findFirstVersion(Flyway flyway, String... locations) {
+        CompositeMigrationResolver resolver = createMigrationResolver(flyway, locations);
+        List<ResolvedMigration> migrations = resolver.resolveMigrations();
+
+        if (CollectionUtils.isEmpty(migrations)) {
+            return MigrationVersion.EMPTY;
+        } else {
+            return migrations.get(0).getVersion();
+        }
     }
 
     private static MigrationVersion findLastVersion(Flyway flyway, String... locations) {

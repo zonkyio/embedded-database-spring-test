@@ -92,14 +92,11 @@ public class MultipleFlywayBeansIntegrationTest {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(1);
+        assertThat(persons).isNotNull().hasSize(2);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Dave"),
-                entry("last_name", "Syer"),
-                entry("full_name", "Dave Syer"));
+        assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer", "Dave Syer"),
+                tuple(3L, "Will", "Smith", "Will Smith"));
     }
 
     @Test
@@ -140,10 +137,11 @@ public class MultipleFlywayBeansIntegrationTest {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
+        assertThat(persons).isNotNull().hasSize(3);
 
         assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
                 tuple(1L, "Dave", "Syer"),
-                tuple(2L, "Tom", "Hanks"));
+                tuple(2L, "Tom", "Hanks"),
+                tuple(3L, "Will", "Smith"));
     }
 }
