@@ -109,6 +109,41 @@ public class FlywayMigrationIntegrationTest {
 }
 ```
 
+#### Background bootstrapping mode
+
+Using this feature causes that the initialization of the data source and the execution of Flyway database migrations are performed in background bootstrap mode.
+In such case, a `DataSource` proxy is immediately returned for injection purposes instead of waiting for the Flyway's bootstrapping to complete.
+However, note that the first actual call to a data source method will then block until the Flyway's bootstrapping completed, if not ready by then.
+For maximum benefit, make sure to avoid early data source calls in init methods of related beans.
+
+```java
+@Configuration
+public class BootstrappingConfiguration {
+    
+    @Bean
+    public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
+        DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
+        dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
+        return dataSourceContext;
+    }
+
+    @Bean
+    public TaskExecutor bootstrapExecutor() {
+        return new SimpleAsyncTaskExecutor("bootstrapExecutor-");
+    }
+}
+```
+
+```java
+@RunWith(SpringRunner.class)
+@FlywayTest
+@AutoConfigureEmbeddedDatabase
+@ContextConfiguration(classes = BootstrappingConfiguration.class)
+public class FlywayMigrationIntegrationTest {
+    // class body...
+}
+```
+
 ## Building from Source
 The project uses a [Gradle](http://gradle.org)-based build system. In the instructions
 below, [`./gradlew`](http://vimeo.com/34436402) is invoked from the root of the source tree and serves as

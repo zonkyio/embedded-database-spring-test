@@ -135,7 +135,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
     protected static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
         if (isAppendable(flywayBean, annotation)) {
-            dataSourceContext.reload(flywayBean);
+            dataSourceContext.reload(flywayBean).get();
         } else {
             String[] oldLocations = flywayBean.getLocations();
             try {
@@ -144,7 +144,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                 } else {
                     flywayBean.setLocations(ObjectArrays.concat(oldLocations, annotation.locationsForMigrate(), String.class));
                 }
-                dataSourceContext.reload(flywayBean);
+                dataSourceContext.reload(flywayBean).get();
             } finally {
                 flywayBean.setLocations(oldLocations);
             }

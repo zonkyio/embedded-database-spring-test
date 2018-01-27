@@ -24,10 +24,16 @@ import com.opentable.db.postgres.embedded.PreparedDbProvider;
 import org.apache.commons.lang3.ArrayUtils;
 import org.flywaydb.core.Flyway;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.util.concurrent.CompletableToListenableFutureAdapter;
+import org.springframework.util.concurrent.ListenableFuture;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -54,7 +60,9 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
     protected static final ThreadLocal<DataSource> preparerDataSourceHolder = new ThreadLocal<>();
 
-    protected volatile DataSource dataSource;
+    protected volatile CompletableFuture<DataSource> dataSourceFuture = CompletableFuture.completedFuture(null);
+
+    protected TaskExecutor bootstrapExecutor;
 
     @Override
     public Class<?> getTargetClass() {
@@ -68,14 +76,16 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
     @Override
     public Object getTarget() throws Exception {
-        DataSource dataSource = preparerDataSourceHolder.get();
-
-        if (dataSource == null) {
-            dataSource = this.dataSource;
+        DataSource threadBoundDataSource = preparerDataSourceHolder.get();
+        if (threadBoundDataSource != null) {
+            return threadBoundDataSource;
         }
 
-        checkState(dataSource != null, "dataSource is not initialized yet");
-        return dataSource;
+        if (bootstrapExecutor == null && (!dataSourceFuture.isDone() || dataSourceFuture.get() == null)) {
+            throw new IllegalStateException("dataSource is not initialized yet");
+        }
+
+        return dataSourceFuture.get();
     }
 
     @Override
@@ -84,13 +94,41 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     }
 
     @Override
-    public void reload(Flyway flyway) throws Exception {
-        FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
-        PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer);
+    public synchronized ListenableFuture<Void> reload(Flyway flyway) {
+        Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
-        PGSimpleDataSource dataSource = ((PGSimpleDataSource) provider.createDataSource());
-        Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
-        this.dataSource = new BlockingDataSourceWrapper(dataSource, semaphore);
+        dataSourceFuture = dataSourceFuture.thenApplyAsync(x -> {
+            try {
+                FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
+                PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer);
+
+                PGSimpleDataSource dataSource = ((PGSimpleDataSource) provider.createDataSource());
+                Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
+                return new BlockingDataSourceWrapper(dataSource, semaphore);
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, executor);
+
+        return new CompletableToListenableFutureAdapter<>(dataSourceFuture.thenApply(dataSource -> null));
+    }
+
+    /**
+     * Specify an asynchronous executor for background bootstrapping,
+     * e.g. a {@link org.springframework.core.task.SimpleAsyncTaskExecutor}.
+     * <p>
+     * {@code DataSource} initialization will then switch into background
+     * bootstrap mode, with a {@code DataSource} proxy immediately returned for
+     * injection purposes instead of waiting for the Flyway's bootstrapping to complete.
+     * However, note that the first actual call to a {@code DataSource} method will
+     * then block until the Flyway's bootstrapping completed, if not ready by then.
+     * For maximum benefit, make sure to avoid early {@code DataSource} calls
+     * in init methods of related beans.
+     * <p>
+     * Inspired by {@code org.springframework.orm.jpa.AbstractEntityManagerFactoryBean#setBootstrapExecutor}.
+     */
+    public void setBootstrapExecutor(TaskExecutor bootstrapExecutor) {
+        this.bootstrapExecutor = bootstrapExecutor;
     }
 
     protected FlywayConfigSnapshot createConfigSnapshot(Flyway flyway) {

@@ -18,6 +18,7 @@ package io.zonky.test.db.flyway;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.aop.TargetSource;
+import org.springframework.util.concurrent.ListenableFuture;
 
 /**
  * Interface extending {@link TargetSource} that is used by {@link io.zonky.test.db.postgres.FlywayEmbeddedPostgresDataSourceFactoryBean}
@@ -25,6 +26,6 @@ import org.springframework.aop.TargetSource;
  */
 public interface FlywayDataSourceContext extends TargetSource {
 
-    void reload(Flyway flyway) throws Exception;
+    ListenableFuture<Void> reload(Flyway flyway);
 
 }

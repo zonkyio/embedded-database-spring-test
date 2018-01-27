@@ -16,16 +16,18 @@
 
 package io.zonky.test.db.postgres;
 
-import com.google.common.base.Throwables;
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.Ordered;
+import org.springframework.util.concurrent.ListenableFuture;
 
 import javax.sql.DataSource;
 
@@ -35,6 +37,8 @@ import javax.sql.DataSource;
  * Each instance is backed by a flyway bean that is used for initializing the target database.
  */
 public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, BeanPostProcessor, InitializingBean, Ordered {
+
+    private static final Logger logger = LoggerFactory.getLogger(FlywayEmbeddedPostgresDataSourceFactoryBean.class);
 
     private final String flywayName;
     private final FlywayDataSourceContext dataSourceContext;
@@ -74,11 +78,8 @@ public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof Flyway && StringUtils.equals(beanName, flywayName)) {
-            try {
-                dataSourceContext.reload((Flyway) bean);
-            } catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
+            ListenableFuture<Void> reloadFuture = dataSourceContext.reload((Flyway) bean);
+            reloadFuture.addCallback(r -> {}, e -> logger.error("Unexpected error during the initialization of embedded database", e));
         }
         return bean;
     }
