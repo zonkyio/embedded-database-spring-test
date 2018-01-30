@@ -112,21 +112,25 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    protected void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
+    protected synchronized void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
         if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB() && !annotation.invokeBaselineDB()) {
 
             ApplicationContext applicationContext = testContext.getApplicationContext();
-
             Flyway flywayBean = ReflectionTestUtils.invokeMethod(this, "getBean", applicationContext, Flyway.class, annotation.flywayName());
-            FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
 
-            if (dataSourceContext != null && flywayBean != null) {
-                prepareDataSourceContext(dataSourceContext, flywayBean, annotation);
+            if (flywayBean != null) {
+                FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
 
-                FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
-                ReflectionTestUtils.invokeMethod(this, "dbResetWithAnnotation", testContext, adjustedAnnotation);
+                if (dataSourceContext != null) {
 
-                return;
+                    dataSourceContext.getTarget(); // wait for completion of running flyway migration
+                    prepareDataSourceContext(dataSourceContext, flywayBean, annotation);
+
+                    FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
+                    ReflectionTestUtils.invokeMethod(this, "dbResetWithAnnotation", testContext, adjustedAnnotation);
+
+                    return;
+                }
             }
         }
 
