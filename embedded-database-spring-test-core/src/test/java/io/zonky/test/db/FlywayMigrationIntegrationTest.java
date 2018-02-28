@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import org.junit.After;
-import org.junit.Before;
+import io.zonky.test.category.FlywayIntegrationTests;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.jdbc.JdbcTestUtils;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -36,33 +38,38 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
+@Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-public class EmptyDatabaseIntegrationTest {
+@ContextConfiguration
+public class FlywayMigrationIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
+
+    @Configuration
+    static class Config {
+
+        @Bean(initMethod = "migrate")
+        public Flyway flyway(DataSource dataSource) {
+            Flyway flyway = new Flyway();
+            flyway.setDataSource(dataSource);
+            flyway.setSchemas("test");
+            return flyway;
+        }
+
+        @Bean
+        public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+            return new JdbcTemplate(dataSource);
+        }
+    }
 
     @Autowired
     private DataSource dataSource;
 
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Before
-    public void setUp() throws Exception {
-        jdbcTemplate = new JdbcTemplate(dataSource);
-        jdbcTemplate.afterPropertiesSet();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        JdbcTestUtils.dropTables(jdbcTemplate, "test.person");
-    }
-
     @Test
-    @Sql(statements = "create schema if not exists test")
-    @Sql(scripts = {
-            "/db/migration/V0001_1__create_person_table.sql",
-            "/db/migration/V0002_1__rename_surname_column.sql"
-    })
+    @FlywayTest
     public void loadDefaultMigrations() throws Exception {
         assertThat(dataSource).isNotNull();
 
@@ -77,12 +84,7 @@ public class EmptyDatabaseIntegrationTest {
     }
 
     @Test
-    @Sql(statements = "create schema if not exists test")
-    @Sql(scripts = {
-            "/db/migration/V0001_1__create_person_table.sql",
-            "/db/migration/V0002_1__rename_surname_column.sql",
-            "/db/test_migration/appendable/V1000_1__create_test_data.sql"
-    })
+    @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
     public void loadAppendableTestMigrations() throws Exception {
         assertThat(dataSource).isNotNull();
 
@@ -95,31 +97,20 @@ public class EmptyDatabaseIntegrationTest {
     }
 
     @Test
-    @Sql(statements = "create schema if not exists test")
-    @Sql(scripts = {
-            "/db/migration/V0001_1__create_person_table.sql",
-            "/db/test_migration/dependent/V0001_2__add_full_name_column.sql",
-            "/db/migration/V0002_1__rename_surname_column.sql"
-    })
+    @FlywayTest(locationsForMigrate = "db/test_migration/dependent")
     public void loadDependentTestMigrations() throws Exception {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(1);
+        assertThat(persons).isNotNull().hasSize(2);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Dave"),
-                entry("last_name", "Syer"),
-                entry("full_name", "Dave Syer"));
+        assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer", "Dave Syer"),
+                tuple(3L, "Will", "Smith", "Will Smith"));
     }
 
     @Test
-    @Sql(statements = "create schema if not exists test")
-    @Sql(scripts = {
-            "/db/test_migration/separated/V1000_1__create_test_person_table.sql"
-    })
+    @FlywayTest(overrideLocations = true, locationsForMigrate = "db/test_migration/separated")
     public void loadIndependentTestMigrations() throws Exception {
         assertThat(dataSource).isNotNull();
 

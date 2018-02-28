@@ -3,7 +3,6 @@ package io.zonky.test.db.flyway;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.callback.FlywayCallback;
-import org.flywaydb.core.api.configuration.FlywayConfiguration;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 
 import javax.sql.DataSource;
@@ -15,7 +14,9 @@ import java.util.Objects;
  * Represents a snapshot of configuration parameters of a flyway instance.
  * It is necessary because of mutability of flyway instances.
  */
-public class FlywayConfigSnapshot implements FlywayConfiguration {
+public class FlywayConfigSnapshot {
+
+    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     // not included in equals and hashCode methods
     private final ClassLoader classLoader;
@@ -65,17 +66,11 @@ public class FlywayConfigSnapshot implements FlywayConfiguration {
     public FlywayConfigSnapshot(Flyway flyway) {
         this.classLoader = flyway.getClassLoader();
         this.dataSource = flyway.getDataSource();
-        this.baselineVersion = flyway.getBaselineVersion();
-        this.baselineDescription = flyway.getBaselineDescription();
         this.resolvers = flyway.getResolvers();
-        this.skipDefaultResolvers = flyway.isSkipDefaultResolvers();
         this.callbacks = flyway.getCallbacks();
-        this.skipDefaultCallbacks = flyway.isSkipDefaultCallbacks();
         this.sqlMigrationSuffix = flyway.getSqlMigrationSuffix();
-        this.repeatableSqlMigrationPrefix = flyway.getRepeatableSqlMigrationPrefix();
         this.sqlMigrationSeparator = flyway.getSqlMigrationSeparator();
         this.sqlMigrationPrefix = flyway.getSqlMigrationPrefix();
-        this.placeholderReplacement = flyway.isPlaceholderReplacement();
         this.placeholderSuffix = flyway.getPlaceholderSuffix();
         this.placeholderPrefix = flyway.getPlaceholderPrefix();
         this.placeholders = flyway.getPlaceholders();
@@ -84,175 +79,183 @@ public class FlywayConfigSnapshot implements FlywayConfiguration {
         this.schemas = flyway.getSchemas();
         this.encoding = flyway.getEncoding();
         this.locations = flyway.getLocations();
-        this.baselineOnMigrate = flyway.isBaselineOnMigrate();
         this.outOfOrder = flyway.isOutOfOrder();
-        this.ignoreMissingMigrations = flyway.isIgnoreMissingMigrations();
-        this.ignoreFutureMigrations = flyway.isIgnoreFutureMigrations();
         this.validateOnMigrate = flyway.isValidateOnMigrate();
         this.cleanOnValidationError = flyway.isCleanOnValidationError();
-        this.cleanDisabled = flyway.isCleanDisabled();
-        this.allowMixedMigrations = flyway.isAllowMixedMigrations();
-        this.mixed = flyway.isMixed();
-        this.group = flyway.isGroup();
-        this.installedBy = flyway.getInstalledBy();
+
+        if (flywayVersion >= 31) {
+            this.baselineVersion = flyway.getBaselineVersion();
+            this.baselineDescription = flyway.getBaselineDescription();
+            this.baselineOnMigrate = flyway.isBaselineOnMigrate();
+        } else {
+            this.baselineVersion = null;
+            this.baselineDescription = null;
+            this.baselineOnMigrate = false;
+        }
+
+        if (flywayVersion >= 32) {
+            this.placeholderReplacement = flyway.isPlaceholderReplacement();
+        } else {
+            this.placeholderReplacement = true;
+        }
+
+        if (flywayVersion >= 40) {
+            this.skipDefaultResolvers = flyway.isSkipDefaultResolvers();
+            this.skipDefaultCallbacks = flyway.isSkipDefaultCallbacks();
+            this.repeatableSqlMigrationPrefix = flyway.getRepeatableSqlMigrationPrefix();
+            this.ignoreFutureMigrations = flyway.isIgnoreFutureMigrations();
+            this.cleanDisabled = flyway.isCleanDisabled();
+        } else {
+            this.skipDefaultResolvers = false;
+            this.skipDefaultCallbacks = false;
+            this.repeatableSqlMigrationPrefix = "R";
+            this.ignoreFutureMigrations = true;
+            this.cleanDisabled = false;
+        }
+
+        if (flywayVersion >= 41) {
+            this.ignoreMissingMigrations = flyway.isIgnoreMissingMigrations();
+            this.allowMixedMigrations = flyway.isAllowMixedMigrations();
+            this.installedBy = flyway.getInstalledBy();
+        } else {
+            this.ignoreMissingMigrations = false;
+            this.allowMixedMigrations = false;
+            this.installedBy = null;
+        }
+
+        if (flywayVersion >= 42) {
+            this.mixed = flyway.isMixed();
+            this.group = flyway.isGroup();
+        } else {
+            this.mixed = false;
+            this.group = false;
+        }
     }
 
-    @Override
     public ClassLoader getClassLoader() {
         return classLoader;
     }
 
-    @Override
     public DataSource getDataSource() {
         return dataSource;
     }
 
-    @Override
     public MigrationVersion getBaselineVersion() {
         return baselineVersion;
     }
 
-    @Override
     public String getBaselineDescription() {
         return baselineDescription;
     }
 
-    @Override
     public MigrationResolver[] getResolvers() {
         return resolvers;
     }
 
-    @Override
     public boolean isSkipDefaultResolvers() {
         return skipDefaultResolvers;
     }
 
-    @Override
     public FlywayCallback[] getCallbacks() {
         return callbacks;
     }
 
-    @Override
     public boolean isSkipDefaultCallbacks() {
         return skipDefaultCallbacks;
     }
 
-    @Override
     public String getSqlMigrationSuffix() {
         return sqlMigrationSuffix;
     }
 
-    @Override
     public String getRepeatableSqlMigrationPrefix() {
         return repeatableSqlMigrationPrefix;
     }
 
-    @Override
     public String getSqlMigrationSeparator() {
         return sqlMigrationSeparator;
     }
 
-    @Override
     public String getSqlMigrationPrefix() {
         return sqlMigrationPrefix;
     }
 
-    @Override
     public boolean isPlaceholderReplacement() {
         return placeholderReplacement;
     }
 
-    @Override
     public String getPlaceholderSuffix() {
         return placeholderSuffix;
     }
 
-    @Override
     public String getPlaceholderPrefix() {
         return placeholderPrefix;
     }
 
-    @Override
     public Map<String, String> getPlaceholders() {
         return placeholders;
     }
 
-    @Override
     public MigrationVersion getTarget() {
         return target;
     }
 
-    @Override
     public String getTable() {
         return table;
     }
 
-    @Override
     public String[] getSchemas() {
         return schemas;
     }
 
-    @Override
     public String getEncoding() {
         return encoding;
     }
 
-    @Override
     public String[] getLocations() {
         return locations;
     }
 
-    @Override
     public boolean isBaselineOnMigrate() {
         return baselineOnMigrate;
     }
 
-    @Override
     public boolean isOutOfOrder() {
         return outOfOrder;
     }
 
-    @Override
     public boolean isIgnoreMissingMigrations() {
         return ignoreMissingMigrations;
     }
 
-    @Override
     public boolean isIgnoreFutureMigrations() {
         return ignoreFutureMigrations;
     }
 
-    @Override
     public boolean isValidateOnMigrate() {
         return validateOnMigrate;
     }
 
-    @Override
     public boolean isCleanOnValidationError() {
         return cleanOnValidationError;
     }
 
-    @Override
     public boolean isCleanDisabled() {
         return cleanDisabled;
     }
 
-    @Override
     public boolean isAllowMixedMigrations() {
         return allowMixedMigrations;
     }
 
-    @Override
     public boolean isMixed() {
         return mixed;
     }
 
-    @Override
     public boolean isGroup() {
         return group;
     }
 
-    @Override
     public String getInstalledBy() {
         return installedBy;
     }

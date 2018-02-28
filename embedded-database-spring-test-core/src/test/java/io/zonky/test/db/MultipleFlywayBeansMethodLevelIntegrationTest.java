@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.category.MultiFlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -37,20 +38,41 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
+@Category(MultiFlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
-public class FlywayMigrationIntegrationTest {
+public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
     @Configuration
     static class Config {
 
-        @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) {
+        @Bean
+        public Flyway flyway1(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
             flyway.setSchemas("test");
+            flyway.setLocations("db/migration", "db/test_migration/dependent");
+            return flyway;
+        }
+
+        @Bean
+        public Flyway flyway2(DataSource dataSource) {
+            Flyway flyway = new Flyway();
+            flyway.setDataSource(dataSource);
+            flyway.setSchemas("test");
+            flyway.setLocations("db/test_migration/separated");
+            return flyway;
+        }
+
+        @Bean
+        public Flyway flyway3(DataSource dataSource) {
+            Flyway flyway = new Flyway();
+            flyway.setDataSource(dataSource);
+            flyway.setSchemas("test");
+            flyway.setLocations("db/test_migration/appendable");
+            flyway.setValidateOnMigrate(false);
             return flyway;
         }
 
@@ -67,36 +89,8 @@ public class FlywayMigrationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @FlywayTest
-    public void loadDefaultMigrations() throws Exception {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(1);
-
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Dave"),
-                entry("last_name", "Syer"));
-    }
-
-    @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
-    public void loadAppendableTestMigrations() throws Exception {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
-
-        assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
-                tuple(1L, "Dave", "Syer"),
-                tuple(2L, "Tom", "Hanks"));
-    }
-
-    @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/dependent")
-    public void loadDependentTestMigrations() throws Exception {
+    @FlywayTest(flywayName = "flyway1")
+    public void databaseShouldBeLoadedByFlyway1() throws Exception {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -108,8 +102,8 @@ public class FlywayMigrationIntegrationTest {
     }
 
     @Test
-    @FlywayTest(overrideLocations = true, locationsForMigrate = "db/test_migration/separated")
-    public void loadIndependentTestMigrations() throws Exception {
+    @FlywayTest(flywayName = "flyway2")
+    public void databaseShouldBeLoadedByFlyway2() throws Exception {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -120,5 +114,36 @@ public class FlywayMigrationIntegrationTest {
                 entry("id", 1L),
                 entry("first_name", "Tom"),
                 entry("last_name", "Hanks"));
+    }
+
+    @Test
+    @FlywayTest(flywayName = "flyway1")
+    @FlywayTest(flywayName = "flyway2")
+    public void databaseShouldBeOverriddenByFlyway2() throws Exception {
+        assertThat(dataSource).isNotNull();
+
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        assertThat(persons).isNotNull().hasSize(1);
+
+        Map<String, Object> person = persons.get(0);
+        assertThat(person).containsExactly(
+                entry("id", 1L),
+                entry("first_name", "Tom"),
+                entry("last_name", "Hanks"));
+    }
+
+    @Test
+    @FlywayTest(flywayName = "flyway1")
+    @FlywayTest(flywayName = "flyway3", invokeCleanDB = false)
+    public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() throws Exception {
+        assertThat(dataSource).isNotNull();
+
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        assertThat(persons).isNotNull().hasSize(3);
+
+        assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer"),
+                tuple(2L, "Tom", "Hanks"),
+                tuple(3L, "Will", "Smith"));
     }
 }

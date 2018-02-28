@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.junit.runner.RunWith;

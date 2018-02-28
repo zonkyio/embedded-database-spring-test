@@ -1,12 +1,13 @@
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.category.FlywayIntegrationTests;
 import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
+@Category(FlywayIntegrationTests.class)
 @FlywayTest
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration

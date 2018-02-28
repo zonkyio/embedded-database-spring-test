@@ -23,25 +23,24 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.flywaydb.core.internal.resolver.CompositeMigrationResolver;
-import org.flywaydb.core.internal.util.ConfigurationInjectionUtils;
-import org.flywaydb.core.internal.util.Locations;
-import org.flywaydb.core.internal.util.PlaceholderReplacer;
+import org.flywaydb.core.internal.dbsupport.DbSupport;
 import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.flywaydb.test.annotation.FlywayTests;
 import org.flywaydb.test.junit.FlywayTestExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.CollectionUtils;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -54,9 +53,14 @@ import java.util.Map;
  *
  * @see <a href="https://www.postgresql.org/docs/9.6/static/manage-ag-templatedbs.html">Template Databases</a>
  */
-public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionListener {
+public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionListener implements Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger(OptimizedFlywayTestExecutionListener.class);
+
+    private static final boolean flywayNameAttributePresent = FlywayClassUtils.isFlywayNameAttributePresent();
+    private static final boolean flywayBaselineAttributePresent = FlywayClassUtils.isFlywayBaselineAttributePresent();
+    private static final boolean repeatableAnnotationPresent = FlywayClassUtils.isRepeatableFlywayTestAnnotationPresent();
+    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     /**
      * The order value must be less than {@link org.springframework.test.context.transaction.TransactionalTestExecutionListener}.
@@ -78,17 +82,11 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     public void beforeTestClass(TestContext testContext) throws Exception {
         Class<?> testClass = testContext.getTestClass();
 
-        FlywayTests containerAnnotation = AnnotationUtils.findAnnotation(testClass, FlywayTests.class);
-        if (containerAnnotation != null) {
-            FlywayTest[] annotations = containerAnnotation.value();
-            if (annotations.length > 1) {
-                logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
-            }
-            for (FlywayTest annotation : annotations) {
-                optimizedDbReset(testContext, annotation);
-            }
-        } else {
-            FlywayTest annotation = AnnotationUtils.findAnnotation(testClass, FlywayTest.class);
+        FlywayTest[] annotations = findFlywayTestAnnotations(testClass);
+        if (annotations.length > 1) {
+            logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
+        }
+        for (FlywayTest annotation : annotations) {
             optimizedDbReset(testContext, annotation);
         }
     }
@@ -97,26 +95,39 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     public void beforeTestMethod(TestContext testContext) throws Exception {
         Method testMethod = testContext.getTestMethod();
 
-        FlywayTests containerAnnotation = AnnotationUtils.findAnnotation(testMethod, FlywayTests.class);
-        if (containerAnnotation != null) {
-            FlywayTest[] annotations = containerAnnotation.value();
-            if (annotations.length > 1) {
-                logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
-            }
-            for (FlywayTest annotation : annotations) {
-                optimizedDbReset(testContext, annotation);
-            }
-        } else {
-            FlywayTest annotation = AnnotationUtils.findAnnotation(testMethod, FlywayTest.class);
+        FlywayTest[] annotations = findFlywayTestAnnotations(testMethod);
+        if (annotations.length > 1) {
+            logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
+        }
+        for (FlywayTest annotation : annotations) {
             optimizedDbReset(testContext, annotation);
         }
     }
 
+    protected FlywayTest[] findFlywayTestAnnotations(AnnotatedElement element) {
+        if (repeatableAnnotationPresent) {
+            org.flywaydb.test.annotation.FlywayTests containerAnnotation = findAnnotation(element, org.flywaydb.test.annotation.FlywayTests.class);
+            if (containerAnnotation != null) {
+                return containerAnnotation.value();
+            }
+        }
+
+        FlywayTest annotation = findAnnotation(element, FlywayTest.class);
+        if (annotation != null) {
+            return new FlywayTest[] { annotation };
+        }
+
+        return new FlywayTest[0];
+    }
+
     protected synchronized void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
-        if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB() && !annotation.invokeBaselineDB()) {
+        String dbResetMethodName = repeatableAnnotationPresent ? "dbResetWithAnnotation" : "dbResetWithAnotation";
+
+        if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB()
+                && (!flywayBaselineAttributePresent || !annotation.invokeBaselineDB())) {
 
             ApplicationContext applicationContext = testContext.getApplicationContext();
-            Flyway flywayBean = ReflectionTestUtils.invokeMethod(this, "getBean", applicationContext, Flyway.class, annotation.flywayName());
+            Flyway flywayBean = getFlywayBean(applicationContext, annotation);
 
             if (flywayBean != null) {
                 FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
@@ -127,14 +138,14 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                     prepareDataSourceContext(dataSourceContext, flywayBean, annotation);
 
                     FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
-                    ReflectionTestUtils.invokeMethod(this, "dbResetWithAnnotation", testContext, adjustedAnnotation);
+                    ReflectionTestUtils.invokeMethod(this, dbResetMethodName, testContext, adjustedAnnotation);
 
                     return;
                 }
             }
         }
 
-        ReflectionTestUtils.invokeMethod(this, "dbResetWithAnnotation", testContext, annotation);
+        ReflectionTestUtils.invokeMethod(this, dbResetMethodName, testContext, annotation);
     }
 
     protected static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
@@ -177,19 +188,19 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     }
 
     protected static MigrationVersion findFirstVersion(Flyway flyway, String... locations) {
-        CompositeMigrationResolver resolver = createMigrationResolver(flyway, locations);
-        List<ResolvedMigration> migrations = resolver.resolveMigrations();
+        MigrationResolver resolver = createMigrationResolver(flyway, locations);
+        Collection<ResolvedMigration> migrations = resolver.resolveMigrations();
 
         if (CollectionUtils.isEmpty(migrations)) {
             return MigrationVersion.EMPTY;
         } else {
-            return migrations.get(0).getVersion();
+            return Iterables.getFirst(migrations, null).getVersion();
         }
     }
 
     protected static MigrationVersion findLastVersion(Flyway flyway, String... locations) {
-        CompositeMigrationResolver resolver = createMigrationResolver(flyway, locations);
-        List<ResolvedMigration> migrations = resolver.resolveMigrations();
+        MigrationResolver resolver = createMigrationResolver(flyway, locations);
+        Collection<ResolvedMigration> migrations = resolver.resolveMigrations();
 
         if (CollectionUtils.isEmpty(migrations)) {
             return MigrationVersion.EMPTY;
@@ -198,22 +209,28 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    protected static CompositeMigrationResolver createMigrationResolver(Flyway flyway, String... locations) {
-        Scanner scanner = new Scanner(flyway.getClassLoader());
+    protected static MigrationResolver createMigrationResolver(Flyway flyway, String... locations) {
+        String[] oldLocations = flyway.getLocations();
+        try {
+            flyway.setLocations(locations);
 
-        for (MigrationResolver resolver : flyway.getResolvers()) {
-            ConfigurationInjectionUtils.injectFlywayConfiguration(resolver, flyway);
+            if (flywayVersion >= 40) {
+                Scanner scanner = new Scanner(flyway.getClassLoader());
+                return ReflectionTestUtils.invokeMethod(flyway, "createMigrationResolver", null, scanner);
+            } else {
+                return ReflectionTestUtils.invokeMethod(flyway, "createMigrationResolver", (DbSupport) null);
+            }
+        } finally {
+            flyway.setLocations(oldLocations);
         }
-
-        return new CompositeMigrationResolver(null, scanner, flyway,
-                new Locations(locations), createPlaceholderReplacer(flyway), flyway.getResolvers());
     }
 
-    protected static PlaceholderReplacer createPlaceholderReplacer(Flyway flyway) {
-        if (flyway.isPlaceholderReplacement()) {
-            return new PlaceholderReplacer(flyway.getPlaceholders(), flyway.getPlaceholderPrefix(), flyway.getPlaceholderSuffix());
+    protected Flyway getFlywayBean(ApplicationContext applicationContext, FlywayTest annotation) {
+        if (flywayNameAttributePresent) {
+            return ReflectionTestUtils.invokeMethod(this, "getBean", applicationContext, Flyway.class, annotation.flywayName());
+        } else {
+            return ReflectionTestUtils.invokeMethod(this, "getBean", applicationContext, Flyway.class);
         }
-        return PlaceholderReplacer.NO_PLACEHOLDERS;
     }
 
     protected static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, Flyway flywayBean) {
@@ -232,6 +249,22 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         } catch (BeansException e) {}
 
         return null;
+    }
+
+    /**
+     * Customized implementation because {@link AnnotationUtils#findAnnotation(AnnotatedElement, Class)} method
+     * operates generically on annotated elements and not execute specialized search algorithms for classes and methods.
+     *
+     * @see AnnotationUtils#findAnnotation(AnnotatedElement, Class)
+     */
+    protected static <A extends Annotation> A findAnnotation(AnnotatedElement annotatedElement, Class<A> annotationType) {
+        if (annotatedElement instanceof Class<?>) {
+            return AnnotationUtils.findAnnotation((Class<?>) annotatedElement, annotationType);
+        } else if (annotatedElement instanceof Method) {
+            return AnnotationUtils.findAnnotation((Method) annotatedElement, annotationType);
+        } else {
+            return AnnotationUtils.findAnnotation(annotatedElement, annotationType);
+        }
     }
 
     private static FlywayTest copyAnnotation(FlywayTest annotation, boolean invokeCleanDB, boolean invokeBaselineDB, boolean invokeMigrateDB) {
