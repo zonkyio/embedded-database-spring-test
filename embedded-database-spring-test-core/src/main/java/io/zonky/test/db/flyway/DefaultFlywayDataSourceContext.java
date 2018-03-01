@@ -22,6 +22,7 @@ import com.google.common.cache.LoadingCache;
 import com.opentable.db.postgres.embedded.DatabasePreparer;
 import com.opentable.db.postgres.embedded.PreparedDbProvider;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.core.task.TaskExecutor;
@@ -29,6 +30,7 @@ import org.springframework.util.concurrent.CompletableToListenableFutureAdapter;
 import org.springframework.util.concurrent.ListenableFuture;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -51,6 +53,8 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
+    protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 3;
+
     protected static final LoadingCache<Integer, Semaphore> CONNECTION_SEMAPHORES = CacheBuilder.newBuilder()
             .build(new CacheLoader<Integer, Semaphore>() {
                 public Semaphore load(Integer key) {
@@ -61,6 +65,8 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     protected static final ThreadLocal<DataSource> preparerDataSourceHolder = new ThreadLocal<>();
 
     protected volatile CompletableFuture<DataSource> dataSourceFuture = CompletableFuture.completedFuture(null);
+
+    protected int maxAttempts = DEFAULT_MAX_RETRY_ATTEMPTS;
 
     protected TaskExecutor bootstrapExecutor;
 
@@ -81,11 +87,13 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
             return threadBoundDataSource;
         }
 
-        if (bootstrapExecutor == null && (!dataSourceFuture.isDone() || dataSourceFuture.get() == null)) {
+        if (bootstrapExecutor == null && !dataSourceFuture.isDone()) {
             throw new IllegalStateException("dataSource is not initialized yet");
         }
 
-        return dataSourceFuture.get();
+        DataSource dataSource = dataSourceFuture.get();
+        checkState(dataSource != null, "Error when initializing the data source");
+        return dataSource;
     }
 
     @Override
@@ -97,20 +105,39 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     public synchronized ListenableFuture<Void> reload(Flyway flyway) {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
-        dataSourceFuture = dataSourceFuture.thenApplyAsync(x -> {
-            try {
-                FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
-                PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer);
+        CompletableFuture<DataSource> reloadFuture = dataSourceFuture.thenApplyAsync(x -> {
+            for (int current = 1; current <= maxAttempts; current++) {
+                try {
+                    FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
+                    PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer);
 
-                PGSimpleDataSource dataSource = ((PGSimpleDataSource) provider.createDataSource());
-                Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
-                return new BlockingDataSourceWrapper(dataSource, semaphore);
-            } catch (Exception e) {
-                throw new CompletionException(e);
+                    PGSimpleDataSource dataSource = ((PGSimpleDataSource) provider.createDataSource());
+                    Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
+                    return new BlockingDataSourceWrapper(dataSource, semaphore);
+                } catch (Exception e) {
+                    if (ExceptionUtils.indexOfType(e, IOException.class) == -1 || current == maxAttempts) {
+                        throw new CompletionException(e);
+                    }
+                }
             }
+            throw new IllegalStateException("maxAttempts parameter must be greater or equal to 1");
         }, executor);
 
-        return new CompletableToListenableFutureAdapter<>(dataSourceFuture.thenApply(dataSource -> null));
+        // main data source future must never fail, otherwise all following tests will fail
+        dataSourceFuture = reloadFuture.exceptionally(throwable -> null);
+
+        return new CompletableToListenableFutureAdapter<>(reloadFuture.thenApply(dataSource -> null));
+    }
+
+    /**
+     * Set the number of attempts for initialization of the embedded database.
+     * Includes the initial attempt before the retries begin so, generally, will be {@code >= 1}.
+     * For example setting this property to 3 means 3 attempts total (initial + 2 retries).
+     *
+     * @param maxAttempts the maximum number of attempts including the initial attempt.
+     */
+    public void setMaxAttempts(int maxAttempts) {
+        this.maxAttempts = maxAttempts;
     }
 
     /**
