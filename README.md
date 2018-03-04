@@ -4,8 +4,10 @@ The primary goal of this project is to make it easier to write Spring-powered in
 
 ## Features
 
-* Integration with Spring TestContext Framework
-* Both `Spring` and `Spring Boot` Frameworks are supported
+* Integration with Spring TestContext framework
+    * Context caching is fully supported
+* Both `Spring` and `Spring Boot` frameworks are supported
+    * Supported versions are Spring 4.3.0+ and Spring Boot 1.4.0+
 * Lightweight bundle of PostgreSQL database with reduced size
 * Integration with Flyway database migration tool
 * Optimized migration and cleaning of embedded database

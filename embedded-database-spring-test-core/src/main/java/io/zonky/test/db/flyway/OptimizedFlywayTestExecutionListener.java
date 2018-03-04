@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
 import org.apache.commons.lang3.ArrayUtils;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
@@ -40,6 +41,7 @@ import org.springframework.util.CollectionUtils;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -145,7 +147,17 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             }
         }
 
-        ReflectionTestUtils.invokeMethod(this, dbResetMethodName, testContext, annotation);
+        try {
+            ReflectionTestUtils.invokeMethod(this, dbResetMethodName, testContext, annotation);
+        } catch (FlywayException e) {
+            if (e.getCause() instanceof SQLException) {
+                String errorCode = ((SQLException) e.getCause()).getSQLState();
+                if (errorCode != null && errorCode.matches("(42723|42P06|42P07|42712|42710)")) {
+                    logger.error("HINT: Check that you have correctly set org.flywaydb.core.Flyway#schemaNames property!!!");
+                }
+            }
+            throw e;
+        }
     }
 
     protected static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {

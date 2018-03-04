@@ -21,7 +21,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.opentable.db.postgres.embedded.DatabasePreparer;
 import com.opentable.db.postgres.embedded.PreparedDbProvider;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -159,10 +158,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     }
 
     protected FlywayConfigSnapshot createConfigSnapshot(Flyway flyway) {
-        FlywayConfigSnapshot configSnapshot = new FlywayConfigSnapshot(flyway);
-        checkState(ArrayUtils.isNotEmpty(configSnapshot.getSchemas()),
-                "org.flywaydb.core.Flyway#schemaNames must be specified");
-        return configSnapshot;
+        return new FlywayConfigSnapshot(flyway);
     }
 
     protected class FlywayDatabasePreparer implements DatabasePreparer {
