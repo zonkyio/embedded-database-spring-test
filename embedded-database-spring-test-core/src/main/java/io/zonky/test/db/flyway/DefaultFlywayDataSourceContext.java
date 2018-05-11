@@ -91,7 +91,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
         }
 
         DataSource dataSource = dataSourceFuture.get();
-        checkState(dataSource != null, "Error when initializing the data source");
+        checkState(dataSource != null, "Unexpected error occurred while initializing the data source");
         return dataSource;
     }
 

@@ -1,12 +1,14 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import java.util.regex.Matcher
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
+    id 'com.github.johnrengelman.shadow' version '2.0.3'
 }
 
 ext {
-    ossrhUsername = project.findProperty('ossrhUsername')
-    ossrhPassword = project.findProperty('ossrhPassword')
+    ossrhUsername = project.findProperty('ossrh.username')
+    ossrhPassword = project.findProperty('ossrh.password')
 
     flywayCoreVersions = ['3.0', '3.1', '3.2.1', '4.0.3', '4.1.2']
     flywayTestExtensionsVersions = ['3.0.1', '3.1', '3.2.1.1', '4.0.1', '4.1.0']
@@ -29,6 +31,9 @@ subprojects {
     }
 
     configurations {
+        included
+        archives.extendsFrom included
+
         for (version in flywayCoreVersions) {
             "testRuntimeWithFlywayCore$version" {
                 extendsFrom testRuntime
@@ -202,11 +207,53 @@ project(':embedded-database-spring-test-autoconfigure') {
 
 project(':embedded-database-spring-test-core') {
     dependencies {
+        runtime 'io.zonky.test.postgres:embedded-postgres-binaries-windows-amd64:10.4.0'
+        runtime 'io.zonky.test.postgres:embedded-postgres-binaries-darwin-amd64:10.4.0'
+        runtime 'io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64:10.4.0'
+
         compile 'org.springframework:spring-context:4.3.10.RELEASE'
         compile 'org.springframework:spring-test:4.3.10.RELEASE'
-        compile 'com.opentable.components:otj-pg-embedded:0.9.0'
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:4.2.0.2'
         compile 'com.google.guava:guava:23.0'
+
+        // some classes of otj-pg-embedded component are repackaged into the shadowed jar
+        included 'com.opentable.components:otj-pg-embedded:0.9.0'
+
+        configurations.included.incoming.resolutionResult.allDependencies { result ->
+            compile result.getRequested().getDisplayName()
+        }
+    }
+
+    def installer = install.repositories.mavenInstaller
+    def deployer = uploadArchives.repositories.mavenDeployer
+
+    [installer, deployer]*.pom*.whenConfigured { pom ->
+        pom.dependencies = pom.dependencies.findAll {
+            it.groupId != 'com.opentable.components' || it.artifactId != 'otj-pg-embedded'
+        }
+    }
+
+    task shadowJar(group: 'build', type: ShadowJar) {
+        from sourceSets.main.output
+        configurations = [project.configurations.included]
+
+        dependencies {
+            exclude(dependency {
+                it.moduleGroup != 'com.opentable.components' || it.moduleName != 'otj-pg-embedded'
+            })
+        }
+
+        exclude 'com/opentable/db/postgres/embedded/BundledPostgresBinaryResolver.class'
+        exclude 'com/opentable/db/postgres/junit/**'
+        exclude '.repacked'
+        exclude '*.txz'
+
+        relocate 'com.opentable.db.postgres.embedded', 'io.zonky.test.db.postgres.embedded'
+    }
+
+    jar {
+        enabled = false
+        dependsOn shadowJar
     }
 }
 
