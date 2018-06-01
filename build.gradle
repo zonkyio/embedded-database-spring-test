@@ -210,6 +210,7 @@ project(':embedded-database-spring-test-core') {
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-windows-amd64:10.4.0'
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-darwin-amd64:10.4.0'
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64:10.4.0'
+        runtime 'io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64-alpine:10.4.0'
 
         compile 'org.springframework:spring-context:4.3.10.RELEASE'
         compile 'org.springframework:spring-test:4.3.10.RELEASE'
