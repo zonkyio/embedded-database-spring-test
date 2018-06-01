@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 import java.util.regex.Matcher
 
 plugins {
@@ -33,39 +34,6 @@ subprojects {
     configurations {
         included
         archives.extendsFrom included
-
-        for (version in flywayCoreVersions) {
-            "testRuntimeWithFlywayCore$version" {
-                extendsFrom testRuntime
-                resolutionStrategy {
-                    eachDependency { details ->
-                        if (details.requested.name == 'flyway-core') {
-                            details.useVersion "$version"
-                        }
-                    }
-                }
-            }
-        }
-
-        for (version in flywayTestExtensionsVersions) {
-            "testRuntimeWithFlywayTestExtensions$version" {
-                extendsFrom testRuntime
-                resolutionStrategy {
-                    eachDependency { details ->
-                        if (details.requested.group == 'org.flywaydb.flyway-test-extensions') {
-                            details.useVersion "$version"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    dependencies {
-        testCompile 'junit:junit:4.12'
-        testCompile 'org.mockito:mockito-all:1.9.5'
-        testCompile 'org.assertj:assertj-core:3.6.1'
-        testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
 
     tasks.withType(JavaCompile) {
@@ -75,44 +43,6 @@ subprojects {
     tasks.withType(Javadoc) {
         options.encoding = 'UTF-8'
         options.addStringOption('Xdoclint:none', '-quiet')
-    }
-
-    test {
-        useJUnit()
-    }
-
-    for (version in flywayCoreVersions) {
-        task "testWithFlywayCore$version"(type: Test) {
-            dependsOn jar
-
-            classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithFlywayCore$version"
-
-            useJUnit {
-                includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
-                includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
-            }
-        }
-        check.dependsOn("testWithFlywayCore$version")
-    }
-
-    for (version in flywayTestExtensionsVersions) {
-        task "testWithFlywayTestExtensions$version"(type: Test) {
-            dependsOn jar
-
-            classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithFlywayTestExtensions$version"
-
-            useJUnit {
-                includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
-
-                if (VersionNumber.withPatchNumber().parse(version) >= VersionNumber.withPatchNumber().parse("4.2.0.1")) {
-                    println "MultiFlywayIntegrationTests category has been applied!!! - $version"
-                    includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
-                }
-            }
-        }
-        check.dependsOn("testWithFlywayTestExtensions$version")
     }
 
     task sourcesJar(type: Jar) {
@@ -198,28 +128,29 @@ subprojects {
 }
 
 project(':embedded-database-spring-test-autoconfigure') {
-    archivesBaseName = 'embedded-database-spring-test'
-
-    dependencies {
-        compile project(':embedded-database-spring-test-core')
-    }
 }
 
-project(':embedded-database-spring-test-core') {
+project(':embedded-database-spring-test') {
     dependencies {
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-windows-amd64:10.4.0'
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-darwin-amd64:10.4.0'
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64:10.4.0'
         runtime 'io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64-alpine:10.4.0'
 
+        compile project(':embedded-database-spring-test-autoconfigure')
         compile 'org.springframework:spring-context:4.3.10.RELEASE'
         compile 'org.springframework:spring-test:4.3.10.RELEASE'
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:4.2.0.2'
         compile 'com.google.guava:guava:23.0'
+        compile 'org.tukaani:xz:1.8'
+
+        testCompile 'junit:junit:4.12'
+        testCompile 'org.mockito:mockito-all:1.9.5'
+        testCompile 'org.assertj:assertj-core:3.6.1'
+        testCompile 'ch.qos.logback:logback-classic:1.2.3'
 
         // some classes of otj-pg-embedded component are repackaged into the shadowed jar
         included 'com.opentable.components:otj-pg-embedded:0.9.0'
-
         configurations.included.incoming.resolutionResult.allDependencies { result ->
             compile result.getRequested().getDisplayName()
         }
@@ -255,6 +186,75 @@ project(':embedded-database-spring-test-core') {
     jar {
         enabled = false
         dependsOn shadowJar
+    }
+
+    configurations {
+        for (version in flywayCoreVersions) {
+            "testRuntimeWithFlywayCore$version" {
+                extendsFrom testRuntime
+                resolutionStrategy {
+                    eachDependency { details ->
+                        if (details.requested.name == 'flyway-core') {
+                            details.useVersion "$version"
+                        }
+                    }
+                }
+            }
+        }
+
+        for (version in flywayTestExtensionsVersions) {
+            "testRuntimeWithFlywayTestExtensions$version" {
+                extendsFrom testRuntime
+                resolutionStrategy {
+                    eachDependency { details ->
+                        if (details.requested.group == 'org.flywaydb.flyway-test-extensions') {
+                            details.useVersion "$version"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (version in flywayCoreVersions) {
+        task "testWithFlywayCore$version"(type: Test) {
+            dependsOn jar
+
+            classpath -= configurations.testRuntime
+            classpath += configurations."testRuntimeWithFlywayCore$version"
+
+            useJUnit {
+                includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
+                includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
+            }
+        }
+        check.dependsOn("testWithFlywayCore$version")
+    }
+
+    for (version in flywayTestExtensionsVersions) {
+        task "testWithFlywayTestExtensions$version"(type: Test) {
+            dependsOn jar
+
+            classpath -= configurations.testRuntime
+            classpath += configurations."testRuntimeWithFlywayTestExtensions$version"
+
+            useJUnit {
+                includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
+
+                if (VersionNumber.withPatchNumber().parse(version) >= VersionNumber.withPatchNumber().parse("4.2.0.1")) {
+                    println "MultiFlywayIntegrationTests category has been applied!!! - $version"
+                    includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
+                }
+            }
+        }
+        check.dependsOn("testWithFlywayTestExtensions$version")
+    }
+
+    tasks.withType(Test) {
+        testLogging {
+            showStandardStreams = true
+            exceptionFormat = 'full'
+        }
     }
 }
 
