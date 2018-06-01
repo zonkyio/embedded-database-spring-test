@@ -19,11 +19,15 @@ package io.zonky.test.db.flyway;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.opentable.db.postgres.embedded.DatabasePreparer;
+import com.opentable.db.postgres.embedded.EmbeddedPostgres.Builder;
 import com.opentable.db.postgres.embedded.PreparedDbProvider;
+import io.zonky.test.db.postgres.embedded.DefaultPostgresBinaryResolver;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.concurrent.CompletableToListenableFutureAdapter;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -31,11 +35,15 @@ import org.springframework.util.concurrent.ListenableFuture;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -52,18 +60,30 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
-    protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 3;
+    protected static final int MAX_DATABASE_CONNECTIONS = 300;
+    protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 1;
+
+    protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
+        builder.setPgBinaryResolver(DefaultPostgresBinaryResolver.INSTANCE);
+        builder.setPGStartupWait(Duration.ofSeconds(30L));
+    };
+
+    protected static final Consumer<Builder> FORCED_DATABASE_CONFIGURATION =
+            builder -> builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
 
     protected static final LoadingCache<Integer, Semaphore> CONNECTION_SEMAPHORES = CacheBuilder.newBuilder()
             .build(new CacheLoader<Integer, Semaphore>() {
                 public Semaphore load(Integer key) {
-                    return new Semaphore(100); // the maximum number of simultaneous connections to the database
+                    return new Semaphore(MAX_DATABASE_CONNECTIONS);
                 }
             });
 
     protected static final ThreadLocal<DataSource> preparerDataSourceHolder = new ThreadLocal<>();
 
     protected volatile CompletableFuture<DataSource> dataSourceFuture = CompletableFuture.completedFuture(null);
+
+    @Autowired(required = false)
+    protected List<Consumer<Builder>> databaseCustomizers = new ArrayList<>();
 
     protected int maxAttempts = DEFAULT_MAX_RETRY_ATTEMPTS;
 
@@ -104,13 +124,19 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     public synchronized ListenableFuture<Void> reload(Flyway flyway) {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
+        List<Consumer<Builder>> customizers = ImmutableList.<Consumer<Builder>>builder()
+                .add(DEFAULT_DATABASE_CONFIGURATION)
+                .addAll(databaseCustomizers)
+                .add(FORCED_DATABASE_CONFIGURATION)
+                .build();
+
         CompletableFuture<DataSource> reloadFuture = dataSourceFuture.thenApplyAsync(x -> {
             for (int current = 1; current <= maxAttempts; current++) {
                 try {
                     FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
-                    PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer);
+                    PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer, customizers);
 
-                    PGSimpleDataSource dataSource = ((PGSimpleDataSource) provider.createDataSource());
+                    PGSimpleDataSource dataSource = provider.createDataSource().unwrap(PGSimpleDataSource.class);
                     Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
                     return new BlockingDataSourceWrapper(dataSource, semaphore);
                 } catch (Exception e) {
@@ -133,8 +159,11 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
      * Includes the initial attempt before the retries begin so, generally, will be {@code >= 1}.
      * For example setting this property to 3 means 3 attempts total (initial + 2 retries).
      *
+     * @deprecated This method is scheduled to be removed in version 2.0.0,
+     * use {@link Builder Consumer&lt;EmbeddedPostgres.Builder&gt;} customizer and increase startup waiting time instead.
      * @param maxAttempts the maximum number of attempts including the initial attempt.
      */
+    @Deprecated
     public void setMaxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
     }

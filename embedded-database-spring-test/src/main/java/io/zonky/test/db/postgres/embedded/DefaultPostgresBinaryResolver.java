@@ -17,9 +17,11 @@ import java.util.Optional;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.lowerCase;
 
-public class BundledPostgresBinaryResolver implements PgBinaryResolver {
+public class DefaultPostgresBinaryResolver implements PgBinaryResolver {
 
-    private static final Logger logger = LoggerFactory.getLogger(BundledPostgresBinaryResolver.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultPostgresBinaryResolver.class);
+
+    public static final DefaultPostgresBinaryResolver INSTANCE = new DefaultPostgresBinaryResolver();
 
     @Override
     public InputStream getPgBinary(String system, String machineHardware) throws IOException {

@@ -16,11 +16,11 @@
 
 package io.zonky.test.db;
 
+import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.internal.util.MockUtil;
-import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -71,7 +71,7 @@ public class MultipleDataSourcesIntegrationTest {
 
     @Test
     public void dataSource2ShouldBePostgresDataSource() throws Exception {
-        assertThat(dataSource2).isExactlyInstanceOf(PGSimpleDataSource.class);
+        assertThat(dataSource2).isExactlyInstanceOf(BlockingDataSourceWrapper.class);
     }
 
     @Test
