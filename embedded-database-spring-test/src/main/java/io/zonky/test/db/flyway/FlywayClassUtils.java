@@ -2,6 +2,7 @@ package io.zonky.test.db.flyway;
 
 import org.apache.commons.io.IOUtils;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -15,6 +16,7 @@ public class FlywayClassUtils {
             "org.flywaydb.test.annotation.FlywayTests", FlywayClassUtils.class.getClassLoader());
 
     private static final int flywayVersion;
+    private static final boolean isFlywayPro;
 
     static {
         String version;
@@ -34,6 +36,19 @@ public class FlywayClassUtils {
             version = "0";
         }
         flywayVersion = Integer.valueOf(version);
+
+        if (flywayVersion >= 50) {
+            boolean isCommercial;
+            try {
+                new Flyway().getUndoSqlMigrationPrefix();
+                isCommercial = true;
+            } catch (FlywayException e) {
+                isCommercial = false;
+            }
+            isFlywayPro = isCommercial;
+        } else {
+            isFlywayPro = false;
+        }
     }
 
     private FlywayClassUtils() {}
@@ -52,5 +67,9 @@ public class FlywayClassUtils {
 
     public static int getFlywayVersion() {
         return flywayVersion;
+    }
+
+    public static boolean isFlywayPro() {
+        return isFlywayPro;
     }
 }

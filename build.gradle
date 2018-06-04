@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 import java.util.regex.Matcher
 
 plugins {
@@ -11,10 +10,12 @@ ext {
     ossrhUsername = project.findProperty('ossrh.username')
     ossrhPassword = project.findProperty('ossrh.password')
 
-    flywayCoreVersions = ['3.0', '3.1', '3.2.1', '4.0.3', '4.1.2']
-    flywayTestExtensionsVersions = ['3.0.1', '3.1', '3.2.1.1', '4.0.1', '4.1.0']
+    flywayCoreVersions = ['3.0', '3.1', '3.2.1', '4.0.3', '4.1.2', '4.2.0', '5.0.7']
+    flywayTestExtensionsVersions = ['3.0.1', '3.1', '3.2.1.1', '4.0.1', '4.1.0', '4.2.0.2', '5.0.0']
     embeddedPostgresVersions = ['9.3.23', '9.4.18', '9.5.13', '9.6.9', '10.4.0']
 
+    flywayCoreVersion = flywayCoreVersions.last()
+    flywayTestVersion = flywayTestExtensionsVersions.last()
     postgresVersion = embeddedPostgresVersions.last()
 }
 
@@ -143,7 +144,8 @@ project(':embedded-database-spring-test') {
         compile project(':embedded-database-spring-test-autoconfigure')
         compile 'org.springframework:spring-context:4.3.10.RELEASE'
         compile 'org.springframework:spring-test:4.3.10.RELEASE'
-        compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:4.2.0.2'
+        compile "org.flywaydb:flyway-core:$flywayCoreVersion"
+        compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion"
         compile 'com.google.guava:guava:23.0'
         compile 'org.tukaani:xz:1.8'
 
@@ -191,7 +193,7 @@ project(':embedded-database-spring-test') {
     }
 
     configurations {
-        for (version in flywayCoreVersions) {
+        flywayCoreVersions.init().each { version ->
             "testRuntimeWithFlywayCore$version" {
                 extendsFrom testRuntime
                 resolutionStrategy {
@@ -204,7 +206,7 @@ project(':embedded-database-spring-test') {
             }
         }
 
-        for (version in flywayTestExtensionsVersions) {
+        flywayTestExtensionsVersions.init().each { version ->
             "testRuntimeWithFlywayTestExtensions$version" {
                 extendsFrom testRuntime
                 resolutionStrategy {
@@ -231,7 +233,7 @@ project(':embedded-database-spring-test') {
         }
     }
 
-    for (version in flywayCoreVersions) {
+    flywayCoreVersions.init().each { version ->
         task "testWithFlywayCore$version"(type: Test) {
             dependsOn jar
 
@@ -246,7 +248,7 @@ project(':embedded-database-spring-test') {
         check.dependsOn("testWithFlywayCore$version")
     }
 
-    for (version in flywayTestExtensionsVersions) {
+    flywayTestExtensionsVersions.init().each { version ->
         task "testWithFlywayTestExtensions$version"(type: Test) {
             dependsOn jar
 
@@ -257,7 +259,6 @@ project(':embedded-database-spring-test') {
                 includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
 
                 if (VersionNumber.withPatchNumber().parse(version) >= VersionNumber.withPatchNumber().parse("4.2.0.1")) {
-                    println "MultiFlywayIntegrationTests category has been applied!!! - $version"
                     includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
                 }
             }
