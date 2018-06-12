@@ -287,7 +287,9 @@ project(':embedded-database-spring-test') {
 task updateReadmeVersion() {
     doLast {
         def version = project.version.toString()
-        ant.replaceregexp(file: 'README.md', match: '<version>\\d+\\.\\d+\\.\\d+</version>', replace: "<version>$version</version>", flags: 'g', byline: true)
+        ant.replaceregexp(file: 'README.md',
+                match: '(?<=<artifactId>embedded-database-spring-test</artifactId>\\n\\s{4,12})<version>\\d+\\.\\d+\\.\\d+</version>',
+                replace: "<version>$version</version>", flags: 'g')
     }
 }
 
