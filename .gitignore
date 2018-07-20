@@ -25,4 +25,4 @@ build/
 hs_err_pid*
 
 # Gradle wrapper files
-!gradle/wrapper/
+!gradle/wrapper/gradle-wrapper.jar
