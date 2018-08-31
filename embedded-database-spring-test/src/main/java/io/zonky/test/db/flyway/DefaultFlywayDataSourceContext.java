@@ -121,7 +121,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     }
 
     @Override
-    public synchronized ListenableFuture<Void> reload(Flyway flyway) {
+    public synchronized ListenableFuture<DataSource> reload(Flyway flyway) {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
         List<Consumer<Builder>> customizers = ImmutableList.<Consumer<Builder>>builder()
@@ -151,7 +151,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
         // main data source future must never fail, otherwise all following tests will fail
         dataSourceFuture = reloadFuture.exceptionally(throwable -> null);
 
-        return new CompletableToListenableFutureAdapter<>(reloadFuture.thenApply(dataSource -> null));
+        return new CompletableToListenableFutureAdapter<>(reloadFuture);
     }
 
     /**

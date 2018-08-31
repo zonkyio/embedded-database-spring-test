@@ -17,6 +17,7 @@
 package io.zonky.test.db.postgres;
 
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
+import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
@@ -78,8 +79,10 @@ public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof Flyway && StringUtils.equals(beanName, flywayName)) {
-            ListenableFuture<Void> reloadFuture = dataSourceContext.reload((Flyway) bean);
-            reloadFuture.addCallback(r -> {}, e -> logger.error("Unexpected error during the initialization of embedded database", e));
+            ListenableFuture<DataSource> reloadFuture = dataSourceContext.reload((Flyway) bean);
+            reloadFuture.addCallback(
+                    result -> EmbeddedDatabaseReporter.reportDataSource(result),
+                    error -> logger.error("Unexpected error during the initialization of embedded database", error));
         }
         return bean;
     }

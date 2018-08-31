@@ -20,12 +20,14 @@ import org.flywaydb.core.Flyway;
 import org.springframework.aop.TargetSource;
 import org.springframework.util.concurrent.ListenableFuture;
 
+import javax.sql.DataSource;
+
 /**
  * Interface extending {@link TargetSource} that is used by {@link io.zonky.test.db.postgres.FlywayEmbeddedPostgresDataSourceFactoryBean}
  * for deferred initialization of the embedded database until the application context is fully loaded and the flyway bean is available.
  */
 public interface FlywayDataSourceContext extends TargetSource {
 
-    ListenableFuture<Void> reload(Flyway flyway);
+    ListenableFuture<DataSource> reload(Flyway flyway);
 
 }

@@ -25,6 +25,7 @@ import com.opentable.db.postgres.embedded.EmbeddedPostgres.Builder;
 import com.opentable.db.postgres.embedded.PreparedDbProvider;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.postgres.embedded.DefaultPostgresBinaryResolver;
+import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -91,6 +92,7 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
 
         PreparedDbProvider provider = PreparedDbProvider.forPreparer(EmptyDatabasePreparer.INSTANCE, customizers);
         PGSimpleDataSource dataSource = provider.createDataSource().unwrap(PGSimpleDataSource.class);
+        EmbeddedDatabaseReporter.reportDataSource(dataSource);
         Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
         this.dataSource = new BlockingDataSourceWrapper(dataSource, semaphore);
     }

@@ -18,6 +18,7 @@ package io.zonky.test.db.flyway;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
+import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
@@ -37,6 +38,7 @@ import org.springframework.test.context.TestContext;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 
+import javax.sql.DataSource;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationTargetException;
@@ -93,7 +95,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
         }
         for (FlywayTest annotation : annotations) {
-            optimizedDbReset(testContext, annotation);
+            optimizedDbReset(testContext, testClass, annotation);
         }
     }
 
@@ -106,7 +108,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
         }
         for (FlywayTest annotation : annotations) {
-            optimizedDbReset(testContext, annotation);
+            optimizedDbReset(testContext, testMethod, annotation);
         }
     }
 
@@ -126,7 +128,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         return new FlywayTest[0];
     }
 
-    protected synchronized void optimizedDbReset(TestContext testContext, FlywayTest annotation) throws Exception {
+    protected synchronized void optimizedDbReset(TestContext testContext, AnnotatedElement element, FlywayTest annotation) throws Exception {
         String dbResetMethodName = repeatableAnnotationPresent ? "dbResetWithAnnotation" : "dbResetWithAnotation";
 
         if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB()
@@ -141,7 +143,8 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                 if (dataSourceContext != null) {
 
                     dataSourceContext.getTarget(); // wait for completion of running flyway migration
-                    prepareDataSourceContext(dataSourceContext, flywayBean, annotation);
+                    DataSource dataSource = reloadDataSource(dataSourceContext, flywayBean, annotation);
+                    EmbeddedDatabaseReporter.reportDataSource(dataSource, element);
 
                     FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
                     invokeMethod(this, dbResetMethodName, testContext, adjustedAnnotation);
@@ -164,9 +167,9 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         }
     }
 
-    protected static void prepareDataSourceContext(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
+    protected static DataSource reloadDataSource(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
         if (isAppendable(flywayBean, annotation)) {
-            dataSourceContext.reload(flywayBean).get();
+            return dataSourceContext.reload(flywayBean).get();
         } else {
             String[] oldLocations = getFlywayLocations(flywayBean);
             try {
@@ -175,7 +178,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                 } else {
                     flywayBean.setLocations(ObjectArrays.concat(oldLocations, annotation.locationsForMigrate(), String.class));
                 }
-                dataSourceContext.reload(flywayBean).get();
+                return dataSourceContext.reload(flywayBean).get();
             } finally {
                 flywayBean.setLocations(oldLocations);
             }
