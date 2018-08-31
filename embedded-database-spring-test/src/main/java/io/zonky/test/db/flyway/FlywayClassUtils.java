@@ -32,7 +32,7 @@ public class FlywayClassUtils {
                 version = "30";
             }
         } catch (Exception e) {
-            LoggerFactory.getLogger(FlywayConfigSnapshot.class).error("Error resolving flyway version", e);
+            LoggerFactory.getLogger(FlywayConfigSnapshot.class).error("Unexpected error occurred while resolving flyway version", e);
             version = "0";
         }
         flywayVersion = Integer.valueOf(version);

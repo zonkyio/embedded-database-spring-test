@@ -61,11 +61,11 @@ import static com.google.common.base.Preconditions.checkState;
 public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
     protected static final int MAX_DATABASE_CONNECTIONS = 300;
-    protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 1;
+    protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 2;
 
     protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
         builder.setPgBinaryResolver(DefaultPostgresBinaryResolver.INSTANCE);
-        builder.setPGStartupWait(Duration.ofSeconds(30L));
+        builder.setPGStartupWait(Duration.ofSeconds(20L));
     };
 
     protected static final Consumer<Builder> FORCED_DATABASE_CONFIGURATION =
@@ -159,11 +159,8 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
      * Includes the initial attempt before the retries begin so, generally, will be {@code >= 1}.
      * For example setting this property to 3 means 3 attempts total (initial + 2 retries).
      *
-     * @deprecated This method is scheduled to be removed in version 2.0.0,
-     * use {@link Builder Consumer&lt;EmbeddedPostgres.Builder&gt;} customizer and increase startup waiting time instead.
      * @param maxAttempts the maximum number of attempts including the initial attempt.
      */
-    @Deprecated
     public void setMaxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
     }

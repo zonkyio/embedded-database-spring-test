@@ -142,8 +142,8 @@ project(':embedded-database-spring-test') {
         runtime "io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64-alpine:$postgresVersion"
 
         compile project(':embedded-database-spring-test-autoconfigure')
-        compile 'org.springframework:spring-context:4.3.10.RELEASE'
-        compile 'org.springframework:spring-test:4.3.10.RELEASE'
+        compile 'org.springframework:spring-context:4.3.18.RELEASE'
+        compile 'org.springframework:spring-test:4.3.18.RELEASE'
         compile "org.flywaydb:flyway-core:$flywayCoreVersion"
         compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion"
         compile 'com.google.guava:guava:23.0'
@@ -194,7 +194,8 @@ project(':embedded-database-spring-test') {
 
     configurations {
         flywayCoreVersions.init().each { version ->
-            "testRuntimeWithFlywayCore$version" {
+            def versionName = version.replaceAll('\\.', '_')
+            "testRuntimeWithFlywayCore_$versionName" {
                 extendsFrom testRuntime
                 resolutionStrategy {
                     eachDependency { details ->
@@ -207,7 +208,8 @@ project(':embedded-database-spring-test') {
         }
 
         flywayTestExtensionsVersions.init().each { version ->
-            "testRuntimeWithFlywayTestExtensions$version" {
+            def versionName = version.replaceAll('\\.', '_')
+            "testRuntimeWithFlywayTestExtensions_$versionName" {
                 extendsFrom testRuntime
                 resolutionStrategy {
                     eachDependency { details ->
@@ -220,7 +222,8 @@ project(':embedded-database-spring-test') {
         }
 
         embeddedPostgresVersions.init().each { version ->
-            "testRuntimeWithEmbeddedPostgres$version" {
+            def versionName = version.replaceAll('\\.', '_')
+            "testRuntimeWithEmbeddedPostgres_$versionName" {
                 extendsFrom testRuntime
                 resolutionStrategy {
                     eachDependency { details ->
@@ -234,26 +237,28 @@ project(':embedded-database-spring-test') {
     }
 
     flywayCoreVersions.init().each { version ->
-        task "testWithFlywayCore$version"(type: Test) {
+        def versionName = version.replaceAll('\\.', '_')
+        task "testWithFlywayCore_$versionName"(type: Test) {
             dependsOn jar
 
             classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithFlywayCore$version"
+            classpath += configurations."testRuntimeWithFlywayCore_$versionName"
 
             useJUnit {
                 includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
                 includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
             }
         }
-        check.dependsOn("testWithFlywayCore$version")
+        check.dependsOn("testWithFlywayCore_$versionName")
     }
 
     flywayTestExtensionsVersions.init().each { version ->
-        task "testWithFlywayTestExtensions$version"(type: Test) {
+        def versionName = version.replaceAll('\\.', '_')
+        task "testWithFlywayTestExtensions_$versionName"(type: Test) {
             dependsOn jar
 
             classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithFlywayTestExtensions$version"
+            classpath += configurations."testRuntimeWithFlywayTestExtensions_$versionName"
 
             useJUnit {
                 includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
@@ -263,17 +268,18 @@ project(':embedded-database-spring-test') {
                 }
             }
         }
-        check.dependsOn("testWithFlywayTestExtensions$version")
+        check.dependsOn("testWithFlywayTestExtensions_$versionName")
     }
 
     embeddedPostgresVersions.init().each { version ->
-        task "testWithEmbeddedPostgres$version"(type: Test) {
+        def versionName = version.replaceAll('\\.', '_')
+        task "testWithEmbeddedPostgres_$versionName"(type: Test) {
             dependsOn jar
 
             classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithEmbeddedPostgres$version"
+            classpath += configurations."testRuntimeWithEmbeddedPostgres_$versionName"
         }
-        check.dependsOn("testWithEmbeddedPostgres$version")
+        check.dependsOn("testWithEmbeddedPostgres_$versionName")
     }
 
     tasks.withType(Test) {

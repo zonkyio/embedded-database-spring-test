@@ -44,7 +44,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayIntegrationTests.class)
-@FlywayTest
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
 public class AsyncFlywayInitializationIntegrationTest {
@@ -59,6 +58,7 @@ public class AsyncFlywayInitializationIntegrationTest {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
             flyway.setSchemas("test");
+            flyway.setLocations("db/migration", "db/test_migration/slow");
             return flyway;
         }
 
@@ -91,7 +91,6 @@ public class AsyncFlywayInitializationIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @FlywayTest
     @Test(timeout = 10000)
     public void loadDefaultMigrations() throws Exception {
         Duration duration = longTimeInitializingBean.getInitializationDuration();

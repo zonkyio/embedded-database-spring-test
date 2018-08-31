@@ -49,7 +49,7 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
 
     protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
         builder.setPgBinaryResolver(DefaultPostgresBinaryResolver.INSTANCE);
-        builder.setPGStartupWait(Duration.ofSeconds(30L));
+        builder.setPGStartupWait(Duration.ofSeconds(20L));
     };
 
     protected static final Consumer<Builder> FORCED_DATABASE_CONFIGURATION =
