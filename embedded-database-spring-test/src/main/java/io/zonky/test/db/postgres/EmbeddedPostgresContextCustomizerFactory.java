@@ -158,8 +158,12 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
                         .addIndexedArgumentValue(1, new RuntimeBeanReference(contextInfo.getBeanName()));
             }
 
-            logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceInfo.getBeanName());
-            registry.registerBeanDefinition(dataSourceInfo.getBeanName(), dataSourceDefinition);
+            String dataSourceBeanName = dataSourceInfo.getBeanName();
+            if (registry.containsBeanDefinition(dataSourceBeanName)) {
+                logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceBeanName);
+                registry.removeBeanDefinition(dataSourceBeanName);
+            }
+            registry.registerBeanDefinition(dataSourceBeanName, dataSourceDefinition);
         }
 
         @Override
