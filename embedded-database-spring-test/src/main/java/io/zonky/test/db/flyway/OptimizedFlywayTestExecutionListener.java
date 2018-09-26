@@ -235,7 +235,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
             if (flywayVersion >= 51) {
                 ClassLoader classLoader = OptimizedFlywayTestExecutionListener.class.getClassLoader();
-                Class<?> configType = ClassUtils.forName("org.flywaydb.core.api.configuration.ClassicConfiguration", classLoader);
+                Class<?> configType = ClassUtils.forName("org.flywaydb.core.api.configuration.Configuration", classLoader);
                 Object configInstance = getField(flyway, "configuration");
                 Scanner scanner = Scanner.class.getDeclaredConstructor(configType).newInstance(configInstance);
                 Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
@@ -262,7 +262,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     protected static String[] getFlywayLocations(Flyway flyway) {
         try {
             if (flywayVersion >= 51) {
-                return Arrays.<Object>stream(flyway.getLocations())
+                return Arrays.stream((Object[]) invokeMethod(flyway, "getLocations"))
                         .map(location -> invokeMethod(location, "getDescriptor"))
                         .toArray(String[]::new);
             } else {
