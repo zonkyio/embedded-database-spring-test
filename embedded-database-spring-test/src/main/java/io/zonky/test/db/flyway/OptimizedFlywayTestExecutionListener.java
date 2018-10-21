@@ -134,32 +134,40 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     }
 
     protected synchronized void optimizedDbReset(TestContext testContext, AnnotatedElement element, FlywayTest annotation) throws Exception {
-        String dbResetMethodName = repeatableAnnotationPresent ? "dbResetWithAnnotation" : "dbResetWithAnotation";
+        try {
+            if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB()
+                    && (!flywayBaselineAttributePresent || !annotation.invokeBaselineDB())) {
 
-        if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB()
-                && (!flywayBaselineAttributePresent || !annotation.invokeBaselineDB())) {
+                ApplicationContext applicationContext = testContext.getApplicationContext();
+                Flyway flywayBean = getFlywayBean(applicationContext, annotation);
 
-            ApplicationContext applicationContext = testContext.getApplicationContext();
-            Flyway flywayBean = getFlywayBean(applicationContext, annotation);
+                if (flywayBean != null) {
+                    FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
 
-            if (flywayBean != null) {
-                FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
+                    if (dataSourceContext != null) {
 
-                if (dataSourceContext != null) {
+                        dataSourceContext.getTarget(); // wait for completion of running flyway migration
+                        DataSource dataSource = reloadDataSource(dataSourceContext, flywayBean, annotation);
+                        EmbeddedDatabaseReporter.reportDataSource(dataSource, element);
 
-                    dataSourceContext.getTarget(); // wait for completion of running flyway migration
-                    DataSource dataSource = reloadDataSource(dataSourceContext, flywayBean, annotation);
-                    EmbeddedDatabaseReporter.reportDataSource(dataSource, element);
+                        FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
+                        originalDbReset(testContext, adjustedAnnotation);
 
-                    FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
-                    invokeMethod(this, dbResetMethodName, testContext, adjustedAnnotation);
-
-                    return;
+                        return;
+                    }
                 }
             }
-        }
 
+            originalDbReset(testContext, annotation);
+        } catch (NoSuchMethodError e) {
+            logger.error("HINT: Check that you are using compatible versions of org.flywaydb:flyway-core and org.flywaydb.flyway-test-extensions:flyway-spring-test dependencies!!!");
+            throw e;
+        }
+    }
+
+    protected void originalDbReset(TestContext testContext, FlywayTest annotation) {
         try {
+            String dbResetMethodName = repeatableAnnotationPresent ? "dbResetWithAnnotation" : "dbResetWithAnotation";
             invokeMethod(this, dbResetMethodName, testContext, annotation);
         } catch (FlywayException e) {
             if (e.getCause() instanceof SQLException) {
@@ -283,17 +291,12 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     }
 
     protected static String[] getFlywayLocations(Flyway flyway) {
-        try {
-            if (flywayVersion >= 51) {
-                return Arrays.stream((Object[]) invokeMethod(flyway, "getLocations"))
-                        .map(location -> invokeMethod(location, "getDescriptor"))
-                        .toArray(String[]::new);
-            } else {
-                return invokeMethod(flyway, "getLocations");
-            }
-        } catch (NoSuchMethodError e) {
-            logger.error("HINT: Check that you are using compatible versions of org.flywaydb:flyway-core and org.flywaydb.flyway-test-extensions:flyway-spring-test dependencies!!!");
-            throw e;
+        if (flywayVersion >= 51) {
+            return Arrays.stream((Object[]) invokeMethod(flyway, "getLocations"))
+                    .map(location -> invokeMethod(location, "getDescriptor"))
+                    .toArray(String[]::new);
+        } else {
+            return flyway.getLocations();
         }
     }
 
