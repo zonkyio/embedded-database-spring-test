@@ -20,12 +20,11 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.opentable.db.postgres.embedded.DatabasePreparer;
-import com.opentable.db.postgres.embedded.EmbeddedPostgres.Builder;
-import com.opentable.db.postgres.embedded.PreparedDbProvider;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
-import io.zonky.test.db.postgres.embedded.DefaultPostgresBinaryResolver;
 import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
+import io.zonky.test.db.postgres.embedded.DatabasePreparer;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres.Builder;
+import io.zonky.test.db.postgres.embedded.PreparedDbProvider;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -48,7 +47,6 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
     protected static final int MAX_DATABASE_CONNECTIONS = 300;
 
     protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
-        builder.setPgBinaryResolver(DefaultPostgresBinaryResolver.INSTANCE);
         builder.setPGStartupWait(Duration.ofSeconds(20L));
     };
 

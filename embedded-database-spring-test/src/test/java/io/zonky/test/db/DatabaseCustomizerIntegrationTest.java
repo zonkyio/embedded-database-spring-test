@@ -16,7 +16,7 @@
 
 package io.zonky.test.db;
 
-import com.opentable.db.postgres.embedded.EmbeddedPostgres;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.runner.RunWith;

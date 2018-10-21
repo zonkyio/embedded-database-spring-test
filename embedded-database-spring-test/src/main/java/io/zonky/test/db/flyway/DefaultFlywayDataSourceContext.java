@@ -20,10 +20,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.opentable.db.postgres.embedded.DatabasePreparer;
-import com.opentable.db.postgres.embedded.EmbeddedPostgres.Builder;
-import com.opentable.db.postgres.embedded.PreparedDbProvider;
-import io.zonky.test.db.postgres.embedded.DefaultPostgresBinaryResolver;
+import io.zonky.test.db.postgres.embedded.DatabasePreparer;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres.Builder;
+import io.zonky.test.db.postgres.embedded.PreparedDbProvider;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -51,7 +50,7 @@ import static com.google.common.base.Preconditions.checkState;
  * Default implementation of {@link FlywayDataSourceContext} that is used for deferred initialization of the embedded database.
  * Note that this target source is dynamic and supports hot reloading while the application is running.
  * <p/>
- * For the reloading of the underlying data source is used cacheable {@link com.opentable.db.postgres.embedded.DatabasePreparer},
+ * For the reloading of the underlying data source is used cacheable {@link io.zonky.test.db.postgres.embedded.DatabasePreparer},
  * which can utilize a special template database to effective copy data into multiple independent databases.
  *
  * @see io.zonky.test.db.postgres.FlywayEmbeddedPostgresDataSourceFactoryBean
@@ -64,7 +63,6 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 2;
 
     protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
-        builder.setPgBinaryResolver(DefaultPostgresBinaryResolver.INSTANCE);
         builder.setPGStartupWait(Duration.ofSeconds(20L));
     };
 

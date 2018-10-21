@@ -1,9 +1,7 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import java.util.regex.Matcher
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
-    id 'com.github.johnrengelman.shadow' version '2.0.3'
 }
 
 ext {
@@ -33,7 +31,6 @@ ext {
 
     flywayCoreVersion = flywayVersions.last().core
     flywayTestVersion = flywayVersions.last().test
-    postgresVersion = embeddedPostgresVersions.last()
 }
 
 allprojects {
@@ -50,11 +47,6 @@ subprojects {
     repositories {
         jcenter()
         mavenCentral()
-    }
-
-    configurations {
-        included
-        archives.extendsFrom included
     }
 
     tasks.withType(JavaCompile) {
@@ -153,12 +145,9 @@ project(':embedded-database-spring-test-autoconfigure') {
 
 project(':embedded-database-spring-test') {
     dependencies {
-        runtime "io.zonky.test.postgres:embedded-postgres-binaries-windows-amd64:$postgresVersion"
-        runtime "io.zonky.test.postgres:embedded-postgres-binaries-darwin-amd64:$postgresVersion"
-        runtime "io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64:$postgresVersion"
-        runtime "io.zonky.test.postgres:embedded-postgres-binaries-linux-amd64-alpine:$postgresVersion"
-
         compile project(':embedded-database-spring-test-autoconfigure')
+
+        compile 'io.zonky.test:embedded-postgres:1.1.0'
         compile 'org.springframework:spring-context:4.3.18.RELEASE'
         compile 'org.springframework:spring-test:4.3.18.RELEASE'
         compile "org.flywaydb:flyway-core:$flywayCoreVersion"
@@ -170,43 +159,6 @@ project(':embedded-database-spring-test') {
         testCompile 'org.mockito:mockito-all:1.9.5'
         testCompile 'org.assertj:assertj-core:3.6.1'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
-
-        // some classes of otj-pg-embedded component are repackaged into the shadowed jar
-        included 'com.opentable.components:otj-pg-embedded:0.12.0'
-        configurations.included.incoming.resolutionResult.allDependencies { result ->
-            compile result.getRequested().getDisplayName()
-        }
-    }
-
-    def installer = install.repositories.mavenInstaller
-    def deployer = uploadArchives.repositories.mavenDeployer
-
-    [installer, deployer]*.pom*.whenConfigured { pom ->
-        pom.dependencies = pom.dependencies.findAll {
-            it.groupId != 'com.opentable.components' || it.artifactId != 'otj-pg-embedded'
-        }
-    }
-
-    task shadowJar(group: 'build', type: ShadowJar) {
-        from sourceSets.main.output
-        configurations = [project.configurations.included]
-
-        dependencies {
-            exclude(dependency {
-                it.moduleGroup != 'com.opentable.components' || it.moduleName != 'otj-pg-embedded'
-            })
-        }
-
-        exclude 'com/opentable/db/postgres/junit/**'
-        exclude '.repacked'
-        exclude '*.txz'
-
-        relocate 'com.opentable.db.postgres.embedded', 'io.zonky.test.db.shaded.com.opentable.db.postgres.embedded'
-    }
-
-    jar {
-        enabled = false
-        dependsOn shadowJar
     }
 
     configurations {
@@ -229,7 +181,7 @@ project(':embedded-database-spring-test') {
             }
         }
 
-        embeddedPostgresVersions.init().each { version ->
+        embeddedPostgresVersions.each { version ->
             def versionName = version.replaceAll('\\.', '-')
             "testRuntimeWithEmbeddedPostgres_$versionName" {
                 extendsFrom testRuntime
@@ -263,7 +215,7 @@ project(':embedded-database-spring-test') {
         check.dependsOn("testWithFlyway_$versionName")
     }
 
-    embeddedPostgresVersions.init().each { version ->
+    embeddedPostgresVersions.each { version ->
         def versionName = version.replaceAll('\\.', '-')
         task "testWithEmbeddedPostgres_$versionName"(type: Test) {
             dependsOn jar
