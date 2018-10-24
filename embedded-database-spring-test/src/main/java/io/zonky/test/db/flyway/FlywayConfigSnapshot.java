@@ -54,6 +54,8 @@ public class FlywayConfigSnapshot {
     private final String placeholderPrefix;
     private final String placeholderSuffix;
     private final Object encoding;
+    private final String initSql;
+    private final String licenseKey;
     private final boolean skipDefaultResolvers;
     private final boolean skipDefaultCallbacks;
     private final boolean placeholderReplacement;
@@ -61,6 +63,7 @@ public class FlywayConfigSnapshot {
     private final boolean outOfOrder;
     private final boolean ignoreMissingMigrations;
     private final boolean ignoreIgnoredMigrations;
+    private final boolean ignorePendingMigrations;
     private final boolean ignoreFutureMigrations;
     private final boolean validateOnMigrate;
     private final boolean cleanOnValidationError;
@@ -73,6 +76,7 @@ public class FlywayConfigSnapshot {
     private final boolean stream;
     private final boolean batch;
     private final boolean oracleSqlPlus;
+    private final int connectRetries;
 
     public FlywayConfigSnapshot(Flyway flyway) {
         this.classLoader = flyway.getClassLoader();
@@ -179,6 +183,22 @@ public class FlywayConfigSnapshot {
             this.batch = false;
             this.oracleSqlPlus = false;
         }
+
+        if (flywayVersion >= 52) {
+            this.ignorePendingMigrations = invokeMethod(flyway, "isIgnorePendingMigrations");
+            this.connectRetries = invokeMethod(flyway, "getConnectRetries");
+            this.initSql = invokeMethod(flyway, "getInitSql");
+        } else {
+            this.ignorePendingMigrations = false;
+            this.connectRetries = 0;
+            this.initSql = null;
+        }
+
+        if (flywayVersion >= 52 && isFlywayPro) {
+            this.licenseKey = invokeMethod(flyway, "getLicenseKey");
+        } else {
+            this.licenseKey = null;
+        }
     }
 
     public ClassLoader getClassLoader() {
@@ -269,6 +289,14 @@ public class FlywayConfigSnapshot {
         return encoding;
     }
 
+    public String getInitSql() {
+        return initSql;
+    }
+
+    public String getLicenseKey() {
+        return licenseKey;
+    }
+
     public Object[] getLocations() {
         return locations;
     }
@@ -287,6 +315,10 @@ public class FlywayConfigSnapshot {
 
     public boolean isIgnoreIgnoredMigrations() {
         return ignoreIgnoredMigrations;
+    }
+
+    public boolean isIgnorePendingMigrations() {
+        return ignorePendingMigrations;
     }
 
     public boolean isIgnoreFutureMigrations() {
@@ -345,6 +377,10 @@ public class FlywayConfigSnapshot {
         return oracleSqlPlus;
     }
 
+    public int getConnectRetries() {
+        return connectRetries;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -357,6 +393,7 @@ public class FlywayConfigSnapshot {
                 outOfOrder == that.outOfOrder &&
                 ignoreMissingMigrations == that.ignoreMissingMigrations &&
                 ignoreIgnoredMigrations == that.ignoreIgnoredMigrations &&
+                ignorePendingMigrations == that.ignorePendingMigrations &&
                 ignoreFutureMigrations == that.ignoreFutureMigrations &&
                 validateOnMigrate == that.validateOnMigrate &&
                 cleanOnValidationError == that.cleanOnValidationError &&
@@ -368,6 +405,7 @@ public class FlywayConfigSnapshot {
                 stream == that.stream &&
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
+                connectRetries == that.connectRetries &&
                 Arrays.equals(resolvers, that.resolvers) &&
                 Arrays.equals(errorHandlers, that.errorHandlers) &&
                 Arrays.equals(locations, that.locations) &&
@@ -387,6 +425,8 @@ public class FlywayConfigSnapshot {
                 Objects.equals(placeholderPrefix, that.placeholderPrefix) &&
                 Objects.equals(placeholderSuffix, that.placeholderSuffix) &&
                 Objects.equals(encoding, that.encoding) &&
+                Objects.equals(initSql, that.initSql) &&
+                Objects.equals(licenseKey, that.licenseKey) &&
                 Objects.equals(installedBy, that.installedBy);
     }
 
@@ -399,11 +439,11 @@ public class FlywayConfigSnapshot {
                 baselineVersion, target, placeholders, table, baselineDescription,
                 undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, sqlMigrationSuffix,
-                placeholderPrefix, placeholderSuffix, encoding, skipDefaultResolvers,
-                skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate, outOfOrder,
-                ignoreMissingMigrations, ignoreIgnoredMigrations, ignoreFutureMigrations,
-                validateOnMigrate, cleanOnValidationError, cleanDisabled,
+                placeholderPrefix, placeholderSuffix, encoding, initSql, licenseKey,
+                skipDefaultResolvers, skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate,
+                outOfOrder, ignoreMissingMigrations, ignoreIgnoredMigrations, ignorePendingMigrations,
+                ignoreFutureMigrations, validateOnMigrate, cleanOnValidationError, cleanDisabled,
                 allowMixedMigrations, mixed, group, installedBy,
-                dryRun, stream, batch, oracleSqlPlus);
+                dryRun, stream, batch, oracleSqlPlus, connectRetries);
     }
 }
