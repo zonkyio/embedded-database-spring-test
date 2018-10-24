@@ -19,20 +19,20 @@ package io.zonky.test.db.flyway;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
 import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
+import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.MigrationVersion;
-import org.flywaydb.core.api.configuration.ClassicConfiguration;
-import org.flywaydb.core.api.configuration.Configuration;
-import org.flywaydb.core.api.resolver.Context;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
 import org.flywaydb.core.internal.database.DatabaseFactory;
-import org.flywaydb.core.internal.database.base.Database;
+import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.flywaydb.test.junit.FlywayTestExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Ordered;
@@ -51,11 +51,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
+import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
 import static org.springframework.test.util.ReflectionTestUtils.getField;
 import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 /**
- * Optimized implementation of the {@link org.flywaydb.test.FlywayTestExecutionListener}
+ * Optimized implementation of the {@link org.flywaydb.test.junit.FlywayTestExecutionListener}
  * that takes advantage of the fact that the reloading of the database through the
  * <code>FlywayDataSourceContext#reload(org.flywaydb.core.Flyway)</code> method can be quick and cheap operation.
  * However, it is necessary to fulfill the condition that the same data has already been loaded.
@@ -64,10 +65,11 @@ import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
  *
  * @see <a href="https://www.postgresql.org/docs/9.6/static/manage-ag-templatedbs.html">Template Databases</a>
  */
-public class OptimizedFlywayTestExecutionListener extends org.flywaydb.test.FlywayTestExecutionListener implements Ordered {
+public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionListener implements Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger(OptimizedFlywayTestExecutionListener.class);
 
+    private static final ClassLoader classLoader = OptimizedFlywayTestExecutionListener.class.getClassLoader();
     private static final boolean flywayNameAttributePresent = FlywayClassUtils.isFlywayNameAttributePresent();
     private static final boolean flywayBaselineAttributePresent = FlywayClassUtils.isFlywayBaselineAttributePresent();
     private static final boolean repeatableAnnotationPresent = FlywayClassUtils.isRepeatableFlywayTestAnnotationPresent();
@@ -210,7 +212,7 @@ public class OptimizedFlywayTestExecutionListener extends org.flywaydb.test.Flyw
     }
 
     protected static MigrationVersion findFirstVersion(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Collection<ResolvedMigration> migrations = findMigrations(flyway, locations);
+        Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         if (CollectionUtils.isEmpty(migrations)) {
             return MigrationVersion.EMPTY;
         } else {
@@ -219,7 +221,7 @@ public class OptimizedFlywayTestExecutionListener extends org.flywaydb.test.Flyw
     }
 
     protected static MigrationVersion findLastVersion(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Collection<ResolvedMigration> migrations = findMigrations(flyway, locations);
+        Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         if (CollectionUtils.isEmpty(migrations)) {
             return MigrationVersion.EMPTY;
         } else {
@@ -227,22 +229,18 @@ public class OptimizedFlywayTestExecutionListener extends org.flywaydb.test.Flyw
         }
     }
 
-    protected static Collection<ResolvedMigration> findMigrations(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    protected static Collection<ResolvedMigration> resolveMigrations(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         MigrationResolver resolver = createMigrationResolver(flyway, locations);
-        Collection<ResolvedMigration> migrations;
-        if (flywayVersion >= 52) {
-            ClassicConfiguration configInstance = (ClassicConfiguration) getField(flyway, "configuration");
-            migrations = invokeMethod(resolver, "resolveMigrations", new Context() {
-                @Override
-                public Configuration getConfiguration() {
-                    return configInstance;
-                }
-            });
-        } else {
-            migrations = invokeMethod(resolver, "resolveMigrations");
-        }
 
-        return migrations;
+        if (flywayVersion >= 52) {
+            Object configInstance = getField(flyway, "configuration");
+            Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
+            Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
+                    "getConfiguration".equals(invocation.getMethod().getName()) ? configInstance : invocation.proceed());
+            return invokeMethod(resolver, "resolveMigrations", contextInstance);
+        } else {
+            return resolver.resolveMigrations();
+        }
     }
 
     protected static MigrationResolver createMigrationResolver(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
@@ -251,23 +249,22 @@ public class OptimizedFlywayTestExecutionListener extends org.flywaydb.test.Flyw
             flyway.setLocations(locations);
 
             if (flywayVersion >= 52) {
-                ClassLoader classLoader = OptimizedFlywayTestExecutionListener.class.getClassLoader();
-                ClassicConfiguration configInstance = (ClassicConfiguration) getField(flyway, "configuration");
-                Database database = DatabaseFactory.createDatabase(flyway, false);
-                org.flywaydb.core.internal.scanner.Scanner scanner = new org.flywaydb.core.internal.scanner.Scanner(
-                        Arrays.asList(configInstance.getLocations()), classLoader, configInstance.getEncoding());
-                return invokeMethod(flyway, "createMigrationResolver", database, scanner, scanner, database.createSqlStatementBuilderFactory());
+                Object configuration = getField(flyway, "configuration");
+                Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
+                Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
+                Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
+                Object scanner = scannerType.getConstructors()[0].newInstance(
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"));
+                return invokeMethod(flyway, "createMigrationResolver", database, scanner, scanner, factory);
             } else if (flywayVersion >= 51) {
-                ClassLoader classLoader = OptimizedFlywayTestExecutionListener.class.getClassLoader();
-                Class<?> configType = ClassUtils.forName("org.flywaydb.core.api.configuration.Configuration", classLoader);
-                Object configInstance = getField(flyway, "configuration");
-                Class<?> scannerClass = Class.forName("org.flywaydb.core.internal.util.scanner.Scanner");
-                Object scanner = scannerClass.getDeclaredConstructor(configType).newInstance(configInstance);
+                Object configuration = getField(flyway, "configuration");
+                Object scanner = Scanner.class.getConstructors()[0].newInstance(configuration);
                 Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
                 return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
             } else if (flywayVersion >= 40) {
-                Class<?> scannerClass = Class.forName("org.flywaydb.core.internal.util.scanner.Scanner");
-                Object scanner = scannerClass.getDeclaredConstructor(ClassLoader.class).newInstance(flyway.getClassLoader());
+                Scanner scanner = new Scanner(flyway.getClassLoader());
                 return invokeMethod(flyway, "createMigrationResolver", null, scanner);
             } else {
                 return invokeMethod(flyway, "createMigrationResolver", (Object) null);
