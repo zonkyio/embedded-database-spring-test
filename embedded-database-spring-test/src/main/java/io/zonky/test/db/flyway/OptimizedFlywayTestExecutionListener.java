@@ -187,13 +187,13 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             String[] oldLocations = getFlywayLocations(flywayBean);
             try {
                 if (annotation.overrideLocations()) {
-                    flywayBean.setLocations(annotation.locationsForMigrate());
+                    setFlywayLocations(flywayBean, annotation.locationsForMigrate());
                 } else {
-                    flywayBean.setLocations(ObjectArrays.concat(oldLocations, annotation.locationsForMigrate(), String.class));
+                    setFlywayLocations(flywayBean, ObjectArrays.concat(oldLocations, annotation.locationsForMigrate(), String.class));
                 }
                 return dataSourceContext.reload(flywayBean).get();
             } finally {
-                flywayBean.setLocations(oldLocations);
+                setFlywayLocations(flywayBean, oldLocations);
             }
         }
     }
@@ -254,7 +254,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     protected static MigrationResolver createMigrationResolver(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         String[] oldLocations = getFlywayLocations(flyway);
         try {
-            flyway.setLocations(locations);
+            setFlywayLocations(flyway, locations);
 
             if (flywayVersion >= 52) {
                 Object configuration = getField(flyway, "configuration");
@@ -278,7 +278,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
                 return invokeMethod(flyway, "createMigrationResolver", (Object) null);
             }
         } finally {
-            flyway.setLocations(oldLocations);
+            setFlywayLocations(flyway, oldLocations);
         }
     }
 
@@ -292,11 +292,21 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
     protected static String[] getFlywayLocations(Flyway flyway) {
         if (flywayVersion >= 51) {
-            return Arrays.stream((Object[]) invokeMethod(flyway, "getLocations"))
+            Object configuration = getField(flyway, "configuration");
+            return Arrays.stream((Object[]) invokeMethod(configuration, "getLocations"))
                     .map(location -> invokeMethod(location, "getDescriptor"))
                     .toArray(String[]::new);
         } else {
             return flyway.getLocations();
+        }
+    }
+
+    protected static void setFlywayLocations(Flyway flyway, String[] locations) {
+        if (flywayVersion >= 51) {
+            Object configuration = getField(flyway, "configuration");
+            invokeMethod(configuration, "setLocationsAsStrings", (Object) locations);
+        } else {
+            flyway.setLocations(locations);
         }
     }
 
