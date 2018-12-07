@@ -373,7 +373,7 @@ extracted from the JDK download.
 
 * [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (11.1)
 * [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.0) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
-* [Spring Framework](http://www.springsource.org/) (4.3.18) - `spring-test`, `spring-context` modules
+* [Spring Framework](http://www.springsource.org/) (4.3.21) - `spring-test`, `spring-context` modules
 * [Flyway](https://github.com/flyway/) (5.0.7)
 * [Guava](https://github.com/google/guava) (23.0)
 
