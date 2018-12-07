@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
+import static org.springframework.test.util.ReflectionTestUtils.getField;
+import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
+
 public class FlywayClassUtils {
 
     private static final boolean flywayNameAttributePresent = ClassUtils.hasMethod(FlywayTest.class, "flywayName");
@@ -40,7 +43,12 @@ public class FlywayClassUtils {
         if (flywayVersion >= 50) {
             boolean isCommercial;
             try {
-                new Flyway().getUndoSqlMigrationPrefix();
+                if (flywayVersion >= 51) {
+                    Object flywayConfig = getField(new Flyway(), "configuration");
+                    invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
+                } else {
+                    new Flyway().getUndoSqlMigrationPrefix();
+                }
                 isCommercial = true;
             } catch (FlywayException e) {
                 isCommercial = false;
