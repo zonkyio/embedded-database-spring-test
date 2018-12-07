@@ -31,7 +31,7 @@ Add the following Maven dependency:
 </dependency>
 ```
 
-The default version of the embedded database is `PostgreSQL 10.5`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
+The default version of the embedded database is `PostgreSQL 10.6`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
 
 ### Basic Usage
 
@@ -178,7 +178,7 @@ Changing the version is performed by importing `embedded-postgres-binaries-bom` 
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>10.5.0</version>
+            <version>11.1.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -188,7 +188,7 @@ Changing the version is performed by importing `embedded-postgres-binaries-bom` 
 
 A list of all available versions of postgres binaries is here: https://mvnrepository.com/artifact/io.zonky.test.postgres/embedded-postgres-binaries-bom
 
-Note that the release cycle of the postgres binaries is independent of the release cycle of this library, so you can upgrade to the new version of postgres binaries immediately after it is released.
+Note that the release cycle of the postgres binaries is independent of the release cycle of this library, so you can upgrade to a new version of postgres binaries immediately after it is released.
 
 ### Enabling support for additional architectures
 
