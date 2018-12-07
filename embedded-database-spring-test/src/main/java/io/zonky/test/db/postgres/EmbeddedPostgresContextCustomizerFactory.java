@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.postgres;
 
+import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.EmbeddedDatabaseType;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
@@ -39,6 +40,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
@@ -86,6 +89,8 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
         @Override
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
+            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
+
             Class<?> testClass = mergedConfig.getTestClass();
             FlywayTest[] flywayAnnotations = findFlywayTestAnnotations(testClass);
 
@@ -115,6 +120,27 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         @Override
         public int hashCode() {
             return databaseAnnotation.hashCode();
+        }
+    }
+
+    protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
+
+        private final ConfigurableEnvironment environment;
+
+        public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
+            this.environment = environment;
+        }
+
+        @Override
+        public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+            environment.getPropertySources().addFirst(new MapPropertySource(
+                    PreloadableEmbeddedPostgresContextCustomizer.class.getSimpleName(),
+                    ImmutableMap.of("spring.test.database.replace", "NONE")));
+        }
+
+        @Override
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+            // nothing to do
         }
     }
 

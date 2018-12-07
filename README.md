@@ -120,14 +120,14 @@ public class FlywayMigrationIntegrationTest {
 
 Spring Boot provides several annotations to simplify writing integration tests.
 One of them is the `@DataJpaTest` annotation, which can be used when a test focuses only on JPA components.
-By default, tests annotated with `@DataJpaTest` will use an embedded in-memory database. **This in-memory database can be H2, Derby or HSQL, but not the PostgreSQL database**.
-To change that, you must first disable the default in-memory database by `@AutoConfigureTestDatabase(replace = NONE)` and enable PostgreSQL database by `@AutoConfigureEmbeddedDatabase` instead. 
+By default, tests annotated with this annotation use an in-memory database.
+But if the `@DataJpaTest` annotation is used together with the `@AutoConfigureEmbeddedDatabase` annotation,
+the in-memory database is automatically disabled and replaced by an embedded postgres database. 
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureTestDatabase(replace = NONE)
-@AutoConfigureEmbeddedDatabase
 @DataJpaTest
+@AutoConfigureEmbeddedDatabase
 public class SpringDataJpaAnnotationTest {
     // class body...
 }
@@ -142,9 +142,8 @@ You can also consider creating a custom [composed annotation](https://github.com
   @Inherited
   @Target(ElementType.TYPE)
   @Retention(RetentionPolicy.RUNTIME)
-  @AutoConfigureTestDatabase(replace = Replace.NONE)
-  @AutoConfigureEmbeddedDatabase
   @DataJpaTest
+  @AutoConfigureEmbeddedDatabase
   public @interface PostgresDataJpaTest {
   
       @AliasFor(annotation = DataJpaTest.class)
