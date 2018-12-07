@@ -147,7 +147,7 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'io.zonky.test:embedded-postgres:1.1.0'
+        compile 'io.zonky.test:embedded-postgres:1.2.0'
         compile 'org.springframework:spring-context:4.3.18.RELEASE'
         compile 'org.springframework:spring-test:4.3.18.RELEASE'
         compile "org.flywaydb:flyway-core:$flywayCoreVersion"
