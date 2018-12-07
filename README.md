@@ -26,7 +26,7 @@ Add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>1.3.3</version>
+    <version>1.3.4</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -219,7 +219,7 @@ If this behavior is inappropriate for some reason, you can deactivate it by excl
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>1.3.3</version>
+    <version>1.3.4</version>
     <scope>test</scope>
     <exclusions>
         <exclusion>
