@@ -160,7 +160,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
             originalDbReset(testContext, annotation);
         } catch (NoSuchMethodError e) {
-            logger.error("HINT: Check that you are using compatible versions of org.flywaydb:flyway-core and org.flywaydb.flyway-test-extensions:flyway-spring-test dependencies!!!");
+            logger.error("\n\nHINT: Check that you are using compatible versions of org.flywaydb:flyway-core and org.flywaydb.flyway-test-extensions:flyway-spring-test dependencies!!!\n");
             throw e;
         }
     }
@@ -173,7 +173,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             if (e.getCause() instanceof SQLException) {
                 String errorCode = ((SQLException) e.getCause()).getSQLState();
                 if (errorCode != null && errorCode.matches("(42723|42P06|42P07|42712|42710)")) {
-                    logger.error("HINT: Check that you have correctly set org.flywaydb.core.Flyway#schemaNames property!!!");
+                    logger.error("\n\nHINT: Check that you have correctly set org.flywaydb.core.Flyway#schemaNames property!!!\n");
                 }
             }
             throw e;
