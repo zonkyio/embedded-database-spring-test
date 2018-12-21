@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db;
+package io.zonky.test.db.provider;
 
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
-import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -28,25 +28,19 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.function.Consumer;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = ZONKY)
 @ContextConfiguration
-public class DatabaseCustomizerIntegrationTest {
+public class ZonkyProviderWithConfigurationIntegrationTest {
 
     @Configuration
     static class Config {
-
-        @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test", "unique");
-            return flyway;
-        }
 
         @Bean
         public Consumer<EmbeddedPostgres.Builder> embeddedPostgresCustomizer() {
@@ -58,7 +52,7 @@ public class DatabaseCustomizerIntegrationTest {
     private DataSource dataSource;
 
     @Test
-    public void primaryDataSourceShouldBeReplaced() throws Exception {
+    public void testDataSource() throws SQLException {
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(33333);
     }
 }

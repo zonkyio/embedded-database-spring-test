@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.logging;
 
+import org.apache.commons.lang3.StringUtils;
 import org.postgresql.ds.common.BaseDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,11 @@ public class EmbeddedDatabaseReporter {
     private static String getJdbcUrl(DataSource dataSource) {
         try {
             BaseDataSource ds = dataSource.unwrap(BaseDataSource.class);
-            return String.format(JDBC_FORMAT, ds.getPortNumber(), ds.getDatabaseName(), ds.getUser());
+            if (StringUtils.isBlank(ds.getPassword())) {
+                return String.format(JDBC_FORMAT, ds.getPortNumber(), ds.getDatabaseName(), ds.getUser());
+            } else {
+                return String.format(JDBC_FORMAT + "&password=%s", ds.getPortNumber(), ds.getDatabaseName(), ds.getUser(), ds.getPassword());
+            }
         } catch (Exception e) {
             logger.warn("Unexpected error occurred while resolving url to the embedded database", e);
             return "unknown";

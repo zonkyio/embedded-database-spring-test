@@ -18,11 +18,16 @@ package io.zonky.test.db.postgres;
 
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase.EmbeddedDatabaseType;
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
 import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
 import io.zonky.test.db.flyway.FlywayClassUtils;
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
+import io.zonky.test.db.provider.impl.DockerPostgresDatabaseProvider;
+import io.zonky.test.db.provider.impl.OpenTablePostgresDatabaseProvider;
+import io.zonky.test.db.provider.impl.PrefetchingDatabaseProvider;
+import io.zonky.test.db.provider.impl.YandexPostgresDatabaseProvider;
+import io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -46,11 +51,14 @@ import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
+import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
 import java.lang.reflect.AnnotatedElement;
 import java.util.List;
+
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.EmbeddedDatabaseType;
 
 /**
  * Implementation of the {@link org.springframework.test.context.ContextCustomizerFactory} interface,
@@ -89,7 +97,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
         @Override
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
-            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
+            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment(), databaseAnnotation));
 
             Class<?> testClass = mergedConfig.getTestClass();
             FlywayTest[] flywayAnnotations = findFlywayTestAnnotations(testClass);
@@ -126,16 +134,24 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
         private final ConfigurableEnvironment environment;
+        private final AutoConfigureEmbeddedDatabase databaseAnnotation;
 
-        public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
+        public EnvironmentPostProcessor(ConfigurableEnvironment environment, AutoConfigureEmbeddedDatabase databaseAnnotation) {
             this.environment = environment;
+            this.databaseAnnotation = databaseAnnotation;
         }
 
         @Override
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+            ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+            builder.put("spring.test.database.replace", "NONE");
+
+            if (databaseAnnotation.provider() != DatabaseProvider.DEFAULT) {
+                builder.put("embedded-database.provider", databaseAnnotation.provider().toString());
+            }
+
             environment.getPropertySources().addFirst(new MapPropertySource(
-                    PreloadableEmbeddedPostgresContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of("spring.test.database.replace", "NONE")));
+                    PreloadableEmbeddedPostgresContextCustomizer.class.getSimpleName(), builder.build()));
         }
 
         @Override
@@ -156,7 +172,15 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
         @Override
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+            Assert.isInstanceOf(ConfigurableListableBeanFactory.class, registry,
+                    "Embedded Database Auto-configuration can only be used with a ConfigurableListableBeanFactory");
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
+
+            registerBeanIfMissing(registry, "defaultDatabaseProvider", PrefetchingDatabaseProvider.class);
+            registerBeanIfMissing(registry, "dockerPostgresProvider", DockerPostgresDatabaseProvider.class);
+            registerBeanIfMissing(registry, "zonkyPostgresProvider", ZonkyPostgresDatabaseProvider.class);
+            registerBeanIfMissing(registry, "openTablePostgresProvider", OpenTablePostgresDatabaseProvider.class);
+            registerBeanIfMissing(registry, "yandexPostgresProvider", YandexPostgresDatabaseProvider.class);
 
             BeanDefinitionHolder dataSourceInfo = getDataSourceBeanDefinition(beanFactory, databaseAnnotation);
 
@@ -195,6 +219,13 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
             // nothing to do
+        }
+    }
+
+    protected static void registerBeanIfMissing(BeanDefinitionRegistry registry, String beanName, Class<?> beanClass) {
+        if (!registry.containsBeanDefinition(beanName)) {
+            RootBeanDefinition providerDefinition = new RootBeanDefinition(beanClass);
+            registry.registerBeanDefinition(beanName, providerDefinition);
         }
     }
 
