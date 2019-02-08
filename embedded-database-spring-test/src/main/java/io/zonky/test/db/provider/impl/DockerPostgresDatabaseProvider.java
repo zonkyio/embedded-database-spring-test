@@ -60,12 +60,7 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
                 public DatabaseInstance load(DatabaseConfig config) {
-                    try {
-                        return new DatabaseInstance(config);
-                    } catch (NoClassDefFoundError e) {
-                        logger.error("\n\nHINT: You may have to add org.testcontainers:postgresql dependency!!!\n");
-                        throw e;
-                    }
+                    return new DatabaseInstance(config);
                 }
             });
 

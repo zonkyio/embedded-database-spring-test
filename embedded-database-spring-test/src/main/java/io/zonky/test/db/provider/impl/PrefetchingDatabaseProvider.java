@@ -23,6 +23,8 @@ import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.GenericDatabaseProvider;
+import io.zonky.test.db.provider.MissingDatabaseProviderException;
+import io.zonky.test.db.provider.MissingProviderDependencyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -92,7 +94,7 @@ public class PrefetchingDatabaseProvider implements GenericDatabaseProvider {
 
         DatabaseProvider provider = databaseProviders.get(descriptor);
         if (provider == null) {
-            throw new IllegalStateException(String.format("Missing database provider for descriptor: %s", descriptor));
+            throw missingDatabaseProviderException(descriptor);
         }
 
         PipelineKey key = new PipelineKey(preparer, descriptor, provider);
@@ -124,6 +126,17 @@ public class PrefetchingDatabaseProvider implements GenericDatabaseProvider {
         DataSource dataSource = result != null ? result.get() : pipeline.results.take().get();
         logger.debug("Database has been successfully returned in {}", stopwatch);
         return dataSource;
+    }
+
+    protected MissingDatabaseProviderException missingDatabaseProviderException(DatabaseDescriptor descriptor) {
+        boolean isProviderPresent = databaseProviders.keySet().stream()
+                .map(DatabaseDescriptor::getProviderType)
+                .anyMatch(p -> p.equals(descriptor.getProviderType()));
+        if (isProviderPresent) {
+            return new MissingDatabaseProviderException(descriptor);
+        } else {
+            return new MissingProviderDependencyException(descriptor);
+        }
     }
 
     private ListenableFutureTask<DataSource> prepareDatabase(PipelineKey key, int priority) {

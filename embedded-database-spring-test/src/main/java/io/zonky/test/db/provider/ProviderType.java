@@ -19,27 +19,40 @@ package io.zonky.test.db.provider;
 import org.springframework.util.Assert;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public final class ProviderType {
 
-    public static final ProviderType DOCKER = ProviderType.valueOf("docker");
-    public static final ProviderType ZONKY = ProviderType.valueOf("zonky");
-    public static final ProviderType OPENTABLE = ProviderType.valueOf("opentable");
-    public static final ProviderType YANDEX = ProviderType.valueOf("yandex");
+    public static final ProviderType DOCKER = new ProviderType("docker", "org.testcontainers:postgresql");
+    public static final ProviderType ZONKY = new ProviderType("zonky", "io.zonky.test:embedded-postgres");
+    public static final ProviderType OPENTABLE = new ProviderType("opentable", "com.opentable.components:otj-pg-embedded");
+    public static final ProviderType YANDEX = new ProviderType("yandex", "ru.yandex.qatools.embed:postgresql-embedded");
 
     private final String name;
+    private final String dependency;
 
     public static ProviderType valueOf(String name) {
         Assert.notNull(name, "Provider name must not be null");
-        return new ProviderType(name.toLowerCase());
+        return Stream.of(DOCKER, ZONKY, OPENTABLE, YANDEX)
+                .filter(type -> type.name().equals(name.toLowerCase()))
+                .findFirst().orElse(new ProviderType(name.toLowerCase()));
     }
 
     private ProviderType(String name) {
+        this(name, null);
+    }
+
+    private ProviderType(String name, String dependency) {
         this.name = name;
+        this.dependency = dependency;
     }
 
     public String name() {
         return name;
+    }
+
+    String getDependencyInfo() {
+        return dependency;
     }
 
     @Override

@@ -60,12 +60,7 @@ public class OpenTablePostgresDatabaseProvider implements DatabaseProvider {
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
                 public DatabaseInstance load(DatabaseConfig config) throws IOException {
-                    try {
-                        return new DatabaseInstance(config);
-                    } catch (NoClassDefFoundError e) {
-                        logger.error("\n\nHINT: You may have to add com.opentable.components:otj-pg-embedded dependency!!!\n");
-                        throw e;
-                    }
+                    return new DatabaseInstance(config);
                 }
             });
 

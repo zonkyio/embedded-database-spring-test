@@ -57,6 +57,7 @@ import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
@@ -192,10 +193,19 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
 
             registerBeanIfMissing(registry, "defaultDatabaseProvider", PrefetchingDatabaseProvider.class);
-            registerBeanIfMissing(registry, "dockerPostgresProvider", DockerPostgresDatabaseProvider.class);
-            registerBeanIfMissing(registry, "zonkyPostgresProvider", ZonkyPostgresDatabaseProvider.class);
-            registerBeanIfMissing(registry, "openTablePostgresProvider", OpenTablePostgresDatabaseProvider.class);
-            registerBeanIfMissing(registry, "yandexPostgresProvider", YandexPostgresDatabaseProvider.class);
+
+            if (ClassUtils.isPresent("org.testcontainers.containers.PostgreSQLContainer", null)) {
+                registerBeanIfMissing(registry, "dockerPostgresProvider", DockerPostgresDatabaseProvider.class);
+            }
+            if (ClassUtils.isPresent("io.zonky.test.db.postgres.embedded.EmbeddedPostgres", null)) {
+                registerBeanIfMissing(registry, "zonkyPostgresProvider", ZonkyPostgresDatabaseProvider.class);
+            }
+            if (ClassUtils.isPresent("com.opentable.db.postgres.embedded.EmbeddedPostgres", null)) {
+                registerBeanIfMissing(registry, "openTablePostgresProvider", OpenTablePostgresDatabaseProvider.class);
+            }
+            if (ClassUtils.isPresent("ru.yandex.qatools.embed.postgresql.EmbeddedPostgres", null)) {
+                registerBeanIfMissing(registry, "yandexPostgresProvider", YandexPostgresDatabaseProvider.class);
+            }
 
             for (AutoConfigureEmbeddedDatabase databaseAnnotation : databaseAnnotations) {
                 DatabaseDescriptor databaseDescriptor = resolveDatabaseDescriptor(environment, databaseAnnotation);
