@@ -339,7 +339,7 @@ Before you use Docker provider, you must add the following Maven dependency:
 <dependency>
     <groupId>org.testcontainers</groupId>
     <artifactId>postgresql</artifactId>
-    <version>1.10.3</version>
+    <version>1.10.6</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -597,7 +597,7 @@ extracted from the JDK download.
 ## Project dependencies
 
 * [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.6)
-* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.1) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
+* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.2) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
 * [Spring Framework](http://www.springsource.org/) (4.3.22) - `spring-test`, `spring-context` modules
 * [Flyway](https://github.com/flyway/) (5.0.7)
 * [Guava](https://github.com/google/guava) (23.0)
