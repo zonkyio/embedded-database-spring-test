@@ -16,7 +16,6 @@
 
 package io.zonky.test.db.flyway;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
 import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -39,7 +38,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.test.context.TestContext;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
 import java.lang.annotation.Annotation;
@@ -221,20 +219,20 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
 
     protected static MigrationVersion findFirstVersion(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
-        if (CollectionUtils.isEmpty(migrations)) {
-            return MigrationVersion.EMPTY;
-        } else {
-            return Iterables.getFirst(migrations, null).getVersion();
-        }
+        return migrations.stream()
+                .filter(migration -> migration.getVersion() != null)
+                .findFirst()
+                .map(ResolvedMigration::getVersion)
+                .orElse(MigrationVersion.EMPTY);
     }
 
     protected static MigrationVersion findLastVersion(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
-        if (CollectionUtils.isEmpty(migrations)) {
-            return MigrationVersion.EMPTY;
-        } else {
-            return Iterables.getLast(migrations).getVersion();
-        }
+        return migrations.stream()
+                .filter(migration -> migration.getVersion() != null)
+                .reduce((first, second) -> second) // finds last item
+                .map(ResolvedMigration::getVersion)
+                .orElse(MigrationVersion.EMPTY);
     }
 
     protected static Collection<ResolvedMigration> resolveMigrations(Flyway flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {

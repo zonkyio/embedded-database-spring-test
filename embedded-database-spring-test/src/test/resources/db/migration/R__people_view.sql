@@ -1,0 +1,1 @@
+create or replace view test.people as select id, first_name from test.person;
