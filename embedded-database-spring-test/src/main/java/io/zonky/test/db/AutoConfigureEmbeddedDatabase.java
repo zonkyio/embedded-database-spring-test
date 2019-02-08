@@ -20,6 +20,7 @@ import javax.sql.DataSource;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -27,6 +28,8 @@ import java.lang.annotation.Target;
 /**
  * Annotation that can be applied to a test class to configure an embedded database to use
  * instead of any application defined {@link DataSource}.
+ * <p>
+ * This annotation may be used as a <em>meta-annotation</em> to create custom <em>composed annotations</em>.
  *
  * @see io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory
  * @see io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener
@@ -35,6 +38,7 @@ import java.lang.annotation.Target;
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@Repeatable(AutoConfigureEmbeddedDatabases.class)
 public @interface AutoConfigureEmbeddedDatabase {
 
     /**

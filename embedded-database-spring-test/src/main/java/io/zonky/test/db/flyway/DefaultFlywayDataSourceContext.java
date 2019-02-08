@@ -18,9 +18,7 @@ package io.zonky.test.db.flyway;
 
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseType;
 import io.zonky.test.db.provider.GenericDatabaseProvider;
-import io.zonky.test.db.provider.ProviderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +61,8 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     @Autowired
     protected GenericDatabaseProvider databaseProvider;
 
+    protected DatabaseDescriptor databaseDescriptor;
+
     protected int maxAttempts = DEFAULT_MAX_RETRY_ATTEMPTS;
 
     protected TaskExecutor bootstrapExecutor;
@@ -99,16 +99,19 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     }
 
     @Override
+    public void setDescriptor(DatabaseDescriptor descriptor) {
+        this.databaseDescriptor = descriptor;
+    }
+
+    @Override
     public synchronized ListenableFuture<DataSource> reload(Flyway flyway) {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
         CompletableFuture<DataSource> reloadFuture = dataSourceFuture.thenApplyAsync(x -> {
             for (int current = 1; current <= maxAttempts; current++) {
                 try {
-                    String providerName = environment.getProperty("embedded-database.provider", ProviderType.ZONKY.toString());
-                    FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
-                    DatabaseDescriptor descriptor = new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
-                    return databaseProvider.getDatabase(preparer, descriptor);
+                    FlywayDatabasePreparer databasePreparer = new FlywayDatabasePreparer(flyway);
+                    return databaseProvider.getDatabase(databasePreparer, databaseDescriptor);
                 } catch (Exception e) {
                     if (ExceptionUtils.indexOfType(e, IOException.class) == -1 || current == maxAttempts) {
                         throw new CompletionException(e);
