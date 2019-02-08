@@ -10,6 +10,7 @@
     </appender>
 
     <logger name="org.flywaydb" level="INFO"/>
+    <logger name="io.zonky.test.db.provider" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

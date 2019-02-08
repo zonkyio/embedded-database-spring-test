@@ -1,0 +1,187 @@
+{
+  "groups": [
+    {
+      "name": "embedded-database",
+      "description": "Configuration properties for Zonky Embedded Database library."
+    },
+    {
+      "name": "embedded-database.prefetching",
+      "description": "Configuration properties to configure prefetching of prepared databases."
+    },
+    {
+      "name": "embedded-database.postgres",
+      "description": "Configuration properties to configure embedded PostgreSQL database."
+    },
+    {
+      "name": "embedded-database.postgres.docker",
+      "description": "Additional configuration properties for PostgreSQL database running in a Docker container. Only available if database provider is set to Docker."
+    },
+    {
+      "name": "embedded-database.postgres.yandex",
+      "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
+    }
+  ],
+  "properties": [
+    {
+      "name": "embedded-database.provider",
+      "type": "java.lang.String",
+      "description": "Provider used to create the underlying embedded database, see the documentation for the comparision matrix.",
+      "defaultValue": "zonky"
+    },
+    {
+      "name": "embedded-database.prefetching.thread-name-prefix",
+      "type": "java.lang.String",
+      "description": "Prefix to use for the names of database prefetching threads.",
+      "defaultValue": "prefetching-"
+    },
+    {
+      "name": "embedded-database.prefetching.concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of concurrently running database prefetching threads.",
+      "defaultValue": 3
+    },
+    {
+      "name": "embedded-database.prefetching.pipeline-cache-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of prepared databases per pipeline. Where pipeline is a queue of independent databases that contains the same initial data.",
+      "defaultValue": 3
+    },
+    {
+      "name": "embedded-database.postgres.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional properties used to configure the test data source."
+    },
+    {
+      "name": "embedded-database.postgres.initdb.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional properties to pass to initdb command during the database initialization."
+    },
+    {
+      "name": "embedded-database.postgres.server.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional properties used to configure the embedded PostgreSQL server."
+    },
+    {
+      "name": "embedded-database.postgres.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing PostgreSQL database.",
+      "defaultValue": "postgres:10.6-alpine"
+    },
+    {
+      "name": "embedded-database.postgres.docker.tmpfs.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to mount postgres data directory as tmpfs.",
+      "defaultValue": false
+    },
+    {
+      "name": "embedded-database.postgres.docker.tmpfs.options",
+      "type": "java.lang.String",
+      "description": "Mount options used to configure the tmpfs filesystem.",
+      "defaultValue": "rw,noexec,nosuid"
+    },
+    {
+      "name": "embedded-database.postgres.yandex.version",
+      "type": "java.lang.String",
+      "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
+      "defaultValue": "10.6-1"
+    }
+  ],
+  "hints": [
+    {
+      "name": "embedded-database.provider",
+      "values": [
+        {
+          "value": "docker",
+          "description": "Run the embedded database in a Docker container."
+        },
+        {
+          "value": "zonky",
+          "description": "Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/zonkyio/embedded-postgres)."
+        },
+        {
+          "value": "opentable",
+          "description": "Use OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/opentable/otj-pg-embedded)."
+        },
+        {
+          "value": "yandex",
+          "description": "Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded)."
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "embedded-database.postgres.docker.image",
+      "values": [
+        {
+          "value": "postgres:11-alpine"
+        },
+        {
+          "value": "postgres:10-alpine"
+        },
+        {
+          "value": "postgres:9.6-alpine"
+        },
+        {
+          "value": "postgres:9.5-alpine"
+        },
+        {
+          "value": "postgres:9.4-alpine"
+        },
+        {
+          "value": "postgres:11"
+        },
+        {
+          "value": "postgres:10"
+        },
+        {
+          "value": "postgres:9.6"
+        },
+        {
+          "value": "postgres:9.5"
+        },
+        {
+          "value": "postgres:9.4"
+        },
+        {
+          "value": "mdillon/postgis:11-alpine"
+        },
+        {
+          "value": "mdillon/postgis:10-alpine"
+        },
+        {
+          "value": "mdillon/postgis:9.6-alpine"
+        },
+        {
+          "value": "mdillon/postgis:9.5-alpine"
+        },
+        {
+          "value": "mdillon/postgis:9.4-alpine"
+        },
+        {
+          "value": "mdillon/postgis:11"
+        },
+        {
+          "value": "mdillon/postgis:10"
+        },
+        {
+          "value": "mdillon/postgis:9.6"
+        },
+        {
+          "value": "mdillon/postgis:9.5"
+        },
+        {
+          "value": "mdillon/postgis:9.4"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    }
+  ]
+}

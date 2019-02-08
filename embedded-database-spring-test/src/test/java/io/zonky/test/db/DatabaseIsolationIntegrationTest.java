@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,16 +34,15 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
-public class FlywayMigrationIntegrationTest {
+public class DatabaseIsolationIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
+    private static final String SQL_INSERT_PERSON = "insert into test.person (id, first_name, last_name) values (?, ?, ?);";
 
     @Configuration
     static class Config {
@@ -70,57 +69,23 @@ public class FlywayMigrationIntegrationTest {
 
     @Test
     @FlywayTest
-    public void loadDefaultMigrations() {
+    public void isolatedTest1() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
         assertThat(persons).isNotNull().hasSize(1);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Dave"),
-                entry("last_name", "Syer"));
+        jdbcTemplate.update(SQL_INSERT_PERSON, 2, "Tom", "Hanks");
     }
 
     @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
-    public void loadAppendableTestMigrations() {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
-
-        assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
-                tuple(1L, "Dave", "Syer"),
-                tuple(2L, "Tom", "Hanks"));
-    }
-
-    @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/dependent")
-    public void loadDependentTestMigrations() {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
-
-        assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
-                tuple(1L, "Dave", "Syer", "Dave Syer"),
-                tuple(3L, "Will", "Smith", "Will Smith"));
-    }
-
-    @Test
-    @FlywayTest(overrideLocations = true, locationsForMigrate = "db/test_migration/separated")
-    public void loadIndependentTestMigrations() {
+    @FlywayTest
+    public void isolatedTest2() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
         assertThat(persons).isNotNull().hasSize(1);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Tom"),
-                entry("last_name", "Hanks"));
+        jdbcTemplate.update(SQL_INSERT_PERSON, 2, "Will", "Smith");
     }
 }

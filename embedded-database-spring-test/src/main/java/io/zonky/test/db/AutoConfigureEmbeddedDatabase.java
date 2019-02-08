@@ -25,10 +25,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that can be applied to a test class to configure a embedded test database to use
+ * Annotation that can be applied to a test class to configure an embedded database to use
  * instead of any application defined {@link DataSource}.
- * </p>
- * This annotation is handled and processed by {@link io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory}.
  *
  * @see io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory
  * @see io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener
@@ -40,10 +38,11 @@ import java.lang.annotation.Target;
 public @interface AutoConfigureEmbeddedDatabase {
 
     /**
-     * If this attribute is set then a new data source
-     * with the specified name is created instead of overriding an existing one.
+     * The bean name to be used to identify the data source that will be replaced.
+     * It is only necessary if there is no existing DataSource
+     * or the context contains multiple DataSource beans.
      *
-     * @return the name of a new data source bean to be created
+     * @return the name to identify the DataSource bean
      */
     String beanName() default "";
 
@@ -63,6 +62,16 @@ public @interface AutoConfigureEmbeddedDatabase {
     EmbeddedDatabaseType type() default EmbeddedDatabaseType.POSTGRES;
 
     /**
+     * Provider used to create the underlying embedded database,
+     * see the documentation for the comparision matrix.
+     * Note that the provider can also be configured
+     * through {@code embedded-database.provider} property.
+     *
+     * @return the provider of an embedded database
+     */
+    DatabaseProvider provider() default DatabaseProvider.DEFAULT;
+
+    /**
      * What the test database can replace.
      */
     enum Replace {
@@ -80,14 +89,47 @@ public @interface AutoConfigureEmbeddedDatabase {
     }
 
     /**
-     * A supported embedded database type.
+     * The supported types of embedded databases.
      */
     enum EmbeddedDatabaseType {
 
         /**
-         * The Embedded PostgreSQL Database
+         * PostgreSQL Database
          */
         POSTGRES
+
+    }
+
+    /**
+     * The supported providers of embedded databases.
+     */
+    enum DatabaseProvider {
+
+        /**
+         * Default typically equals to {@link #ZONKY} provider,
+         * unless a different default has been configured by externalized configuration.
+         */
+        DEFAULT,
+
+        /**
+         * Run the embedded database in a Docker container.
+         */
+        DOCKER,
+
+        /**
+         * Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/zonkyio/embedded-postgres).
+         */
+        ZONKY,
+
+        /**
+         * Use OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/opentable/otj-pg-embedded).
+         */
+        OPENTABLE,
+
+        /**
+         * Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded).
+         */
+        YANDEX,
 
     }
 }

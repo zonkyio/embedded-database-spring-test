@@ -90,7 +90,7 @@ public class MultipleFlywayBeansClassLevelIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() throws Exception {
+    public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);

@@ -17,10 +17,8 @@
 package io.zonky.test.db;
 
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
-import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.internal.util.MockUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 
-import static org.assertj.core.api.Assertions.allOf;
+import static io.zonky.test.assertj.MockitoAssertions.mockWithName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -65,30 +63,17 @@ public class MultipleDataSourcesIntegrationTest {
     private DataSource dataSource3;
 
     @Test
-    public void dataSource1ShouldBeMock() throws Exception {
-        assertThat(dataSource1).is(mockWithName(dataSource1, "mockDataSource1"));
+    public void dataSource1ShouldBeMock() {
+        assertThat(dataSource1).is(mockWithName("mockDataSource1"));
     }
 
     @Test
-    public void dataSource2ShouldBePostgresDataSource() throws Exception {
+    public void dataSource2ShouldBePostgresDataSource() {
         assertThat(dataSource2).isExactlyInstanceOf(BlockingDataSourceWrapper.class);
     }
 
     @Test
-    public void dataSource3ShouldBeMock() throws Exception {
-        assertThat(dataSource3).is(mockWithName(dataSource3, "mockDataSource3"));
-    }
-
-    private static Condition<DataSource> mockWithName(Object object, String name) {
-        MockUtil mockUtil = new MockUtil();
-
-        Condition<Object> isMock = new Condition<>(
-                dataSource -> mockUtil.isMock(object),
-                "target object is not a mock");
-        Condition<Object> hasName = new Condition<>(
-                dataSource -> name.equals(mockUtil.getMockName(object).toString()),
-                "mock has an unexpected name");
-
-        return allOf(isMock, hasName);
+    public void dataSource3ShouldBeMock() {
+        assertThat(dataSource3).is(mockWithName("mockDataSource3"));
     }
 }

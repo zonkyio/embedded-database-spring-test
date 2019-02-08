@@ -16,27 +16,18 @@
 
 package io.zonky.test.db.postgres;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
-import io.zonky.test.db.postgres.embedded.DatabasePreparer;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres.Builder;
-import io.zonky.test.db.postgres.embedded.PreparedDbProvider;
-import org.postgresql.ds.PGSimpleDataSource;
+import io.zonky.test.db.provider.DatabaseDescriptor;
+import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.provider.DatabaseType;
+import io.zonky.test.db.provider.GenericDatabaseProvider;
+import io.zonky.test.db.provider.ProviderType;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
 
 /**
  * Implementation of the {@link org.springframework.beans.factory.FactoryBean} interface
@@ -44,24 +35,11 @@ import java.util.function.Consumer;
  */
 public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, InitializingBean {
 
-    protected static final int MAX_DATABASE_CONNECTIONS = 300;
+    @Autowired
+    protected Environment environment;
 
-    protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
-        builder.setPGStartupWait(Duration.ofSeconds(20L));
-    };
-
-    protected static final Consumer<Builder> FORCED_DATABASE_CONFIGURATION =
-            builder -> builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
-
-    protected static final LoadingCache<Integer, Semaphore> CONNECTION_SEMAPHORES = CacheBuilder.newBuilder()
-            .build(new CacheLoader<Integer, Semaphore>() {
-                public Semaphore load(Integer key) {
-                    return new Semaphore(MAX_DATABASE_CONNECTIONS);
-                }
-            });
-
-    @Autowired(required = false)
-    protected List<Consumer<Builder>> databaseCustomizers = new ArrayList<>();
+    @Autowired
+    protected GenericDatabaseProvider databaseProvider;
 
     private DataSource dataSource;
 
@@ -76,23 +54,16 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
     }
 
     @Override
-    public DataSource getObject() throws Exception {
+    public DataSource getObject() {
         return dataSource;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        List<Consumer<Builder>> customizers = ImmutableList.<Consumer<Builder>>builder()
-                .add(DEFAULT_DATABASE_CONFIGURATION)
-                .addAll(databaseCustomizers)
-                .add(FORCED_DATABASE_CONFIGURATION)
-                .build();
-
-        PreparedDbProvider provider = PreparedDbProvider.forPreparer(EmptyDatabasePreparer.INSTANCE, customizers);
-        PGSimpleDataSource dataSource = provider.createDataSource().unwrap(PGSimpleDataSource.class);
+        String providerName = environment.getProperty("embedded-database.provider", ProviderType.ZONKY.toString());
+        DatabaseDescriptor descriptor = new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
+        dataSource = databaseProvider.getDatabase(EmptyDatabasePreparer.INSTANCE, descriptor);
         EmbeddedDatabaseReporter.reportDataSource(dataSource);
-        Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
-        this.dataSource = new BlockingDataSourceWrapper(dataSource, semaphore);
     }
 
     private static class EmptyDatabasePreparer implements DatabasePreparer {
@@ -104,7 +75,7 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
         }
 
         @Override
-        public void prepare(DataSource dataSource) throws SQLException {
+        public void prepare(DataSource dataSource) {
             // nothing to do
         }
     }

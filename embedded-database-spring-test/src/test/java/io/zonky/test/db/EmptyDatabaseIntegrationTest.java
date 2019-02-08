@@ -46,13 +46,13 @@ public class EmptyDatabaseIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.afterPropertiesSet();
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         JdbcTestUtils.dropTables(jdbcTemplate, "test.person");
     }
 
@@ -62,7 +62,7 @@ public class EmptyDatabaseIntegrationTest {
             "/db/migration/V0001_1__create_person_table.sql",
             "/db/migration/V0002_1__rename_surname_column.sql"
     })
-    public void loadDefaultMigrations() throws Exception {
+    public void loadDefaultMigrations() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -82,7 +82,7 @@ public class EmptyDatabaseIntegrationTest {
             "/db/migration/V0002_1__rename_surname_column.sql",
             "/db/test_migration/appendable/V1000_1__create_test_data.sql"
     })
-    public void loadAppendableTestMigrations() throws Exception {
+    public void loadAppendableTestMigrations() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -100,7 +100,7 @@ public class EmptyDatabaseIntegrationTest {
             "/db/test_migration/dependent/V0001_2__add_full_name_column.sql",
             "/db/migration/V0002_1__rename_surname_column.sql"
     })
-    public void loadDependentTestMigrations() throws Exception {
+    public void loadDependentTestMigrations() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -119,7 +119,7 @@ public class EmptyDatabaseIntegrationTest {
     @Sql(scripts = {
             "/db/test_migration/separated/V1000_1__create_test_person_table.sql"
     })
-    public void loadIndependentTestMigrations() throws Exception {
+    public void loadIndependentTestMigrations() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);

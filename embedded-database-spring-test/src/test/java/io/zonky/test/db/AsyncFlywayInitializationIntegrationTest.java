@@ -21,7 +21,6 @@ import io.zonky.test.category.FlywayIntegrationTests;
 import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -92,7 +91,7 @@ public class AsyncFlywayInitializationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test(timeout = 10000)
-    public void loadDefaultMigrations() throws Exception {
+    public void loadDefaultMigrations() {
         Duration duration = longTimeInitializingBean.getInitializationDuration();
         assertThat(duration).isGreaterThan(Duration.ofSeconds(1));
 

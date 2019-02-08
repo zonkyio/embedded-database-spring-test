@@ -16,33 +16,25 @@
 
 package io.zonky.test.db.flyway;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import io.zonky.test.db.postgres.embedded.DatabasePreparer;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres.Builder;
-import io.zonky.test.db.postgres.embedded.PreparedDbProvider;
+import io.zonky.test.db.provider.DatabaseDescriptor;
+import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.provider.DatabaseType;
+import io.zonky.test.db.provider.GenericDatabaseProvider;
+import io.zonky.test.db.provider.ProviderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
-import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.concurrent.CompletableToListenableFutureAdapter;
 import org.springframework.util.concurrent.ListenableFuture;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -50,7 +42,7 @@ import static com.google.common.base.Preconditions.checkState;
  * Default implementation of {@link FlywayDataSourceContext} that is used for deferred initialization of the embedded database.
  * Note that this target source is dynamic and supports hot reloading while the application is running.
  * <p/>
- * For the reloading of the underlying data source is used cacheable {@link io.zonky.test.db.postgres.embedded.DatabasePreparer},
+ * For the reloading of the underlying data source is used cacheable {@link DatabasePreparer},
  * which can utilize a special template database to effective copy data into multiple independent databases.
  *
  * @see io.zonky.test.db.postgres.FlywayEmbeddedPostgresDataSourceFactoryBean
@@ -59,29 +51,17 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
 
-    protected static final int MAX_DATABASE_CONNECTIONS = 300;
     protected static final int DEFAULT_MAX_RETRY_ATTEMPTS = 2;
-
-    protected static final Consumer<Builder> DEFAULT_DATABASE_CONFIGURATION = builder -> {
-        builder.setPGStartupWait(Duration.ofSeconds(20L));
-    };
-
-    protected static final Consumer<Builder> FORCED_DATABASE_CONFIGURATION =
-            builder -> builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
-
-    protected static final LoadingCache<Integer, Semaphore> CONNECTION_SEMAPHORES = CacheBuilder.newBuilder()
-            .build(new CacheLoader<Integer, Semaphore>() {
-                public Semaphore load(Integer key) {
-                    return new Semaphore(MAX_DATABASE_CONNECTIONS);
-                }
-            });
 
     protected static final ThreadLocal<DataSource> preparerDataSourceHolder = new ThreadLocal<>();
 
     protected volatile CompletableFuture<DataSource> dataSourceFuture = CompletableFuture.completedFuture(null);
 
-    @Autowired(required = false)
-    protected List<Consumer<Builder>> databaseCustomizers = new ArrayList<>();
+    @Autowired
+    protected Environment environment;
+
+    @Autowired
+    protected GenericDatabaseProvider databaseProvider;
 
     protected int maxAttempts = DEFAULT_MAX_RETRY_ATTEMPTS;
 
@@ -114,7 +94,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     }
 
     @Override
-    public void releaseTarget(Object target) throws Exception {
+    public void releaseTarget(Object target) {
         // nothing to do
     }
 
@@ -122,21 +102,13 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     public synchronized ListenableFuture<DataSource> reload(Flyway flyway) {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
-        List<Consumer<Builder>> customizers = ImmutableList.<Consumer<Builder>>builder()
-                .add(DEFAULT_DATABASE_CONFIGURATION)
-                .addAll(databaseCustomizers)
-                .add(FORCED_DATABASE_CONFIGURATION)
-                .build();
-
         CompletableFuture<DataSource> reloadFuture = dataSourceFuture.thenApplyAsync(x -> {
             for (int current = 1; current <= maxAttempts; current++) {
                 try {
+                    String providerName = environment.getProperty("embedded-database.provider", ProviderType.ZONKY.toString());
                     FlywayDatabasePreparer preparer = new FlywayDatabasePreparer(flyway);
-                    PreparedDbProvider provider = PreparedDbProvider.forPreparer(preparer, customizers);
-
-                    PGSimpleDataSource dataSource = provider.createDataSource().unwrap(PGSimpleDataSource.class);
-                    Semaphore semaphore = CONNECTION_SEMAPHORES.get(dataSource.getPortNumber());
-                    return new BlockingDataSourceWrapper(dataSource, semaphore);
+                    DatabaseDescriptor descriptor = new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
+                    return databaseProvider.getDatabase(preparer, descriptor);
                 } catch (Exception e) {
                     if (ExceptionUtils.indexOfType(e, IOException.class) == -1 || current == maxAttempts) {
                         throw new CompletionException(e);
@@ -196,7 +168,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
         }
 
         @Override
-        public void prepare(DataSource ds) throws SQLException {
+        public void prepare(DataSource ds) {
             preparerDataSourceHolder.set(ds);
             try {
                 flyway.migrate();

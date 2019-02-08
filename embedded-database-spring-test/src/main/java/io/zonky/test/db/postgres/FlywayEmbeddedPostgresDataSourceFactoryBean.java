@@ -67,12 +67,12 @@ public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<
     }
 
     @Override
-    public DataSource getObject() throws Exception {
+    public DataSource getObject() {
         return proxyInstance;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         proxyInstance = ProxyFactory.getProxy(DataSource.class, dataSourceContext);
     }
 

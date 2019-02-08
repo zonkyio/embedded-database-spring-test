@@ -90,7 +90,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
     @Test
     @FlywayTest(flywayName = "flyway1")
-    public void databaseShouldBeLoadedByFlyway1() throws Exception {
+    public void databaseShouldBeLoadedByFlyway1() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -103,7 +103,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
     @Test
     @FlywayTest(flywayName = "flyway2")
-    public void databaseShouldBeLoadedByFlyway2() throws Exception {
+    public void databaseShouldBeLoadedByFlyway2() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -119,7 +119,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
     @Test
     @FlywayTest(flywayName = "flyway1")
     @FlywayTest(flywayName = "flyway2")
-    public void databaseShouldBeOverriddenByFlyway2() throws Exception {
+    public void databaseShouldBeOverriddenByFlyway2() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
@@ -135,7 +135,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
     @Test
     @FlywayTest(flywayName = "flyway1")
     @FlywayTest(flywayName = "flyway3", invokeCleanDB = false)
-    public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() throws Exception {
+    public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() {
         assertThat(dataSource).isNotNull();
 
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);

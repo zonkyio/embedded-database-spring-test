@@ -2,6 +2,7 @@ import java.util.regex.Matcher
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
+    id 'nebula.optional-base' version '3.3.0'
 }
 
 ext {
@@ -42,6 +43,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
+    apply plugin: 'nebula.optional-base'
 
     sourceCompatibility = 1.8
 
@@ -149,16 +151,18 @@ project(':embedded-database-spring-test') {
         compile project(':embedded-database-spring-test-autoconfigure')
 
         compile 'io.zonky.test:embedded-postgres:1.2.1'
-        compile 'org.springframework:spring-context:4.3.21.RELEASE'
-        compile 'org.springframework:spring-test:4.3.21.RELEASE'
+        compile 'org.testcontainers:postgresql:1.10.3', optional
+        compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
+        compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
+        
+        compile 'org.springframework:spring-context:4.3.22.RELEASE'
+        compile 'org.springframework:spring-test:4.3.22.RELEASE'
         compile "org.flywaydb:flyway-core:$flywayCoreVersion"
         compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion"
         compile 'com.google.guava:guava:23.0'
         compile 'org.tukaani:xz:1.8'
-
-        testCompile 'junit:junit:4.12'
-        testCompile 'org.mockito:mockito-all:1.9.5'
-        testCompile 'org.assertj:assertj-core:3.6.1'
+        
+        testCompile 'org.springframework.boot:spring-boot-starter-test:1.5.19.RELEASE'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
 
