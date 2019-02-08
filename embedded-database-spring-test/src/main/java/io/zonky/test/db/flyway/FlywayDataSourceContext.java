@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.flyway;
 
+import io.zonky.test.db.provider.DatabaseDescriptor;
 import org.flywaydb.core.Flyway;
 import org.springframework.aop.TargetSource;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -29,5 +30,7 @@ import javax.sql.DataSource;
 public interface FlywayDataSourceContext extends TargetSource {
 
     ListenableFuture<DataSource> reload(Flyway flyway);
+
+    void setDescriptor(DatabaseDescriptor descriptor);
 
 }

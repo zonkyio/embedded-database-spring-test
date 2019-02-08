@@ -19,9 +19,7 @@ package io.zonky.test.db.postgres;
 import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseType;
 import io.zonky.test.db.provider.GenericDatabaseProvider;
-import io.zonky.test.db.provider.ProviderType;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +33,8 @@ import javax.sql.DataSource;
  */
 public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, InitializingBean {
 
+    protected final DatabaseDescriptor databaseDescriptor;
+
     @Autowired
     protected Environment environment;
 
@@ -42,6 +42,10 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
     protected GenericDatabaseProvider databaseProvider;
 
     private DataSource dataSource;
+
+    public EmptyEmbeddedPostgresDataSourceFactoryBean(DatabaseDescriptor databaseDescriptor) {
+        this.databaseDescriptor = databaseDescriptor;
+    }
 
     @Override
     public boolean isSingleton() {
@@ -60,9 +64,7 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        String providerName = environment.getProperty("embedded-database.provider", ProviderType.ZONKY.toString());
-        DatabaseDescriptor descriptor = new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
-        dataSource = databaseProvider.getDatabase(EmptyDatabasePreparer.INSTANCE, descriptor);
+        dataSource = databaseProvider.getDatabase(EmptyDatabasePreparer.INSTANCE, databaseDescriptor);
         EmbeddedDatabaseReporter.reportDataSource(dataSource);
     }
 

@@ -71,6 +71,31 @@ public class EmptyDatabaseIntegrationTest {
 }
 ```
 
+### Creating multiple independent databases
+
+Because the `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, you can annotate a test class with multiple annotations to create multiple independent databases.
+Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
+
+Note that if multiple annotations on a single class are applied, some optimization techniques can not be used and database initialization may be slower.
+
+```java
+@RunWith(SpringRunner.class)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource1")
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource2")
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = DOCKER)
+public class MultipleDatabasesIntegrationTest {
+    
+    @Autowired
+    private DataSource dataSource1;
+    @Autowired
+    private DataSource dataSource2;
+    @Autowired
+    private DataSource dataSource3;
+    
+    // class body...
+}
+```
+
 ### Using `@FlywayTest` annotation on a test class
 
 The library supports the use of `@FlywayTest` annotation. If you use it, the embedded database will be automatically initialized and cleaned by Flyway database migration tool. If you don't specify any custom migration locations the default path `db/migration` will be applied.
