@@ -87,7 +87,7 @@ public class YandexPostgresDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws SQLException {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.yandex.version", "9.6.11-1");
+        environment.setProperty("embedded-database.postgres.yandex-provider.postgres-version", "9.6.11-1");
         environment.setProperty("embedded-database.postgres.client.properties.stringtype", "unspecified");
         environment.setProperty("embedded-database.postgres.initdb.properties.lc-collate", "fr_BE.UTF-8");
         environment.setProperty("embedded-database.postgres.server.properties.max_connections", "100");
@@ -127,7 +127,7 @@ public class YandexPostgresDatabaseProviderTest {
     @Test
     public void providersWithSameConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.yandex.version", "postgres-version");
+        environment.setProperty("embedded-database.postgres.yandex-provider.postgres-version", "postgres-version");
         environment.setProperty("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
         environment.setProperty("embedded-database.postgres.server.properties.yyy", "yyy-value");
         environment.setProperty("embedded-database.postgres.client.properties.zzz", "zzz-value");
@@ -141,13 +141,13 @@ public class YandexPostgresDatabaseProviderTest {
     @Test
     public void providersWithDifferentConfigurationShouldNotEquals() {
         Map<String, String> mockProperties = new HashMap<>();
-        mockProperties.put("embedded-database.postgres.yandex.version", "postgres-version");
+        mockProperties.put("embedded-database.postgres.yandex-provider.postgres-version", "postgres-version");
         mockProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
         mockProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-value");
         mockProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-value");
 
         Map<String, String> diffProperties = new HashMap<>();
-        diffProperties.put("embedded-database.postgres.yandex.version", "diff-pg-version");
+        diffProperties.put("embedded-database.postgres.yandex-provider.postgres-version", "diff-pg-version");
         diffProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-diff-value");
         diffProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-diff-value");
         diffProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-diff-value");

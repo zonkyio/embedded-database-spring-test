@@ -22,7 +22,6 @@ import io.zonky.test.db.provider.GenericDatabaseProvider;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.concurrent.CompletableToListenableFutureAdapter;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -54,9 +53,6 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
     protected static final ThreadLocal<DataSource> preparerDataSourceHolder = new ThreadLocal<>();
 
     protected volatile CompletableFuture<DataSource> dataSourceFuture = CompletableFuture.completedFuture(null);
-
-    @Autowired
-    protected Environment environment;
 
     @Autowired
     protected GenericDatabaseProvider databaseProvider;

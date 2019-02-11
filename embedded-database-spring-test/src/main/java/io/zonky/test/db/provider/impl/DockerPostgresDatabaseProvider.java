@@ -30,7 +30,6 @@ import io.zonky.test.db.provider.impl.DockerPostgresDatabaseProvider.DatabaseIns
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -51,8 +50,6 @@ import java.util.stream.Collectors;
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
 public class DockerPostgresDatabaseProvider implements DatabaseProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class);
 
     private static final String POSTGRES_USERNAME = "postgres";
     private static final String POSTGRES_PASSWORD = "docker";

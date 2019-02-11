@@ -202,8 +202,12 @@ You can also consider creating a custom [composed annotation](https://github.com
 
 The library can be combined with different database providers.
 Each of them has its advantages and disadvantages summarized in the table below.
+
 Docker provides the greatest flexibility, but it can be slightly slower than the native versions.
-However, the change of the database provider is really easy, so you can try all of them.
+However, the change of database providers is really easy, so you can try them all.
+
+You can either configure a provider for each class separately by `@AutoConfigureEmbeddedDatabase(provider = ...)` annotation,
+or through `embedded-database.provider` property globally.
 
 |                                   |       [Docker][docker-provider]      |             [Zonky][zonky-provider]             | [OpenTable][opentable-provider] | [Yandex][yandex-provider] |
 |:---------------------------------:|:------------------------------------:|:-----------------------------------------------:|:-------------------------------:|:-------------------------:|
@@ -234,7 +238,6 @@ embedded-database.postgres.server.properties.*= # Additional properties used to 
 ```
 
 Note that the library includes [configuration metadata](embedded-database-spring-test/src/main/resources/META-INF/spring-configuration-metadata.json) that offer contextual help and code completion as users are working with Spring Boot's `application.properties` or `application.yml` files.
-
 
 **Example configuration:**
 ```properties
@@ -474,10 +477,10 @@ public class YandexProviderIntegrationTest {
 
 #### Yandex-specific provider configuration
 
-The provider configuration can be controlled by properties in the `embedded-database.postgres.yandex` group.
+The provider configuration can be controlled by properties in the `embedded-database.postgres.yandex-provider` group.
 
 ```properties
-embedded-database.postgres.yandex.version=10.6-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+embedded-database.postgres.yandex-provider.postgres-version=10.6-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
 
 ### Database Prefetching
@@ -610,6 +613,15 @@ Detailed instructions are [here](https://www.testcontainers.org/supported_docker
 
 Make sure that you do not use `org.flywaydb.test.junit.FlywayTestExecutionListener`. Because this library has its own test execution listener that can optimize database initialization.
 But this optimization has no effect if `FlywayTestExecutionListener` is also applied.
+
+### ERROR: role "..." already exists
+
+Since version 1.4.0, database prefetching has been improved. All databases are stored within a single database cluster.
+It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
+
+```properties
+embedded-database.postgres.zonky-provider.preparer-isolation=cluster
+```
 
 ## Building from Source
 The project uses a [Gradle](http://gradle.org)-based build system. In the instructions

@@ -30,8 +30,6 @@ import io.zonky.test.db.provider.ProviderType;
 import io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider.DatabaseInstance.DatabaseTemplate;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
@@ -53,14 +51,12 @@ import static java.util.Collections.emptyList;
 
 public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZonkyPostgresDatabaseProvider.class);
-
     private static final int MAX_DATABASE_CONNECTIONS = 300;
 
-    private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
-            .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
-                public DatabaseInstance load(DatabaseConfig config) throws IOException {
-                    return new DatabaseInstance(config);
+    private static final LoadingCache<ClusterKey, DatabaseInstance> databases = CacheBuilder.newBuilder()
+            .build(new CacheLoader<ClusterKey, DatabaseInstance>() {
+                public DatabaseInstance load(ClusterKey key) throws IOException {
+                    return new DatabaseInstance(key.databaseConfig);
                 }
             });
 
@@ -68,12 +64,15 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public ZonkyPostgresDatabaseProvider(Environment environment, ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
+        String preparerIsolation = environment.getProperty("embedded-database.postgres.zonky-provider.preparer-isolation", "database");
+        PreparerIsolation isolation = PreparerIsolation.valueOf(preparerIsolation.toUpperCase());
+
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.client.properties");
         List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
-        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers);
+        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers, isolation);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -89,7 +88,8 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
 
     @Override
     public DataSource getDatabase(DatabasePreparer preparer) throws SQLException {
-        DatabaseInstance instance = databases.getUnchecked(databaseConfig);
+        ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, preparer);
+        DatabaseInstance instance = databases.getUnchecked(clusterKey);
         DatabaseTemplate template = instance.getTemplate(clientConfig, preparer);
         return template.createDatabase();
     }
@@ -198,11 +198,13 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
         private final Map<String, String> configProperties;
         private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
         private final EmbeddedPostgres.Builder builder;
+        private final PreparerIsolation isolation;
 
-        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers) {
+        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers, PreparerIsolation isolation) {
             this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
             this.configProperties = ImmutableMap.copyOf(configProperties);
             this.customizers = ImmutableList.copyOf(customizers);
+            this.isolation = isolation;
             this.builder = EmbeddedPostgres.builder();
             applyTo(this.builder);
         }
@@ -220,12 +222,13 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DatabaseConfig that = (DatabaseConfig) o;
-            return Objects.equals(builder, that.builder);
+            return Objects.equals(builder, that.builder) &&
+                    Objects.equals(isolation, that.isolation);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(builder);
+            return Objects.hash(builder, isolation);
         }
     }
 
@@ -249,5 +252,53 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
         public int hashCode() {
             return Objects.hash(connectProperties);
         }
+    }
+
+    private static class ClusterKey {
+
+        private final DatabaseConfig databaseConfig;
+        private final ClientConfig clientConfig;
+        private final DatabasePreparer preparer;
+
+        private ClusterKey(DatabaseConfig databaseConfig, ClientConfig clientConfig, DatabasePreparer preparer) {
+            this.databaseConfig = databaseConfig;
+
+            if (databaseConfig.isolation == PreparerIsolation.CLUSTER) {
+                this.clientConfig = clientConfig;
+                this.preparer = preparer;
+            } else {
+                this.clientConfig = null;
+                this.preparer = null;
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ClusterKey that = (ClusterKey) o;
+            return Objects.equals(databaseConfig, that.databaseConfig) &&
+                    Objects.equals(clientConfig, that.clientConfig) &&
+                    Objects.equals(preparer, that.preparer);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(databaseConfig, clientConfig, preparer);
+        }
+    }
+
+    private enum PreparerIsolation {
+
+        /**
+         * All databases are stored within a single database cluster.
+         */
+        DATABASE,
+
+        /**
+         * A new database cluster is created for each template database.
+         */
+        CLUSTER
+
     }
 }

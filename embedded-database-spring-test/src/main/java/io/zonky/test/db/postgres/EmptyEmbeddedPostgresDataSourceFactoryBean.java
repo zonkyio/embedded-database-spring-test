@@ -23,7 +23,6 @@ import io.zonky.test.db.provider.GenericDatabaseProvider;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
 
@@ -34,9 +33,6 @@ import javax.sql.DataSource;
 public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, InitializingBean {
 
     protected final DatabaseDescriptor databaseDescriptor;
-
-    @Autowired
-    protected Environment environment;
 
     @Autowired
     protected GenericDatabaseProvider databaseProvider;

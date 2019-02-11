@@ -30,8 +30,6 @@ import io.zonky.test.db.provider.ProviderType;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 import ru.yandex.qatools.embed.postgresql.util.SocketUtil;
@@ -56,8 +54,6 @@ import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.defaultRuntime
 
 public class YandexPostgresDatabaseProvider implements DatabaseProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(YandexPostgresDatabaseProvider.class);
-
     private static final String POSTGRES_USERNAME = "postgres";
     private static final String POSTGRES_PASSWORD = "yandex";
 
@@ -72,7 +68,7 @@ public class YandexPostgresDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public YandexPostgresDatabaseProvider(Environment environment) {
-        String postgresVersion = environment.getProperty("embedded-database.postgres.yandex.version", "10.6-1");
+        String postgresVersion = environment.getProperty("embedded-database.postgres.yandex-provider.postgres-version", "10.6-1");
 
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.server.properties");

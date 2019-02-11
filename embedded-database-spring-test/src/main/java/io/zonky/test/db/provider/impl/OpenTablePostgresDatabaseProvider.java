@@ -30,8 +30,6 @@ import io.zonky.test.db.provider.ProviderType;
 import io.zonky.test.db.provider.impl.OpenTablePostgresDatabaseProvider.DatabaseInstance.DatabaseTemplate;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
@@ -52,8 +50,6 @@ import java.util.function.Consumer;
 import static java.util.Collections.emptyList;
 
 public class OpenTablePostgresDatabaseProvider implements DatabaseProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(OpenTablePostgresDatabaseProvider.class);
 
     private static final int MAX_DATABASE_CONNECTIONS = 300;
 

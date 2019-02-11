@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = YANDEX)
 @TestPropertySource(properties = {
-        "embedded-database.postgres.yandex.version=9.6.11-1"
+        "embedded-database.postgres.yandex-provider.postgres-version=9.6.11-1"
 })
 @ContextConfiguration
 public class YandexProviderWithConfigurationIntegrationTest {

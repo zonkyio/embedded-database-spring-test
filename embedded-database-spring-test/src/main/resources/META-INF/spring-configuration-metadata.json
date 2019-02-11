@@ -17,7 +17,11 @@
       "description": "Additional configuration properties for PostgreSQL database running in a Docker container. Only available if database provider is set to Docker."
     },
     {
-      "name": "embedded-database.postgres.yandex",
+      "name": "embedded-database.postgres.zonky-provider",
+      "description": "Additional configuration properties for Zonky Embedded Postgres. Only available if database provider is set to Zonky."
+    },
+    {
+      "name": "embedded-database.postgres.yandex-provider",
       "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
     }
   ],
@@ -80,7 +84,13 @@
       "defaultValue": "rw,noexec,nosuid"
     },
     {
-      "name": "embedded-database.postgres.yandex.version",
+      "name": "embedded-database.postgres.zonky-provider.preparer-isolation",
+      "type": "io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider$PreparerIsolation",
+      "description": "Whether there should be one shared database cluster or multiple independent database clusters.",
+      "defaultValue": "database"
+    },
+    {
+      "name": "embedded-database.postgres.yandex-provider.postgres-version",
       "type": "java.lang.String",
       "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
       "defaultValue": "10.6-1"

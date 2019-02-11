@@ -104,6 +104,32 @@ public class ZonkyPostgresDatabaseProviderTest {
     }
 
     @Test
+    public void testClusterPreparerIsolation() throws SQLException {
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("embedded-database.postgres.zonky-provider.preparer-isolation", "cluster");
+
+        ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(environment, databaseCustomizers);
+
+        DatabasePreparer preparer1 = dataSource -> {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            jdbcTemplate.update("create table prime_number (number int primary key not null)");
+        };
+
+        DatabasePreparer preparer2 = dataSource -> {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
+        };
+
+        DataSource dataSource1 = provider.getDatabase(preparer1);
+        DataSource dataSource2 = provider.getDatabase(preparer2);
+
+        assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
+        assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
+
+        assertThat(getPort(dataSource1)).isNotEqualTo(getPort(dataSource2));
+    }
+
+    @Test
     public void testDatabaseCustomizers() throws SQLException {
         when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(33334)));
 
@@ -153,6 +179,7 @@ public class ZonkyPostgresDatabaseProviderTest {
     @Test
     public void providersWithSameConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("embedded-database.postgres.zonky-provider.preparer-isolation", "database");
         environment.setProperty("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
         environment.setProperty("embedded-database.postgres.server.properties.yyy", "yyy-value");
         environment.setProperty("embedded-database.postgres.client.properties.zzz", "zzz-value");
@@ -166,11 +193,13 @@ public class ZonkyPostgresDatabaseProviderTest {
     @Test
     public void providersWithDifferentConfigurationShouldNotEquals() {
         Map<String, String> mockProperties = new HashMap<>();
+        mockProperties.put("embedded-database.postgres.zonky-provider.preparer-isolation", "database");
         mockProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
         mockProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-value");
         mockProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-value");
 
         Map<String, String> diffProperties = new HashMap<>();
+        diffProperties.put("embedded-database.postgres.zonky-provider.preparer-isolation", "cluster");
         diffProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-diff-value");
         diffProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-diff-value");
         diffProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-diff-value");
