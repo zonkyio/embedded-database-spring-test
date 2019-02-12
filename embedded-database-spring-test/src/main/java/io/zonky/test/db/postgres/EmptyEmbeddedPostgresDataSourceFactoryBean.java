@@ -20,9 +20,10 @@ import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.GenericDatabaseProvider;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.sql.DataSource;
 
@@ -30,17 +31,20 @@ import javax.sql.DataSource;
  * Implementation of the {@link org.springframework.beans.factory.FactoryBean} interface
  * that provides empty instances of the embedded postgres database.
  */
-public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, InitializingBean {
+public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, BeanFactoryAware {
 
     protected final DatabaseDescriptor databaseDescriptor;
 
-    @Autowired
-    protected GenericDatabaseProvider databaseProvider;
-
+    private BeanFactory beanFactory;
     private DataSource dataSource;
 
     public EmptyEmbeddedPostgresDataSourceFactoryBean(DatabaseDescriptor databaseDescriptor) {
         this.databaseDescriptor = databaseDescriptor;
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
     }
 
     @Override
@@ -54,14 +58,13 @@ public class EmptyEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<D
     }
 
     @Override
-    public DataSource getObject() {
+    public DataSource getObject() throws Exception {
+        if (dataSource == null) {
+            GenericDatabaseProvider databaseProvider = beanFactory.getBean(GenericDatabaseProvider.class);
+            dataSource = databaseProvider.getDatabase(EmptyDatabasePreparer.INSTANCE, databaseDescriptor);
+            EmbeddedDatabaseReporter.reportDataSource(dataSource);
+        }
         return dataSource;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        dataSource = databaseProvider.getDatabase(EmptyDatabasePreparer.INSTANCE, databaseDescriptor);
-        EmbeddedDatabaseReporter.reportDataSource(dataSource);
     }
 
     private static class EmptyDatabasePreparer implements DatabasePreparer {

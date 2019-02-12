@@ -40,7 +40,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
@@ -235,7 +234,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
                     dataSourceDefinition.getConstructorArgumentValues()
                             .addIndexedArgumentValue(0, flywayInfo.getBeanName());
                     dataSourceDefinition.getConstructorArgumentValues()
-                            .addIndexedArgumentValue(1, new RuntimeBeanReference(contextInfo.getBeanName()));
+                            .addIndexedArgumentValue(1, contextInfo.getBeanName());
                 }
 
                 String dataSourceBeanName = dataSourceInfo.getBeanName();

@@ -24,8 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -37,23 +38,29 @@ import javax.sql.DataSource;
  * that provides fully cacheable instances of the embedded postgres database.
  * Each instance is backed by a flyway bean that is used for initializing the target database.
  */
-public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, BeanPostProcessor, InitializingBean, Ordered {
+public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, BeanPostProcessor, BeanFactoryAware, Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger(FlywayEmbeddedPostgresDataSourceFactoryBean.class);
 
     private final String flywayName;
-    private final FlywayDataSourceContext dataSourceContext;
+    private final String dataSourceContextName;
 
+    private BeanFactory beanFactory;
     private DataSource proxyInstance;
 
-    public FlywayEmbeddedPostgresDataSourceFactoryBean(String flywayName, FlywayDataSourceContext dataSourceContext) {
+    public FlywayEmbeddedPostgresDataSourceFactoryBean(String flywayName, String dataSourceContextName) {
         this.flywayName = flywayName;
-        this.dataSourceContext = dataSourceContext;
+        this.dataSourceContextName = dataSourceContextName;
     }
 
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
     }
 
     @Override
@@ -68,17 +75,17 @@ public class FlywayEmbeddedPostgresDataSourceFactoryBean implements FactoryBean<
 
     @Override
     public DataSource getObject() {
+        if (proxyInstance == null) {
+            FlywayDataSourceContext dataSourceContext = beanFactory.getBean(dataSourceContextName, FlywayDataSourceContext.class);
+            proxyInstance = ProxyFactory.getProxy(DataSource.class, dataSourceContext);
+        }
         return proxyInstance;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        proxyInstance = ProxyFactory.getProxy(DataSource.class, dataSourceContext);
     }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof Flyway && StringUtils.equals(beanName, flywayName)) {
+            FlywayDataSourceContext dataSourceContext = beanFactory.getBean(dataSourceContextName, FlywayDataSourceContext.class);
             ListenableFuture<DataSource> reloadFuture = dataSourceContext.reload((Flyway) bean);
             reloadFuture.addCallback(
                     result -> EmbeddedDatabaseReporter.reportDataSource(result),
