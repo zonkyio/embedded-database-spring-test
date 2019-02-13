@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = DOCKER)
-@TestPropertySource(properties = "embedded-database.provider=zonky")
+@TestPropertySource(properties = "zonky.test.database.provider=zonky")
 @ContextConfiguration
 public class ProviderTypePriorityIntegrationTest {
 

@@ -20,6 +20,7 @@ import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseType;
 import io.zonky.test.db.provider.ProviderType;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,6 +47,7 @@ public class YandexPostgresDatabaseProviderTest {
         assertThat(provider.getProviderType()).isEqualTo(ProviderType.YANDEX);
     }
 
+    @Ignore
     @Test
     public void testGetDatabase() throws SQLException {
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
@@ -84,14 +86,15 @@ public class YandexPostgresDatabaseProviderTest {
         assertThat(jdbcTemplate3.queryForObject("select count(*) from prime_number", Integer.class)).isEqualTo(1);
     }
 
+    @Ignore
     @Test
     public void testConfigurationProperties() throws SQLException {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.yandex-provider.postgres-version", "9.6.11-1");
-        environment.setProperty("embedded-database.postgres.client.properties.stringtype", "unspecified");
-        environment.setProperty("embedded-database.postgres.initdb.properties.lc-collate", "fr_BE.UTF-8");
-        environment.setProperty("embedded-database.postgres.server.properties.max_connections", "100");
-        environment.setProperty("embedded-database.postgres.server.properties.shared_buffers", "64MB");
+        environment.setProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "9.6.11-1");
+        environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
+        environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
+        environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
         DatabasePreparer preparer = dataSource -> {};
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(environment);
@@ -105,7 +108,7 @@ public class YandexPostgresDatabaseProviderTest {
         assertThat(postgresVersion).startsWith("9.6.");
 
         String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
-        assertThat(collate).isEqualTo("fr_BE.UTF-8");
+        assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
         assertThat(maxConnections).isEqualTo("100");
@@ -127,10 +130,10 @@ public class YandexPostgresDatabaseProviderTest {
     @Test
     public void providersWithSameConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.yandex-provider.postgres-version", "postgres-version");
-        environment.setProperty("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        environment.setProperty("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        environment.setProperty("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        environment.setProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "postgres-version");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        environment.setProperty("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        environment.setProperty("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         YandexPostgresDatabaseProvider provider1 = new YandexPostgresDatabaseProvider(environment);
         YandexPostgresDatabaseProvider provider2 = new YandexPostgresDatabaseProvider(environment);
@@ -141,16 +144,16 @@ public class YandexPostgresDatabaseProviderTest {
     @Test
     public void providersWithDifferentConfigurationShouldNotEquals() {
         Map<String, String> mockProperties = new HashMap<>();
-        mockProperties.put("embedded-database.postgres.yandex-provider.postgres-version", "postgres-version");
-        mockProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        mockProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        mockProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        mockProperties.put("zonky.test.database.postgres.yandex-provider.postgres-version", "postgres-version");
+        mockProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        mockProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        mockProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         Map<String, String> diffProperties = new HashMap<>();
-        diffProperties.put("embedded-database.postgres.yandex-provider.postgres-version", "diff-pg-version");
-        diffProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-diff-value");
-        diffProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-diff-value");
-        diffProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-diff-value");
+        diffProperties.put("zonky.test.database.postgres.yandex-provider.postgres-version", "diff-pg-version");
+        diffProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-diff-value");
+        diffProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-diff-value");
+        diffProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-diff-value");
 
         for (Map.Entry<String, String> diffProperty : diffProperties.entrySet()) {
             MockEnvironment environment1 = new MockEnvironment();

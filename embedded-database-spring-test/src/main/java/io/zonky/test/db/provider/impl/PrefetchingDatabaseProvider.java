@@ -79,9 +79,9 @@ public class PrefetchingDatabaseProvider implements GenericDatabaseProvider {
         this.databaseProviders = Optional.ofNullable(databaseProviders.getIfAvailable()).orElse(emptyList()).stream()
                 .collect(Collectors.toMap(p -> new DatabaseDescriptor(p.getDatabaseType(), p.getProviderType()), identity()));
 
-        String threadNamePrefix = environment.getProperty("embedded-database.prefetching.thread-name-prefix", "prefetching-");
-        int concurrency = environment.getProperty("embedded-database.prefetching.concurrency", int.class, 3);
-        pipelineCacheSize = environment.getProperty("embedded-database.prefetching.pipeline-cache-size", int.class, 3);
+        String threadNamePrefix = environment.getProperty("zonky.test.database.prefetching.thread-name-prefix", "prefetching-");
+        int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
+        pipelineCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 3);
 
         taskExecutor.setThreadNamePrefix(threadNamePrefix);
         taskExecutor.setCorePoolSize(concurrency);

@@ -64,12 +64,12 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public ZonkyPostgresDatabaseProvider(Environment environment, ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
-        String preparerIsolation = environment.getProperty("embedded-database.postgres.zonky-provider.preparer-isolation", "database");
+        String preparerIsolation = environment.getProperty("zonky.test.database.postgres.zonky-provider.preparer-isolation", "database");
         PreparerIsolation isolation = PreparerIsolation.valueOf(preparerIsolation.toUpperCase());
 
-        Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.initdb.properties");
-        Map<String, String> configProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.server.properties");
-        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.client.properties");
+        Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
+        Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
+        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
         List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
         this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers, isolation);

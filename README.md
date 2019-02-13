@@ -207,7 +207,7 @@ Docker provides the greatest flexibility, but it can be slightly slower than the
 However, the change of database providers is really easy, so you can try them all.
 
 You can either configure a provider for each class separately by `@AutoConfigureEmbeddedDatabase(provider = ...)` annotation,
-or through `embedded-database.provider` property globally.
+or through `zonky.test.database.provider` property globally.
 
 |                                   |       [Docker][docker-provider]      |             [Zonky][zonky-provider]             | [OpenTable][opentable-provider] | [Yandex][yandex-provider] |
 |:---------------------------------:|:------------------------------------:|:-----------------------------------------------:|:-------------------------------:|:-------------------------:|
@@ -231,22 +231,22 @@ The `@AutoConfigureEmbeddedDatabase` annotation can be used for some basic confi
 The following configuration keys are used by all providers:
 
 ```properties
-embedded-database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparision matrix.
-embedded-database.postgres.client.properties.*= # Additional properties used to configure the test data source.
-embedded-database.postgres.initdb.properties.*= # Additional properties to pass to initdb command during the database initialization.
-embedded-database.postgres.server.properties.*= # Additional properties used to configure the embedded PostgreSQL server.
+zonky.test.database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparision matrix.
+zonky.test.database.postgres.client.properties.*= # Additional properties used to configure the test data source.
+zonky.test.database.postgres.initdb.properties.*= # Additional properties to pass to initdb command during the database initialization.
+zonky.test.database.postgres.server.properties.*= # Additional properties used to configure the embedded PostgreSQL server.
 ```
 
 Note that the library includes [configuration metadata](embedded-database-spring-test/src/main/resources/META-INF/spring-configuration-metadata.json) that offer contextual help and code completion as users are working with Spring Boot's `application.properties` or `application.yml` files.
 
 **Example configuration:**
 ```properties
-embedded-database.postgres.client.properties.stringtype=unspecified
-embedded-database.postgres.initdb.properties.lc-collate=cs_CZ.UTF-8
-embedded-database.postgres.initdb.properties.lc-monetary=cs_CZ.UTF-8
-embedded-database.postgres.initdb.properties.lc-numeric=cs_CZ.UTF-8
-embedded-database.postgres.server.properties.shared_buffers=512MB
-embedded-database.postgres.server.properties.max_connections=100
+zonky.test.database.postgres.client.properties.stringtype=unspecified
+zonky.test.database.postgres.initdb.properties.lc-collate=cs_CZ.UTF-8
+zonky.test.database.postgres.initdb.properties.lc-monetary=cs_CZ.UTF-8
+zonky.test.database.postgres.initdb.properties.lc-numeric=cs_CZ.UTF-8
+zonky.test.database.postgres.server.properties.shared_buffers=512MB
+zonky.test.database.postgres.server.properties.max_connections=100
 ```
 
 ### Using Zonky Provider (default)
@@ -394,12 +394,12 @@ public class DockerProviderIntegrationTest {
 
 #### Docker-specific provider configuration
 
-The provider configuration can be controlled by properties in the `embedded-database.postgres.docker` group.
+The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
 
 ```properties
-embedded-database.postgres.docker.image=postgres:10.6-alpine # Docker image containing PostgreSQL database.
-embedded-database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
-embedded-database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
+zonky.test.database.postgres.docker.image=postgres:10.6-alpine # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
+zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
 ``` 
 
 ### Using OpenTable Provider
@@ -477,20 +477,20 @@ public class YandexProviderIntegrationTest {
 
 #### Yandex-specific provider configuration
 
-The provider configuration can be controlled by properties in the `embedded-database.postgres.yandex-provider` group.
+The provider configuration can be controlled by properties in the `zonky.test.database.postgres.yandex-provider` group.
 
 ```properties
-embedded-database.postgres.yandex-provider.postgres-version=10.6-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+zonky.test.database.postgres.yandex-provider.postgres-version=10.6-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
 
 ### Database Prefetching
 
-Database prefetching is used to speed up the database initialization. It can be customized by properties in the `embedded-database.prefetching` group.
+Database prefetching is used to speed up the database initialization. It can be customized by properties in the `zonky.test.database.prefetching` group.
 
 ```properties
-embedded-database.prefetching.thread-name-prefix=prefetching- # Prefix to use for the names of database prefetching threads.
-embedded-database.prefetching.concurrency=3 # Maximum number of concurrently running database prefetching threads.
-embedded-database.prefetching.pipeline-cache-size=3 # Maximum number of prepared databases per pipeline.
+zonky.test.database.prefetching.thread-name-prefix=prefetching- # Prefix to use for the names of database prefetching threads.
+zonky.test.database.prefetching.concurrency=3 # Maximum number of concurrently running database prefetching threads.
+zonky.test.database.prefetching.pipeline-cache-size=3 # Maximum number of prepared databases per pipeline.
 ```
 
 ### Disabling auto-configuration
@@ -620,7 +620,7 @@ Since version 1.4.0, database prefetching has been improved. All databases are s
 It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
 
 ```properties
-embedded-database.postgres.zonky-provider.preparer-isolation=cluster
+zonky.test.database.postgres.zonky-provider.preparer-isolation=cluster
 ```
 
 ## Building from Source

@@ -65,13 +65,13 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public DockerPostgresDatabaseProvider(Environment environment) {
-        String dockerImage = environment.getProperty("embedded-database.postgres.docker.image", "postgres:10.6-alpine");
-        String tmpfsOptions = environment.getProperty("embedded-database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
-        boolean tmpfsEnabled = environment.getProperty("embedded-database.postgres.docker.tmpfs.enabled", boolean.class, false);
+        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.6-alpine");
+        String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
+        boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
 
-        Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.initdb.properties");
-        Map<String, String> configProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.server.properties");
-        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "embedded-database.postgres.client.properties");
+        Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
+        Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
+        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
 
         this.databaseConfig = new DatabaseConfig(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
         this.clientConfig = new ClientConfig(connectProperties);

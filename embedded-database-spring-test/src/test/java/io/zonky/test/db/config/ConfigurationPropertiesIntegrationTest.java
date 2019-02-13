@@ -33,10 +33,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @TestPropertySource(properties = {
-        "embedded-database.postgres.client.properties.stringtype=unspecified",
-        "embedded-database.postgres.initdb.properties.lc-collate=fr_BE.UTF-8",
-        "embedded-database.postgres.server.properties.max_connections=100",
-        "embedded-database.postgres.server.properties.shared_buffers=64MB",
+        "zonky.test.database.postgres.client.properties.stringtype=unspecified",
+        "zonky.test.database.postgres.initdb.properties.lc-collate=cs_CZ.UTF-8",
+        "zonky.test.database.postgres.server.properties.max_connections=100",
+        "zonky.test.database.postgres.server.properties.shared_buffers=64MB",
 })
 @ContextConfiguration
 public class ConfigurationPropertiesIntegrationTest {
@@ -51,7 +51,7 @@ public class ConfigurationPropertiesIntegrationTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
-        assertThat(collate).isEqualTo("fr_BE.UTF-8");
+        assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
         assertThat(maxConnections).isEqualTo("300"); // this is a default value that can not be changed

@@ -88,11 +88,11 @@ public class DockerPostgresDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws SQLException {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.docker.image", "postgres:9.6.11-alpine");
-        environment.setProperty("embedded-database.postgres.client.properties.stringtype", "unspecified");
-        environment.setProperty("embedded-database.postgres.initdb.properties.lc-collate", "fr_BE.UTF-8");
-        environment.setProperty("embedded-database.postgres.server.properties.max_connections", "100");
-        environment.setProperty("embedded-database.postgres.server.properties.shared_buffers", "64MB");
+        environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:9.6.11-alpine");
+        environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
+        environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
+        environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
         DatabasePreparer preparer = dataSource -> {};
         DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(environment);
@@ -106,7 +106,7 @@ public class DockerPostgresDatabaseProviderTest {
         assertThat(postgresVersion).startsWith("9.6.");
 
         String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
-        assertThat(collate).isEqualTo("fr_BE.UTF-8");
+        assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
         assertThat(maxConnections).isEqualTo("100");
@@ -128,12 +128,12 @@ public class DockerPostgresDatabaseProviderTest {
     @Test
     public void providersWithSameConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.docker.image", "test-image");
-        environment.setProperty("embedded-database.postgres.docker.tmpfs.options", "mount-options");
-        environment.setProperty("embedded-database.postgres.docker.tmpfs.enabled", "true");
-        environment.setProperty("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        environment.setProperty("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        environment.setProperty("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        environment.setProperty("zonky.test.database.postgres.docker.image", "test-image");
+        environment.setProperty("zonky.test.database.postgres.docker.tmpfs.options", "mount-options");
+        environment.setProperty("zonky.test.database.postgres.docker.tmpfs.enabled", "true");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        environment.setProperty("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        environment.setProperty("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment);
         DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment);
@@ -144,20 +144,20 @@ public class DockerPostgresDatabaseProviderTest {
     @Test
     public void providersWithDifferentConfigurationShouldNotEquals() {
         Map<String, String> mockProperties = new HashMap<>();
-        mockProperties.put("embedded-database.postgres.docker.image", "test-image");
-        mockProperties.put("embedded-database.postgres.docker.tmpfs.options", "mount-options");
-        mockProperties.put("embedded-database.postgres.docker.tmpfs.enabled", "true");
-        mockProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        mockProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        mockProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        mockProperties.put("zonky.test.database.postgres.docker.image", "test-image");
+        mockProperties.put("zonky.test.database.postgres.docker.tmpfs.options", "mount-options");
+        mockProperties.put("zonky.test.database.postgres.docker.tmpfs.enabled", "true");
+        mockProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        mockProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        mockProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         Map<String, String> diffProperties = new HashMap<>();
-        diffProperties.put("embedded-database.postgres.docker.image", "diff-test-image");
-        diffProperties.put("embedded-database.postgres.docker.tmpfs.options", "diff-mount-options");
-        diffProperties.put("embedded-database.postgres.docker.tmpfs.enabled", "false");
-        diffProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-diff-value");
-        diffProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-diff-value");
-        diffProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-diff-value");
+        diffProperties.put("zonky.test.database.postgres.docker.image", "diff-test-image");
+        diffProperties.put("zonky.test.database.postgres.docker.tmpfs.options", "diff-mount-options");
+        diffProperties.put("zonky.test.database.postgres.docker.tmpfs.enabled", "false");
+        diffProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-diff-value");
+        diffProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-diff-value");
+        diffProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-diff-value");
 
         for (Entry<String, String> diffProperty : diffProperties.entrySet()) {
             MockEnvironment environment1 = new MockEnvironment();

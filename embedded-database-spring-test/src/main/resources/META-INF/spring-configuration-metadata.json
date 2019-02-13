@@ -1,96 +1,96 @@
 {
   "groups": [
     {
-      "name": "embedded-database",
+      "name": "zonky.test.database",
       "description": "Configuration properties for Zonky Embedded Database library."
     },
     {
-      "name": "embedded-database.prefetching",
+      "name": "zonky.test.database.prefetching",
       "description": "Configuration properties to configure prefetching of prepared databases."
     },
     {
-      "name": "embedded-database.postgres",
+      "name": "zonky.test.database.postgres",
       "description": "Configuration properties to configure embedded PostgreSQL database."
     },
     {
-      "name": "embedded-database.postgres.docker",
+      "name": "zonky.test.database.postgres.docker",
       "description": "Additional configuration properties for PostgreSQL database running in a Docker container. Only available if database provider is set to Docker."
     },
     {
-      "name": "embedded-database.postgres.zonky-provider",
+      "name": "zonky.test.database.postgres.zonky-provider",
       "description": "Additional configuration properties for Zonky Embedded Postgres. Only available if database provider is set to Zonky."
     },
     {
-      "name": "embedded-database.postgres.yandex-provider",
+      "name": "zonky.test.database.postgres.yandex-provider",
       "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
     }
   ],
   "properties": [
     {
-      "name": "embedded-database.provider",
+      "name": "zonky.test.database.provider",
       "type": "java.lang.String",
       "description": "Provider used to create the underlying embedded database, see the documentation for the comparision matrix.",
       "defaultValue": "zonky"
     },
     {
-      "name": "embedded-database.prefetching.thread-name-prefix",
+      "name": "zonky.test.database.prefetching.thread-name-prefix",
       "type": "java.lang.String",
       "description": "Prefix to use for the names of database prefetching threads.",
       "defaultValue": "prefetching-"
     },
     {
-      "name": "embedded-database.prefetching.concurrency",
+      "name": "zonky.test.database.prefetching.concurrency",
       "type": "java.lang.Integer",
       "description": "Maximum number of concurrently running database prefetching threads.",
       "defaultValue": 3
     },
     {
-      "name": "embedded-database.prefetching.pipeline-cache-size",
+      "name": "zonky.test.database.prefetching.pipeline-cache-size",
       "type": "java.lang.Integer",
       "description": "Maximum number of prepared databases per pipeline. Where pipeline is a queue of independent databases that contains the same initial data.",
       "defaultValue": 3
     },
     {
-      "name": "embedded-database.postgres.client.properties",
+      "name": "zonky.test.database.postgres.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
       "description": "Additional properties used to configure the test data source."
     },
     {
-      "name": "embedded-database.postgres.initdb.properties",
+      "name": "zonky.test.database.postgres.initdb.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
       "description": "Additional properties to pass to initdb command during the database initialization."
     },
     {
-      "name": "embedded-database.postgres.server.properties",
+      "name": "zonky.test.database.postgres.server.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
       "description": "Additional properties used to configure the embedded PostgreSQL server."
     },
     {
-      "name": "embedded-database.postgres.docker.image",
+      "name": "zonky.test.database.postgres.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing PostgreSQL database.",
       "defaultValue": "postgres:10.6-alpine"
     },
     {
-      "name": "embedded-database.postgres.docker.tmpfs.enabled",
+      "name": "zonky.test.database.postgres.docker.tmpfs.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to mount postgres data directory as tmpfs.",
       "defaultValue": false
     },
     {
-      "name": "embedded-database.postgres.docker.tmpfs.options",
+      "name": "zonky.test.database.postgres.docker.tmpfs.options",
       "type": "java.lang.String",
       "description": "Mount options used to configure the tmpfs filesystem.",
       "defaultValue": "rw,noexec,nosuid"
     },
     {
-      "name": "embedded-database.postgres.zonky-provider.preparer-isolation",
+      "name": "zonky.test.database.postgres.zonky-provider.preparer-isolation",
       "type": "io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider$PreparerIsolation",
       "description": "Whether there should be one shared database cluster or multiple independent database clusters.",
       "defaultValue": "database"
     },
     {
-      "name": "embedded-database.postgres.yandex-provider.postgres-version",
+      "name": "zonky.test.database.postgres.yandex-provider.postgres-version",
       "type": "java.lang.String",
       "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
       "defaultValue": "10.6-1"
@@ -98,7 +98,7 @@
   ],
   "hints": [
     {
-      "name": "embedded-database.provider",
+      "name": "zonky.test.database.provider",
       "values": [
         {
           "value": "docker",
@@ -124,7 +124,7 @@
       ]
     },
     {
-      "name": "embedded-database.postgres.docker.image",
+      "name": "zonky.test.database.postgres.docker.image",
       "values": [
         {
           "value": "postgres:11-alpine"

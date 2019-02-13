@@ -69,7 +69,7 @@ public @interface AutoConfigureEmbeddedDatabase {
      * Provider used to create the underlying embedded database,
      * see the documentation for the comparision matrix.
      * Note that the provider can also be configured
-     * through {@code embedded-database.provider} property.
+     * through {@code zonky.test.database.provider} property.
      *
      * @return the provider of an embedded database
      */

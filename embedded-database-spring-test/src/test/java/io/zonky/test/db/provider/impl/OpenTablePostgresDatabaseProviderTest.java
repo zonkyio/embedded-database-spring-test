@@ -117,10 +117,10 @@ public class OpenTablePostgresDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws SQLException {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.client.properties.stringtype", "unspecified");
-        environment.setProperty("embedded-database.postgres.initdb.properties.lc-collate", "fr_BE.UTF-8");
-        environment.setProperty("embedded-database.postgres.server.properties.max_connections", "100");
-        environment.setProperty("embedded-database.postgres.server.properties.shared_buffers", "64MB");
+        environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
+        environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
+        environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
         DatabasePreparer preparer = dataSource -> {};
         OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
@@ -131,7 +131,7 @@ public class OpenTablePostgresDatabaseProviderTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
-        assertThat(collate).isEqualTo("fr_BE.UTF-8");
+        assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
         assertThat(maxConnections).isEqualTo("300");
@@ -153,9 +153,9 @@ public class OpenTablePostgresDatabaseProviderTest {
     @Test
     public void providersWithSameConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        environment.setProperty("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        environment.setProperty("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        environment.setProperty("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        environment.setProperty("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        environment.setProperty("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
         OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
@@ -166,14 +166,14 @@ public class OpenTablePostgresDatabaseProviderTest {
     @Test
     public void providersWithDifferentConfigurationShouldNotEquals() {
         Map<String, String> mockProperties = new HashMap<>();
-        mockProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-value");
-        mockProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-value");
-        mockProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-value");
+        mockProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-value");
+        mockProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
+        mockProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
         Map<String, String> diffProperties = new HashMap<>();
-        diffProperties.put("embedded-database.postgres.initdb.properties.xxx", "xxx-diff-value");
-        diffProperties.put("embedded-database.postgres.server.properties.yyy", "yyy-diff-value");
-        diffProperties.put("embedded-database.postgres.client.properties.zzz", "zzz-diff-value");
+        diffProperties.put("zonky.test.database.postgres.initdb.properties.xxx", "xxx-diff-value");
+        diffProperties.put("zonky.test.database.postgres.server.properties.yyy", "yyy-diff-value");
+        diffProperties.put("zonky.test.database.postgres.client.properties.zzz", "zzz-diff-value");
 
         for (Map.Entry<String, String> diffProperty : diffProperties.entrySet()) {
             MockEnvironment environment1 = new MockEnvironment();

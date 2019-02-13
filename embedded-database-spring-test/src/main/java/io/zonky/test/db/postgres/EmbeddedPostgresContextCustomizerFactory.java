@@ -61,6 +61,7 @@ import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
 import java.lang.reflect.AnnotatedElement;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,7 +95,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
                 .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
                 .filter(databaseAnnotation -> databaseAnnotation.type() == EmbeddedDatabaseType.POSTGRES)
                 .filter(databaseAnnotation -> databaseAnnotation.replace() != Replace.NONE)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         if (!databaseAnnotations.isEmpty()) {
             return new PreloadableEmbeddedPostgresContextCustomizer(databaseAnnotations);
@@ -253,7 +254,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
         protected DatabaseDescriptor resolveDatabaseDescriptor(Environment environment, AutoConfigureEmbeddedDatabase databaseAnnotation) {
             String providerName = databaseAnnotation.provider() != DEFAULT ? databaseAnnotation.provider().name() :
-                    environment.getProperty("embedded-database.provider", ProviderType.ZONKY.toString());
+                    environment.getProperty("zonky.test.database.provider", ProviderType.ZONKY.toString());
             return new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
         }
     }
