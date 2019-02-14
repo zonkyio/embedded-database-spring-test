@@ -262,7 +262,7 @@ public class DefaultProviderIntegrationTest {
 }
 ```
 
-#### Changing the version of postgres binaries
+#### Changing the version of postgres binaries [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
 
 The version of the binaries can be managed by importing `embedded-postgres-binaries-bom` in a required version into your dependency management section.
 
@@ -319,7 +319,7 @@ A list of all available versions of postgres binaries is here: https://mvnreposi
 
 Note that the release cycle of the postgres binaries is independent of the release cycle of this library, so you can upgrade to a new version of postgres binaries immediately after it is released.
 
-#### Enabling support for additional architectures
+#### Enabling support for additional architectures [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
 
 By default, only the support for `amd64` architecture is enabled.
 Support for other architectures can be enabled by adding the corresponding Maven dependencies as shown in the example below.
@@ -339,7 +339,7 @@ Note that not all architectures are supported by all platforms, look here for an
   
 Since `PostgreSQL 10.0`, there are additional artifacts with `alpine-lite` suffix. These artifacts contain postgres binaries for Alpine Linux with disabled [ICU support](https://blog.2ndquadrant.com/icu-support-postgresql-10/) for further size reduction.
 
-#### Zonky-specific provider configuration
+#### Zonky-specific provider configuration [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
 
 The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
 The obtained builder provides methods to change the configuration before the database is started.
