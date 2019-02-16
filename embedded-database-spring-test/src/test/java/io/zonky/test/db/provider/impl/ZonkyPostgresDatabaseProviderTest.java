@@ -30,6 +30,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.SocketUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -131,13 +132,14 @@ public class ZonkyPostgresDatabaseProviderTest {
 
     @Test
     public void testDatabaseCustomizers() throws SQLException {
-        when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(33334)));
+        int randomPort = SocketUtils.findAvailableTcpPort();
+        when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
 
         DatabasePreparer preparer = dataSource -> {};
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
         DataSource dataSource = provider.getDatabase(preparer);
 
-        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(33334);
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(randomPort);
     }
 
     @Test

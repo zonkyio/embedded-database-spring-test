@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.SocketUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -43,16 +44,24 @@ public class ZonkyProviderWithConfigurationIntegrationTest {
     static class Config {
 
         @Bean
-        public Consumer<EmbeddedPostgres.Builder> embeddedPostgresCustomizer() {
-            return builder -> builder.setPort(33333);
+        public Integer randomPort() {
+            return SocketUtils.findAvailableTcpPort();
+        }
+
+        @Bean
+        public Consumer<EmbeddedPostgres.Builder> embeddedPostgresCustomizer(Integer randomPort) {
+            return builder -> builder.setPort(randomPort);
         }
     }
+
+    @Autowired
+    private Integer randomPort;
 
     @Autowired
     private DataSource dataSource;
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(33333);
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(randomPort);
     }
 }

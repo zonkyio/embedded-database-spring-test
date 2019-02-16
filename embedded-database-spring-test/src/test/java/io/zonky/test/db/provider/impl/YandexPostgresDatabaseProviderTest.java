@@ -47,7 +47,6 @@ public class YandexPostgresDatabaseProviderTest {
         assertThat(provider.getProviderType()).isEqualTo(ProviderType.YANDEX);
     }
 
-    @Ignore
     @Test
     public void testGetDatabase() throws SQLException {
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
@@ -86,7 +85,6 @@ public class YandexPostgresDatabaseProviderTest {
         assertThat(jdbcTemplate3.queryForObject("select count(*) from prime_number", Integer.class)).isEqualTo(1);
     }
 
-    @Ignore
     @Test
     public void testConfigurationProperties() throws SQLException {
         MockEnvironment environment = new MockEnvironment();

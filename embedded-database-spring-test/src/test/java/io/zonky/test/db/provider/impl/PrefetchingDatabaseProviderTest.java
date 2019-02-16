@@ -32,10 +32,10 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,7 +80,7 @@ public class PrefetchingDatabaseProviderTest {
         List<DataSource> dataSources = Stream.generate(() -> mock(DataSource.class))
                 .limit(6).collect(Collectors.toList());
 
-        Queue<DataSource> providerReturns = new LinkedList<>(dataSources);
+        BlockingQueue<DataSource> providerReturns = new LinkedBlockingQueue<>(dataSources);
         doAnswer(i -> providerReturns.poll()).when(databaseProvider2).getDatabase(same(preparer));
 
         Set<DataSource> results = new HashSet<>();
