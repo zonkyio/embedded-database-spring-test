@@ -29,7 +29,7 @@ ext {
             
             [core: '5.0.7', test: '5.0.0'] // default version
     ]
-    embeddedPostgresVersions = ['9.3.25', '9.4.20', '9.5.15', '9.6.11', '10.6.0', '11.1.0']
+    embeddedPostgresVersions = ['9.4.21', '9.5.16', '9.6.12', '10.7.0', '11.2.0']
 
     flywayCoreVersion = flywayVersions.last().core
     flywayTestVersion = flywayVersions.last().test
@@ -150,7 +150,7 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'io.zonky.test:embedded-postgres:1.2.2'
+        compile 'io.zonky.test:embedded-postgres:1.2.3'
         compile 'org.testcontainers:postgresql:1.10.6', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional

@@ -34,7 +34,7 @@ Add the following Maven dependency:
 </dependency>
 ```
 
-The default version of the embedded database is `PostgreSQL 10.6`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
+The default version of the embedded database is `PostgreSQL 10.7`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
 
 ### Basic Usage
 
@@ -71,9 +71,9 @@ public class EmptyDatabaseIntegrationTest {
 }
 ```
 
-### Creating multiple independent databases
+### Creating multiple databases within a single test class
 
-Because the `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, you can annotate a test class with multiple annotations to create multiple independent databases.
+The `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, so you can annotate a test class with multiple annotations to create multiple independent databases.
 Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
 
 Note that if multiple annotations on a single class are applied, some optimization techniques can not be used and database initialization may be slower.
@@ -397,7 +397,7 @@ public class DockerProviderIntegrationTest {
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
 
 ```properties
-zonky.test.database.postgres.docker.image=postgres:10.6-alpine # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.image=postgres:10.7-alpine # Docker image containing PostgreSQL database.
 zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
 zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
 ``` 
@@ -480,7 +480,7 @@ public class YandexProviderIntegrationTest {
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.yandex-provider` group.
 
 ```properties
-zonky.test.database.postgres.yandex-provider.postgres-version=10.6-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+zonky.test.database.postgres.yandex-provider.postgres-version=10.7-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
 
 ### Database Prefetching
@@ -616,7 +616,7 @@ But this optimization has no effect if `FlywayTestExecutionListener` is also app
 
 ### ERROR: role "..." already exists
 
-Since version 1.4.0, database prefetching has been improved. All databases are stored within a single database cluster.
+Since version [1.4.0](https://github.com/zonkyio/embedded-database-spring-test/releases/tag/v1.4.0), database prefetching has been improved. All databases are stored within a single database cluster.
 It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
 
 ```properties
@@ -643,8 +643,8 @@ extracted from the JDK download.
 
 ## Project dependencies
 
-* [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.6)
-* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.2) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
+* [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.7)
+* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.3) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
 * [Spring Framework](http://www.springsource.org/) (4.3.22) - `spring-test`, `spring-context` modules
 * [Flyway](https://github.com/flyway/) (5.0.7)
 * [Guava](https://github.com/google/guava) (23.0)
