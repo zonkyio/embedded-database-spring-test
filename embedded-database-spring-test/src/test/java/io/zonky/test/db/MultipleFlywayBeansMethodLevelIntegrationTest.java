@@ -25,6 +25,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -34,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
@@ -43,11 +44,11 @@ import static org.assertj.core.api.Assertions.tuple;
 @ContextConfiguration
 public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
-    private static final String SQL_SELECT_PERSONS = "select * from test.person";
-
     @Configuration
     static class Config {
 
+        @Primary
+        @DependsOn("flyway2")
         @Bean
         public Flyway flyway1(DataSource dataSource) {
             Flyway flyway = new Flyway();
@@ -61,8 +62,8 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
         public Flyway flyway2(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/test_migration/separated");
+            flyway.setSchemas("next");
+            flyway.setLocations("db/next_migration");
             return flyway;
         }
 
@@ -90,30 +91,33 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
     @Test
     @FlywayTest(flywayName = "flyway1")
+    @FlywayTest(flywayName = "flyway2", invokeCleanDB = true, invokeMigrateDB = false)
     public void databaseShouldBeLoadedByFlyway1() {
         assertThat(dataSource).isNotNull();
 
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList("select * from test.person");
         assertThat(persons).isNotNull().hasSize(2);
 
         assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
                 tuple(1L, "Dave", "Syer", "Dave Syer"),
                 tuple(3L, "Will", "Smith", "Will Smith"));
+
+        assertThat(jdbcTemplate.queryForObject("select to_regclass('next.person')", String.class)).isNull();
     }
 
     @Test
+    @FlywayTest(flywayName = "flyway1", invokeCleanDB = true, invokeMigrateDB = false)
     @FlywayTest(flywayName = "flyway2")
     public void databaseShouldBeLoadedByFlyway2() {
         assertThat(dataSource).isNotNull();
 
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(1);
+        assertThat(jdbcTemplate.queryForObject("select to_regclass('test.person')", String.class)).isNull();
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Tom"),
-                entry("last_name", "Hanks"));
+        List<Map<String, Object>> nextPersons = jdbcTemplate.queryForList("select * from next.person");
+        assertThat(nextPersons).isNotNull().hasSize(1);
+
+        assertThat(nextPersons).extracting("id", "first_name", "surname").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer"));
     }
 
     @Test
@@ -122,28 +126,39 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
     public void databaseShouldBeOverriddenByFlyway2() {
         assertThat(dataSource).isNotNull();
 
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(1);
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList("select * from test.person");
+        assertThat(persons).isNotNull().hasSize(2);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Tom"),
-                entry("last_name", "Hanks"));
+        assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer", "Dave Syer"),
+                tuple(3L, "Will", "Smith", "Will Smith"));
+
+        List<Map<String, Object>> nextPersons = jdbcTemplate.queryForList("select * from next.person");
+        assertThat(nextPersons).isNotNull().hasSize(1);
+
+        assertThat(nextPersons).extracting("id", "first_name", "surname").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer"));
     }
 
     @Test
     @FlywayTest(flywayName = "flyway1")
+    @FlywayTest(flywayName = "flyway2")
     @FlywayTest(flywayName = "flyway3", invokeCleanDB = false)
     public void databaseShouldBeLoadedByFlyway1AndAppendedByFlyway3() {
         assertThat(dataSource).isNotNull();
 
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList("select * from test.person");
         assertThat(persons).isNotNull().hasSize(3);
 
         assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
                 tuple(1L, "Dave", "Syer"),
                 tuple(2L, "Tom", "Hanks"),
                 tuple(3L, "Will", "Smith"));
+
+        List<Map<String, Object>> nextPersons = jdbcTemplate.queryForList("select * from next.person");
+        assertThat(nextPersons).isNotNull().hasSize(1);
+
+        assertThat(nextPersons).extracting("id", "first_name", "surname").containsExactlyInAnyOrder(
+                tuple(1L, "Dave", "Syer"));
     }
 }

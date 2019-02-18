@@ -33,7 +33,6 @@ import io.zonky.test.db.provider.impl.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.test.annotation.FlywayTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -60,7 +59,6 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
-import java.lang.reflect.AnnotatedElement;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -116,17 +114,12 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
             context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
 
-            Class<?> testClass = mergedConfig.getTestClass();
-            FlywayTest[] flywayAnnotations = findFlywayTestAnnotations(testClass);
-
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
             RootBeanDefinition registrarDefinition = new RootBeanDefinition();
 
             registrarDefinition.setBeanClass(PreloadableEmbeddedPostgresRegistrar.class);
             registrarDefinition.getConstructorArgumentValues()
                     .addIndexedArgumentValue(0, databaseAnnotations);
-            registrarDefinition.getConstructorArgumentValues()
-                    .addIndexedArgumentValue(1, flywayAnnotations);
 
             registry.registerBeanDefinition("preloadableEmbeddedPostgresRegistrar", registrarDefinition);
         }
@@ -172,13 +165,11 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
     protected static class PreloadableEmbeddedPostgresRegistrar implements BeanDefinitionRegistryPostProcessor, EnvironmentAware {
 
         private final Set<AutoConfigureEmbeddedDatabase> databaseAnnotations;
-        private final FlywayTest[] flywayAnnotations;
 
         private Environment environment;
 
-        public PreloadableEmbeddedPostgresRegistrar(Set<AutoConfigureEmbeddedDatabase> databaseAnnotations, FlywayTest[] flywayAnnotations) {
+        public PreloadableEmbeddedPostgresRegistrar(Set<AutoConfigureEmbeddedDatabase> databaseAnnotations) {
             this.databaseAnnotations = databaseAnnotations;
-            this.flywayAnnotations = flywayAnnotations;
         }
 
         @Override
@@ -211,7 +202,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
                 DatabaseDescriptor databaseDescriptor = resolveDatabaseDescriptor(environment, databaseAnnotation);
 
                 BeanDefinitionHolder dataSourceInfo = getDataSourceBeanDefinition(beanFactory, databaseAnnotation);
-                BeanDefinitionHolder flywayInfo = getFlywayBeanDefinition(beanFactory, flywayAnnotations);
+                BeanDefinitionHolder flywayInfo = getFlywayBeanDefinition(beanFactory);
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
                 dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
@@ -220,7 +211,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
                     dataSourceDefinition.setBeanClass(EmptyEmbeddedPostgresDataSourceFactoryBean.class);
                     dataSourceDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, databaseDescriptor);
                 } else {
-                    BeanDefinitionHolder contextInfo = getDataSourceContextBeanDefinition(beanFactory, flywayAnnotations);
+                    BeanDefinitionHolder contextInfo = getDataSourceContextBeanDefinition(beanFactory, flywayInfo.getBeanName());
 
                     if (contextInfo == null) {
                         RootBeanDefinition dataSourceContextDefinition = new RootBeanDefinition();
@@ -309,20 +300,8 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         throw new IllegalStateException("No primary DataSource found, embedded version will not be used");
     }
 
-    protected static BeanDefinitionHolder getDataSourceContextBeanDefinition(ConfigurableListableBeanFactory beanFactory, FlywayTest[] annotations) {
-        String flywayBeanName = resolveFlywayBeanName(annotations);
-
-        if (StringUtils.isNotBlank(flywayBeanName)) {
-            String contextBeanName = flywayBeanName + "DataSourceContext";
-            if (beanFactory.containsBean(contextBeanName)) {
-                BeanDefinition beanDefinition = beanFactory.getBeanDefinition(contextBeanName);
-                return new BeanDefinitionHolder(beanDefinition, contextBeanName);
-            } else {
-                return null;
-            }
-        }
-
-        String[] beanNames = beanFactory.getBeanNamesForType(FlywayDataSourceContext.class);
+    protected static BeanDefinitionHolder getDataSourceContextBeanDefinition(ConfigurableListableBeanFactory beanFactory, String flywayName) {
+        String[] beanNames = beanFactory.getBeanNamesForType(FlywayDataSourceContext.class, true, false);
 
         if (ObjectUtils.isEmpty(beanNames)) {
             return null;
@@ -334,33 +313,16 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             return new BeanDefinitionHolder(beanDefinition, beanName);
         }
 
-        for (String beanName : beanNames) {
-            BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
-            if (beanDefinition.isPrimary()) {
-                return new BeanDefinitionHolder(beanDefinition, beanName);
-            }
+        if (beanFactory.containsBean(flywayName + "DataSourceContext")) {
+            BeanDefinition beanDefinition = beanFactory.getBeanDefinition(flywayName + "DataSourceContext");
+            return new BeanDefinitionHolder(beanDefinition, flywayName + "DataSourceContext");
         }
 
         return null;
     }
 
-    protected static BeanDefinitionHolder getFlywayBeanDefinition(ConfigurableListableBeanFactory beanFactory, FlywayTest[] annotations) {
-        if (annotations.length > 1) {
-            return null; // optimized loading is not supported yet when using multiple flyway test annotations
-        }
-
-        String flywayBeanName = resolveFlywayBeanName(annotations);
-
-        if (StringUtils.isNotBlank(flywayBeanName)) {
-            BeanDefinition beanDefinition = beanFactory.getBeanDefinition(flywayBeanName);
-            return new BeanDefinitionHolder(beanDefinition, flywayBeanName);
-        }
-
-        String[] beanNames = beanFactory.getBeanNamesForType(Flyway.class);
-
-        if (ObjectUtils.isEmpty(beanNames)) {
-            return null;
-        }
+    protected static BeanDefinitionHolder getFlywayBeanDefinition(ConfigurableListableBeanFactory beanFactory) {
+        String[] beanNames = beanFactory.getBeanNamesForType(Flyway.class, true, false);
 
         if (beanNames.length == 1) {
             String beanName = beanNames[0];
@@ -368,40 +330,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             return new BeanDefinitionHolder(beanDefinition, beanName);
         }
 
-        for (String beanName : beanNames) {
-            BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
-            if (beanDefinition.isPrimary()) {
-                return new BeanDefinitionHolder(beanDefinition, beanName);
-            }
-        }
-
         return null;
-    }
-
-    protected static FlywayTest[] findFlywayTestAnnotations(AnnotatedElement element) {
-        if (repeatableAnnotationPresent) {
-            org.flywaydb.test.annotation.FlywayTests flywayContainerAnnotation =
-                    AnnotatedElementUtils.findMergedAnnotation(element, org.flywaydb.test.annotation.FlywayTests.class);
-            if (flywayContainerAnnotation != null) {
-                return flywayContainerAnnotation.value();
-            }
-        }
-
-        FlywayTest flywayAnnotation = AnnotatedElementUtils.findMergedAnnotation(element, FlywayTest.class);
-        if (flywayAnnotation != null) {
-            return new FlywayTest[] { flywayAnnotation };
-        }
-
-        return new FlywayTest[0];
-    }
-
-    protected static String resolveFlywayBeanName(FlywayTest[] annotations) {
-        FlywayTest annotation = annotations.length == 1 ? annotations[0] : null;
-        if (annotation != null && flywayNameAttributePresent) {
-            return annotation.flywayName();
-        } else {
-            return null;
-        }
     }
 
     protected static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
