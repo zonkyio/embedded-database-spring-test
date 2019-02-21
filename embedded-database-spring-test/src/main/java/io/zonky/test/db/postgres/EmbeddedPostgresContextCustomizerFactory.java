@@ -24,7 +24,6 @@ import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
 import io.zonky.test.db.flyway.FlywayClassUtils;
 import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.DatabaseType;
 import io.zonky.test.db.provider.ProviderType;
 import io.zonky.test.db.provider.impl.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.impl.OpenTablePostgresDatabaseProvider;
@@ -68,7 +67,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DEFAULT;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.EmbeddedDatabaseType;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
 
 /**
  * Implementation of the {@link org.springframework.test.context.ContextCustomizerFactory} interface,
@@ -91,7 +90,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
         databaseAnnotations = databaseAnnotations.stream()
                 .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
-                .filter(databaseAnnotation -> databaseAnnotation.type() == EmbeddedDatabaseType.POSTGRES)
+                .filter(databaseAnnotation -> databaseAnnotation.type() == DatabaseType.POSTGRES)
                 .filter(databaseAnnotation -> databaseAnnotation.replace() != Replace.NONE)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
@@ -124,6 +123,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             registry.registerBeanDefinition("preloadableEmbeddedPostgresRegistrar", registrarDefinition);
         }
 
+        // TODO
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -135,6 +135,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             return databaseAnnotations.equals(that.databaseAnnotations);
         }
 
+        // TODO
         @Override
         public int hashCode() {
             return databaseAnnotations.hashCode();
@@ -246,7 +247,7 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         protected DatabaseDescriptor resolveDatabaseDescriptor(Environment environment, AutoConfigureEmbeddedDatabase databaseAnnotation) {
             String providerName = databaseAnnotation.provider() != DEFAULT ? databaseAnnotation.provider().name() :
                     environment.getProperty("zonky.test.database.provider", ProviderType.ZONKY.toString());
-            return new DatabaseDescriptor(DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
+            return new DatabaseDescriptor(io.zonky.test.db.provider.DatabaseType.POSTGRES, ProviderType.valueOf(providerName));
         }
     }
 

@@ -63,7 +63,7 @@ public @interface AutoConfigureEmbeddedDatabase {
      *
      * @return the type of an embedded database
      */
-    EmbeddedDatabaseType type() default EmbeddedDatabaseType.POSTGRES;
+    DatabaseType type() default DatabaseType.POSTGRES;
 
     /**
      * Provider used to create the underlying embedded database,
@@ -95,7 +95,7 @@ public @interface AutoConfigureEmbeddedDatabase {
     /**
      * The supported types of embedded databases.
      */
-    enum EmbeddedDatabaseType {
+    enum DatabaseType {
 
         /**
          * PostgreSQL Database

@@ -104,7 +104,7 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
         Executor executor = bootstrapExecutor != null ? bootstrapExecutor : Runnable::run;
 
         CompletableFuture<DataSource> reloadFuture = dataSourceFuture.thenApplyAsync(x -> {
-            for (int current = 1; current <= maxAttempts; current++) {
+            for (int current = 1; current <= maxAttempts; current++) { // TODO: move it to the provider
                 try {
                     FlywayDatabasePreparer databasePreparer = new FlywayDatabasePreparer(flyway);
                     return databaseProvider.getDatabase(databasePreparer, databaseDescriptor);
