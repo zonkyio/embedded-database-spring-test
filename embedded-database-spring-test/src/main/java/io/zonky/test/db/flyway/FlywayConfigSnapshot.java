@@ -1,20 +1,22 @@
 package io.zonky.test.db.flyway;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.sql.DataSource;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.springframework.test.util.ReflectionTestUtils.getField;
-import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 /**
- * Represents a snapshot of configuration parameters of a flyway instance.
- * It is necessary because of mutability of flyway instances.
+ * Represents an <b>immutable</b> snapshot of Flyway's configuration.
+ * It is required because the mutability of flyway instances.
  */
 public class FlywayConfigSnapshot {
 
@@ -29,21 +31,17 @@ public class FlywayConfigSnapshot {
     // included in equals and hashCode methods
     // but it will work only for empty arrays (that is common use-case)
     // because of missing equals and hashCode methods
-    // on classes implementing these interfaces,
-    // note the properties require special treatment suitable for arrays
-    private final MigrationResolver[] resolvers;
-    private final Object[] errorHandlers;
-
-    // included in equals and hashCode methods
-    // but these properties require special treatment suitable for arrays
-    private final Object[] locations;
-    private final String[] schemas;
-    private final String[] sqlMigrationSuffixes;
-    private final String[] errorOverrides;
+    // on classes implementing these interfaces
+    private final List<MigrationResolver> resolvers;
+    private final List<Object> errorHandlers;
 
     // included in equals and hashCode methods
     private final MigrationVersion baselineVersion;
     private final MigrationVersion target;
+    private final List<Object> locations;
+    private final List<String> schemas;
+    private final List<String> sqlMigrationSuffixes;
+    private final List<String> errorOverrides;
     private final Map<String, String> placeholders;
     private final String table;
     private final String baselineDescription;
@@ -86,28 +84,28 @@ public class FlywayConfigSnapshot {
             config = flyway;
         }
 
-        this.classLoader = invokeMethod(config, "getClassLoader");
-        this.dataSource = invokeMethod(config, "getDataSource");
-        this.resolvers = invokeMethod(config, "getResolvers");
-        this.callbacks = invokeMethod(config, "getCallbacks");
-        this.sqlMigrationSeparator = invokeMethod(config, "getSqlMigrationSeparator");
-        this.sqlMigrationPrefix = invokeMethod(config, "getSqlMigrationPrefix");
-        this.placeholderSuffix = invokeMethod(config, "getPlaceholderSuffix");
-        this.placeholderPrefix = invokeMethod(config, "getPlaceholderPrefix");
-        this.placeholders = invokeMethod(config, "getPlaceholders");
-        this.target = invokeMethod(config, "getTarget");
-        this.table = invokeMethod(config, "getTable");
-        this.schemas = invokeMethod(config, "getSchemas");
-        this.encoding = invokeMethod(config, "getEncoding");
-        this.locations = invokeMethod(config, "getLocations");
-        this.outOfOrder = invokeMethod(config, "isOutOfOrder");
-        this.validateOnMigrate = invokeMethod(config, "isValidateOnMigrate");
-        this.cleanOnValidationError = invokeMethod(config, "isCleanOnValidationError");
+        this.classLoader = getValue(config, "getClassLoader");
+        this.dataSource = getValue(config, "getDataSource");
+        this.resolvers = ImmutableList.copyOf(getArray(config, "getResolvers"));
+        this.callbacks = getValue(config, "getCallbacks");
+        this.sqlMigrationSeparator = getValue(config, "getSqlMigrationSeparator");
+        this.sqlMigrationPrefix = getValue(config, "getSqlMigrationPrefix");
+        this.placeholderSuffix = getValue(config, "getPlaceholderSuffix");
+        this.placeholderPrefix = getValue(config, "getPlaceholderPrefix");
+        this.placeholders = ImmutableMap.copyOf(getMap(config, "getPlaceholders"));
+        this.target = getValue(config, "getTarget");
+        this.table = getValue(config, "getTable");
+        this.schemas = ImmutableList.copyOf(getArray(config, "getSchemas"));
+        this.encoding = getValue(config, "getEncoding");
+        this.locations = ImmutableList.copyOf(getArray(config, "getLocations"));
+        this.outOfOrder = getValue(config, "isOutOfOrder");
+        this.validateOnMigrate = getValue(config, "isValidateOnMigrate");
+        this.cleanOnValidationError = getValue(config, "isCleanOnValidationError");
 
         if (flywayVersion >= 31) {
-            this.baselineVersion = invokeMethod(config, "getBaselineVersion");
-            this.baselineDescription = invokeMethod(config, "getBaselineDescription");
-            this.baselineOnMigrate = invokeMethod(config, "isBaselineOnMigrate");
+            this.baselineVersion = getValue(config, "getBaselineVersion");
+            this.baselineDescription = getValue(config, "getBaselineDescription");
+            this.baselineOnMigrate = getValue(config, "isBaselineOnMigrate");
         } else {
             this.baselineVersion = null;
             this.baselineDescription = null;
@@ -115,17 +113,17 @@ public class FlywayConfigSnapshot {
         }
 
         if (flywayVersion >= 32) {
-            this.placeholderReplacement = invokeMethod(config, "isPlaceholderReplacement");
+            this.placeholderReplacement = getValue(config, "isPlaceholderReplacement");
         } else {
             this.placeholderReplacement = true;
         }
 
         if (flywayVersion >= 40) {
-            this.skipDefaultResolvers = invokeMethod(config, "isSkipDefaultResolvers");
-            this.skipDefaultCallbacks = invokeMethod(config, "isSkipDefaultCallbacks");
-            this.repeatableSqlMigrationPrefix = invokeMethod(config, "getRepeatableSqlMigrationPrefix");
-            this.ignoreFutureMigrations = invokeMethod(config, "isIgnoreFutureMigrations");
-            this.cleanDisabled = invokeMethod(config, "isCleanDisabled");
+            this.skipDefaultResolvers = getValue(config, "isSkipDefaultResolvers");
+            this.skipDefaultCallbacks = getValue(config, "isSkipDefaultCallbacks");
+            this.repeatableSqlMigrationPrefix = getValue(config, "getRepeatableSqlMigrationPrefix");
+            this.ignoreFutureMigrations = getValue(config, "isIgnoreFutureMigrations");
+            this.cleanDisabled = getValue(config, "isCleanDisabled");
         } else {
             this.skipDefaultResolvers = false;
             this.skipDefaultCallbacks = false;
@@ -135,66 +133,66 @@ public class FlywayConfigSnapshot {
         }
 
         if (flywayVersion >= 41) {
-            this.ignoreMissingMigrations = invokeMethod(config, "isIgnoreMissingMigrations");
-            this.installedBy = invokeMethod(config, "getInstalledBy");
+            this.ignoreMissingMigrations = getValue(config, "isIgnoreMissingMigrations");
+            this.installedBy = getValue(config, "getInstalledBy");
         } else {
             this.ignoreMissingMigrations = false;
             this.installedBy = null;
         }
 
         if (flywayVersion >= 41 && flywayVersion < 50) {
-            this.allowMixedMigrations = invokeMethod(config, "isAllowMixedMigrations");
+            this.allowMixedMigrations = getValue(config, "isAllowMixedMigrations");
         } else {
             this.allowMixedMigrations = false;
         }
 
         if (flywayVersion >= 42) {
-            this.mixed = invokeMethod(config, "isMixed");
-            this.group = invokeMethod(config, "isGroup");
+            this.mixed = getValue(config, "isMixed");
+            this.group = getValue(config, "isGroup");
         } else {
             this.mixed = false;
             this.group = false;
         }
 
         if (flywayVersion >= 50) {
-            this.sqlMigrationSuffixes = invokeMethod(config, "getSqlMigrationSuffixes");
+            this.sqlMigrationSuffixes = ImmutableList.copyOf(getArray(config, "getSqlMigrationSuffixes"));
         } else {
-            String sqlMigrationSuffix = invokeMethod(config, "getSqlMigrationSuffix");
-            this.sqlMigrationSuffixes = new String[] {sqlMigrationSuffix};
+            String sqlMigrationSuffix = getValue(config, "getSqlMigrationSuffix");
+            this.sqlMigrationSuffixes = ImmutableList.of(sqlMigrationSuffix);
         }
 
         if (flywayVersion >= 50 && isFlywayPro) {
-            this.undoSqlMigrationPrefix = invokeMethod(config, "getUndoSqlMigrationPrefix");
-            this.errorHandlers = invokeMethod(config, "getErrorHandlers");
-            this.dryRun = invokeMethod(config, "getDryRunOutput") != null;
+            this.undoSqlMigrationPrefix = getValue(config, "getUndoSqlMigrationPrefix");
+            this.errorHandlers = ImmutableList.copyOf(getArray(config, "getErrorHandlers"));
+            this.dryRun = getValue(config, "getDryRunOutput") != null;
         } else {
             this.undoSqlMigrationPrefix = null;
-            this.errorHandlers = null;
+            this.errorHandlers = ImmutableList.of();
             this.dryRun = false;
         }
 
         if (flywayVersion >= 51) {
-            this.ignoreIgnoredMigrations = invokeMethod(config, "isIgnoreIgnoredMigrations");
+            this.ignoreIgnoredMigrations = getValue(config, "isIgnoreIgnoredMigrations");
         } else {
             this.ignoreIgnoredMigrations = false;
         }
 
         if (flywayVersion >= 51 && isFlywayPro) {
-            this.errorOverrides = invokeMethod(config, "getErrorOverrides");
-            this.stream = invokeMethod(config, "isStream");
-            this.batch = invokeMethod(config, "isBatch");
-            this.oracleSqlPlus = invokeMethod(config, "isOracleSqlplus");
+            this.errorOverrides = ImmutableList.copyOf(getArray(config, "getErrorOverrides"));
+            this.stream = getValue(config, "isStream");
+            this.batch = getValue(config, "isBatch");
+            this.oracleSqlPlus = getValue(config, "isOracleSqlplus");
         } else {
-            this.errorOverrides = null;
+            this.errorOverrides = ImmutableList.of();
             this.stream = false;
             this.batch = false;
             this.oracleSqlPlus = false;
         }
 
         if (flywayVersion >= 52) {
-            this.ignorePendingMigrations = invokeMethod(config, "isIgnorePendingMigrations");
-            this.connectRetries = invokeMethod(config, "getConnectRetries");
-            this.initSql = invokeMethod(config, "getInitSql");
+            this.ignorePendingMigrations = getValue(config, "isIgnorePendingMigrations");
+            this.connectRetries = getValue(config, "getConnectRetries");
+            this.initSql = getValue(config, "getInitSql");
         } else {
             this.ignorePendingMigrations = false;
             this.connectRetries = 0;
@@ -202,10 +200,22 @@ public class FlywayConfigSnapshot {
         }
 
         if (flywayVersion >= 52 && isFlywayPro) {
-            this.licenseKey = invokeMethod(config, "getLicenseKey");
+            this.licenseKey = getValue(config, "getLicenseKey");
         } else {
             this.licenseKey = null;
         }
+    }
+
+    private static <T> T getValue(Object target, String method) {
+        return ReflectionTestUtils.invokeMethod(target, method);
+    }
+
+    private static <E> E[] getArray(Object target, String method) {
+        return ReflectionTestUtils.invokeMethod(target, method);
+    }
+
+    private static <K, V> Map<K, V> getMap(Object target, String method) {
+        return ReflectionTestUtils.invokeMethod(target, method);
     }
 
     public ClassLoader getClassLoader() {
@@ -224,7 +234,7 @@ public class FlywayConfigSnapshot {
         return baselineDescription;
     }
 
-    public MigrationResolver[] getResolvers() {
+    public List<MigrationResolver> getResolvers() {
         return resolvers;
     }
 
@@ -240,7 +250,7 @@ public class FlywayConfigSnapshot {
         return skipDefaultCallbacks;
     }
 
-    public String[] getSqlMigrationSuffixes() {
+    public List<String> getSqlMigrationSuffixes() {
         return sqlMigrationSuffixes;
     }
 
@@ -284,7 +294,7 @@ public class FlywayConfigSnapshot {
         return table;
     }
 
-    public String[] getSchemas() {
+    public List<String> getSchemas() {
         return schemas;
     }
 
@@ -300,7 +310,7 @@ public class FlywayConfigSnapshot {
         return licenseKey;
     }
 
-    public Object[] getLocations() {
+    public List<Object> getLocations() {
         return locations;
     }
 
@@ -356,11 +366,11 @@ public class FlywayConfigSnapshot {
         return installedBy;
     }
 
-    public Object[] getErrorHandlers() {
+    public List<Object> getErrorHandlers() {
         return errorHandlers;
     }
 
-    public String[] getErrorOverrides() {
+    public List<String> getErrorOverrides() {
         return errorOverrides;
     }
 
@@ -409,14 +419,14 @@ public class FlywayConfigSnapshot {
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
                 connectRetries == that.connectRetries &&
-                Arrays.equals(resolvers, that.resolvers) &&
-                Arrays.equals(errorHandlers, that.errorHandlers) &&
-                Arrays.equals(locations, that.locations) &&
-                Arrays.equals(schemas, that.schemas) &&
-                Arrays.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes) &&
-                Arrays.equals(errorOverrides, that.errorOverrides) &&
+                Objects.equals(resolvers, that.resolvers) &&
+                Objects.equals(errorHandlers, that.errorHandlers) &&
                 Objects.equals(baselineVersion, that.baselineVersion) &&
                 Objects.equals(target, that.target) &&
+                Objects.equals(locations, that.locations) &&
+                Objects.equals(schemas, that.schemas) &&
+                Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes) &&
+                Objects.equals(errorOverrides, that.errorOverrides) &&
                 Objects.equals(placeholders, that.placeholders) &&
                 Objects.equals(table, that.table) &&
                 Objects.equals(baselineDescription, that.baselineDescription) &&
@@ -435,10 +445,9 @@ public class FlywayConfigSnapshot {
     @Override
     public int hashCode() {
         return Objects.hash(
-                Arrays.hashCode(resolvers), Arrays.hashCode(errorHandlers),
-                Arrays.hashCode(locations), Arrays.hashCode(schemas),
-                Arrays.hashCode(sqlMigrationSuffixes), Arrays.hashCode(errorOverrides),
-                baselineVersion, target, placeholders, table, baselineDescription,
+                resolvers, errorHandlers,
+                baselineVersion, target, locations, schemas, sqlMigrationSuffixes,
+                errorOverrides, placeholders, table, baselineDescription,
                 undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, placeholderPrefix,
                 placeholderSuffix, encoding, initSql, licenseKey,
