@@ -69,7 +69,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
     private final ClientConfig clientConfig;
 
     public DockerPostgresDatabaseProvider(Environment environment) {
-        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.7-alpine");
+        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.9-alpine");
         String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
 

@@ -34,7 +34,7 @@ Add the following Maven dependency:
 </dependency>
 ```
 
-The default version of the embedded database is `PostgreSQL 10.7`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
+The default version of the embedded database is `PostgreSQL 10.9`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
 
 ### Basic Usage
 
@@ -272,7 +272,7 @@ The version of the binaries can be managed by importing `embedded-postgres-binar
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>11.1.0</version>
+            <version>11.4.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -290,7 +290,7 @@ The version of the binaries can be managed by importing `embedded-postgres-binar
          configurations.all {
               resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                   if (details.requested.group == 'io.zonky.test.postgres') {
-                     details.useVersion '11.1.0'
+                     details.useVersion '11.4.0'
                  }
              }
          }
@@ -298,7 +298,7 @@ The version of the binaries can be managed by importing `embedded-postgres-binar
   2. If you use Gradle 5+, [Maven BOMs are supported out of the box](https://docs.gradle.org/current/userguide/managing_transitive_dependencies.html#sec:bom_import), so you can import the bom:
   
          dependencies {
-              implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:11.1.0')
+              implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:11.4.0')
          }
   
   3. Or, you can use [Spring's dependency management plugin](https://docs.spring.io/dependency-management-plugin/docs/current-SNAPSHOT/reference/html5/#dependency-management-configuration-bom-import) that provides Maven-like dependency management to Gradle:
@@ -309,7 +309,7 @@ The version of the binaries can be managed by importing `embedded-postgres-binar
          
          dependencyManagement {
               imports {
-                   mavenBom 'io.zonky.test.postgres:embedded-postgres-binaries-bom:11.1.0'
+                   mavenBom 'io.zonky.test.postgres:embedded-postgres-binaries-bom:11.4.0'
               }
          }
 
@@ -397,7 +397,7 @@ public class DockerProviderIntegrationTest {
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
 
 ```properties
-zonky.test.database.postgres.docker.image=postgres:10.7-alpine # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.image=postgres:10.9-alpine # Docker image containing PostgreSQL database.
 zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
 zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
 ``` 
@@ -480,7 +480,7 @@ public class YandexProviderIntegrationTest {
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.yandex-provider` group.
 
 ```properties
-zonky.test.database.postgres.yandex-provider.postgres-version=10.7-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+zonky.test.database.postgres.yandex-provider.postgres-version=10.9-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
 
 ### Database Prefetching
@@ -634,8 +634,8 @@ extracted from the JDK download.
 
 ## Project dependencies
 
-* [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.7)
-* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.3) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
+* [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.9)
+* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.4) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
 * [Spring Framework](http://www.springsource.org/) (4.3.22) - `spring-test`, `spring-context` modules
 * [Flyway](https://github.com/flyway/) (5.0.7)
 * [Guava](https://github.com/google/guava) (23.0)
