@@ -33,6 +33,8 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.util.FlywayTestUtils.createFlyway;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -48,11 +50,8 @@ public class DatabaseIsolationIntegrationTest {
     static class Config {
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            return flyway;
+        public Flyway flyway(DataSource dataSource) throws Exception {
+            return createFlyway(dataSource, "test");
         }
 
         @Bean

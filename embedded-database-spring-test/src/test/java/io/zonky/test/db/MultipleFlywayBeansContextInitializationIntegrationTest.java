@@ -1,6 +1,6 @@
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayIntegrationTests;
+import com.google.common.collect.ImmutableList;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -18,6 +18,9 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import io.zonky.test.category.FlywayIntegrationTests;
+import static io.zonky.test.util.FlywayTestUtils.createFlyway;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -33,31 +36,21 @@ public class MultipleFlywayBeansContextInitializationIntegrationTest {
         @Primary
         @DependsOn("flyway2")
         @Bean(initMethod = "migrate")
-        public Flyway flyway1(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/migration", "db/test_migration/dependent");
-            return flyway;
+        public Flyway flyway1(DataSource dataSource) throws Exception {
+            List<String> locations = ImmutableList.of("db/migration", "db/test_migration/dependent");
+            return createFlyway(dataSource, "test", locations);
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway2(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("next");
-            flyway.setLocations("db/next_migration");
-            return flyway;
+        public Flyway flyway2(DataSource dataSource) throws Exception {
+            List<String> locations = ImmutableList.of("db/next_migration");
+            return createFlyway(dataSource, "next", locations);
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway3(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/test_migration/appendable");
-            flyway.setValidateOnMigrate(false);
-            return flyway;
+        public Flyway flyway3(DataSource dataSource) throws Exception {
+            List<String> locations = ImmutableList.of("db/test_migration/appendable");
+            return createFlyway(dataSource, "test", locations, false);
         }
 
         @Bean

@@ -17,9 +17,7 @@
 package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
-import io.zonky.test.category.FlywayIntegrationTests;
-import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
-import io.zonky.test.db.flyway.FlywayDataSourceContext;
+import com.google.common.collect.ImmutableList;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -39,6 +37,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import io.zonky.test.category.FlywayIntegrationTests;
+import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
+import io.zonky.test.db.flyway.FlywayDataSourceContext;
+import static io.zonky.test.util.FlywayTestUtils.createFlyway;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -53,12 +56,9 @@ public class AsyncFlywayInitializationIntegrationTest {
     static class Config {
 
         @Bean
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/migration", "db/test_migration/slow");
-            return flyway;
+        public Flyway flyway(DataSource dataSource) throws Exception {
+            List<String> locations = ImmutableList.of("db/migration", "db/test_migration/slow");
+            return createFlyway(dataSource, "test", locations);
         }
 
         @Bean

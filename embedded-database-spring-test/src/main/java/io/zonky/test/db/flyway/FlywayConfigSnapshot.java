@@ -8,9 +8,11 @@ import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.springframework.test.util.ReflectionTestUtils.getField;
 
@@ -41,9 +43,11 @@ public class FlywayConfigSnapshot {
     private final List<Object> locations;
     private final List<String> schemas;
     private final List<String> sqlMigrationSuffixes;
+    private final List<Class<?>> javaMigrations;
     private final List<String> errorOverrides;
     private final Map<String, String> placeholders;
     private final String table;
+    private final String tablespace;
     private final String baselineDescription;
     private final String undoSqlMigrationPrefix;
     private final String repeatableSqlMigrationPrefix;
@@ -74,6 +78,7 @@ public class FlywayConfigSnapshot {
     private final boolean stream;
     private final boolean batch;
     private final boolean oracleSqlPlus;
+    private final boolean oracleSqlplusWarn;
     private final int connectRetries;
 
     public FlywayConfigSnapshot(Flyway flyway) {
@@ -163,12 +168,16 @@ public class FlywayConfigSnapshot {
 
         if (flywayVersion >= 50 && isFlywayPro) {
             this.undoSqlMigrationPrefix = getValue(config, "getUndoSqlMigrationPrefix");
-            this.errorHandlers = ImmutableList.copyOf(getArray(config, "getErrorHandlers"));
             this.dryRun = getValue(config, "getDryRunOutput") != null;
         } else {
             this.undoSqlMigrationPrefix = null;
-            this.errorHandlers = ImmutableList.of();
             this.dryRun = false;
+        }
+
+        if (flywayVersion >= 50 && flywayVersion < 60 && isFlywayPro) {
+            this.errorHandlers = ImmutableList.copyOf(getArray(config, "getErrorHandlers"));
+        } else {
+            this.errorHandlers = ImmutableList.of();
         }
 
         if (flywayVersion >= 51) {
@@ -203,6 +212,22 @@ public class FlywayConfigSnapshot {
             this.licenseKey = getValue(config, "getLicenseKey");
         } else {
             this.licenseKey = null;
+        }
+
+        if (flywayVersion >= 60) {
+            this.tablespace = getValue(config, "getTablespace");
+            this.javaMigrations = ImmutableList.copyOf(Arrays.stream(getArray(config, "getJavaMigrations"))
+                    .map(Object::getClass)
+                    .collect(Collectors.toList()));
+        } else {
+            this.tablespace = null;
+            this.javaMigrations = ImmutableList.of();;
+        }
+
+        if (flywayVersion >= 60 && isFlywayPro) {
+            this.oracleSqlplusWarn = getValue(config, "isOracleSqlplusWarn");
+        } else {
+            this.oracleSqlplusWarn = false;
         }
     }
 
@@ -254,6 +279,10 @@ public class FlywayConfigSnapshot {
         return sqlMigrationSuffixes;
     }
 
+    public List<Class<?>> getJavaMigrations() {
+        return javaMigrations;
+    }
+
     public String getUndoSqlMigrationPrefix() {
         return undoSqlMigrationPrefix;
     }
@@ -292,6 +321,10 @@ public class FlywayConfigSnapshot {
 
     public String getTable() {
         return table;
+    }
+
+    public String getTablespace() {
+        return tablespace;
     }
 
     public List<String> getSchemas() {
@@ -390,6 +423,10 @@ public class FlywayConfigSnapshot {
         return oracleSqlPlus;
     }
 
+    public boolean isOracleSqlplusWarn() {
+        return oracleSqlplusWarn;
+    }
+
     public int getConnectRetries() {
         return connectRetries;
     }
@@ -418,6 +455,7 @@ public class FlywayConfigSnapshot {
                 stream == that.stream &&
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
+                oracleSqlplusWarn == that.oracleSqlplusWarn &&
                 connectRetries == that.connectRetries &&
                 Objects.equals(resolvers, that.resolvers) &&
                 Objects.equals(errorHandlers, that.errorHandlers) &&
@@ -426,9 +464,11 @@ public class FlywayConfigSnapshot {
                 Objects.equals(locations, that.locations) &&
                 Objects.equals(schemas, that.schemas) &&
                 Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes) &&
+                Objects.equals(javaMigrations, that.javaMigrations) &&
                 Objects.equals(errorOverrides, that.errorOverrides) &&
                 Objects.equals(placeholders, that.placeholders) &&
                 Objects.equals(table, that.table) &&
+                Objects.equals(tablespace, that.tablespace) &&
                 Objects.equals(baselineDescription, that.baselineDescription) &&
                 Objects.equals(undoSqlMigrationPrefix, that.undoSqlMigrationPrefix) &&
                 Objects.equals(repeatableSqlMigrationPrefix, that.repeatableSqlMigrationPrefix) &&
@@ -447,14 +487,14 @@ public class FlywayConfigSnapshot {
         return Objects.hash(
                 resolvers, errorHandlers,
                 baselineVersion, target, locations, schemas, sqlMigrationSuffixes,
-                errorOverrides, placeholders, table, baselineDescription,
-                undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
+                javaMigrations, errorOverrides, placeholders, table, tablespace,
+                baselineDescription, undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, placeholderPrefix,
                 placeholderSuffix, encoding, initSql, licenseKey,
                 skipDefaultResolvers, skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate,
                 outOfOrder, ignoreMissingMigrations, ignoreIgnoredMigrations, ignorePendingMigrations,
                 ignoreFutureMigrations, validateOnMigrate, cleanOnValidationError, cleanDisabled,
-                allowMixedMigrations, mixed, group, installedBy,
-                dryRun, stream, batch, oracleSqlPlus, connectRetries);
+                allowMixedMigrations, mixed, group, installedBy, dryRun, stream, batch,
+                oracleSqlPlus, oracleSqlplusWarn, connectRetries);
     }
 }
