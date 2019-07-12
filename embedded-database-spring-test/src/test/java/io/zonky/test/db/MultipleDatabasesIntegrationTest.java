@@ -37,6 +37,8 @@ import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
+import static io.zonky.test.util.FlywayTestUtils.createFlyway;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -55,27 +57,18 @@ public class MultipleDatabasesIntegrationTest {
     static class Config {
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway1(DataSource dataSource1) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource1);
-            flyway.setSchemas("test");
-            return flyway;
+        public Flyway flyway1(DataSource dataSource1) throws Exception {
+            return createFlyway(dataSource1, "test");
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway2(DataSource dataSource2) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource2);
-            flyway.setSchemas("test");
-            return flyway;
+        public Flyway flyway2(DataSource dataSource2) throws Exception {
+            return createFlyway(dataSource2, "test");
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway3(DataSource dataSource3) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource3);
-            flyway.setSchemas("test");
-            return flyway;
+        public Flyway flyway3(DataSource dataSource3) throws Exception {
+            return createFlyway(dataSource3, "test");
         }
 
         @Bean

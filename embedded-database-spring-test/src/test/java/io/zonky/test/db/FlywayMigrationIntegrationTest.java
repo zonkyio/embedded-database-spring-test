@@ -16,7 +16,6 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
@@ -32,6 +31,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
+
+import io.zonky.test.category.FlywayIntegrationTests;
+import static io.zonky.test.util.FlywayTestUtils.createFlyway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -49,11 +51,8 @@ public class FlywayMigrationIntegrationTest {
     static class Config {
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            return flyway;
+        public Flyway flyway(DataSource dataSource) throws Exception {
+            return createFlyway(dataSource, "test");
         }
 
         @Bean

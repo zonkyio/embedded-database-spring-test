@@ -254,7 +254,24 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         try {
             setFlywayLocations(flyway, locations);
 
-            if (flywayVersion >= 52) {
+            if (flywayVersion >= 60) {
+                Object configuration = getField(flyway, "configuration");
+
+                Class<?> jdbcConnectionFactoryType = ClassUtils.forName("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", classLoader);
+                Object jdbcConnectionFactory = jdbcConnectionFactoryType.getConstructors()[0].newInstance(
+                        invokeMethod(configuration, "getDataSource"), 0);
+
+                Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, configuration);
+                Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
+
+                Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
+                Object scanner = scannerType.getConstructors()[0].newInstance(
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"));
+
+                return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
+            } else if (flywayVersion >= 52) {
                 Object configuration = getField(flyway, "configuration");
                 Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
                 Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
