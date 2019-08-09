@@ -162,6 +162,10 @@ project(':embedded-database-spring-test') {
         compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion"
         compile 'com.google.guava:guava:23.0'
         compile 'org.tukaani:xz:1.8'
+
+        compile('com.cedarsoftware:java-util:1.34.0') {
+            exclude group: 'org.apache.logging.log4j'
+        }
         
         testCompile 'org.springframework.boot:spring-boot-starter-test:1.5.19.RELEASE'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'

@@ -70,6 +70,7 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
+
         List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
         this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers, isolation);
@@ -126,7 +127,6 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
 
             postgres = builder.start();
             semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
-
         }
 
         public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {

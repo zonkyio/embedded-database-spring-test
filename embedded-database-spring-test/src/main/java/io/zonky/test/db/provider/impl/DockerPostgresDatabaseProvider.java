@@ -16,11 +16,13 @@
 
 package io.zonky.test.db.provider.impl;
 
+import com.cedarsoftware.util.DeepEquals;
 import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -31,6 +33,7 @@ import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -40,19 +43,22 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
 public class DockerPostgresDatabaseProvider implements DatabaseProvider {
 
-    private static final String POSTGRES_USERNAME = "postgres";
-    private static final String POSTGRES_PASSWORD = "docker";
+    private static final String DEFAULT_POSTGRES_USERNAME = "postgres";
+    private static final String DEFAULT_POSTGRES_PASSWORD = "docker";
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
@@ -64,7 +70,7 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
     private final DatabaseConfig databaseConfig;
     private final ClientConfig clientConfig;
 
-    public DockerPostgresDatabaseProvider(Environment environment) {
+    public DockerPostgresDatabaseProvider(Environment environment, ObjectProvider<List<PostgreSQLContainerCustomizer>> containerCustomizers) {
         String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.9-alpine");
         String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
@@ -73,7 +79,9 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
 
-        this.databaseConfig = new DatabaseConfig(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
+        List<PostgreSQLContainerCustomizer> customizers = Optional.ofNullable(containerCustomizers.getIfAvailable()).orElse(emptyList());
+
+        this.databaseConfig = new DatabaseConfig(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties, customizers);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -150,13 +158,15 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
                 container.withCreateContainerCmdModifier(consumer);
             }
 
-            container.withUsername(POSTGRES_USERNAME);
-            container.withPassword(POSTGRES_PASSWORD);
+            container.withUsername(DEFAULT_POSTGRES_USERNAME);
+            container.withPassword(DEFAULT_POSTGRES_PASSWORD);
+
+            config.customizers.forEach(c -> c.customize(container));
+
             container.start();
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class)));
 
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
-
         }
 
         public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {
@@ -197,8 +207,8 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
                 dataSource.setPortNumber(container.getMappedPort(POSTGRESQL_PORT));
                 dataSource.setDatabaseName(dbName);
 
-                dataSource.setUser(POSTGRES_USERNAME);
-                dataSource.setPassword(POSTGRES_PASSWORD);
+                dataSource.setUser(container.getUsername());
+                dataSource.setPassword(container.getPassword());
 
                 for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
                     dataSource.setProperty(entry.getKey(), entry.getValue());
@@ -241,13 +251,15 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
         private final boolean tmpfsEnabled;
         private final Map<String, String> initdbProperties;
         private final Map<String, String> configProperties;
+        private final List<PostgreSQLContainerCustomizer> customizers;
 
-        private DatabaseConfig(String dockerImage, String tmpfsOptions, boolean tmpfsEnabled, Map<String, String> initdbProperties, Map<String, String> configProperties) {
+        private DatabaseConfig(String dockerImage, String tmpfsOptions, boolean tmpfsEnabled, Map<String, String> initdbProperties, Map<String, String> configProperties, List<PostgreSQLContainerCustomizer> customizers) {
             this.dockerImage = dockerImage;
             this.tmpfsOptions = tmpfsOptions;
             this.tmpfsEnabled = tmpfsEnabled;
             this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
             this.configProperties = ImmutableMap.copyOf(configProperties);
+            this.customizers = customizers;
         }
 
         @Override
@@ -259,12 +271,15 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
                     Objects.equals(dockerImage, that.dockerImage) &&
                     Objects.equals(tmpfsOptions, that.tmpfsOptions) &&
                     Objects.equals(initdbProperties, that.initdbProperties) &&
-                    Objects.equals(configProperties, that.configProperties);
+                    Objects.equals(configProperties, that.configProperties) &&
+                    DeepEquals.deepEquals(customizers, that.customizers);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
+            int result = Objects.hash(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
+            result = 31 * result + DeepEquals.deepHashCode(customizers);
+            return result;
         }
     }
 

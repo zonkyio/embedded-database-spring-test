@@ -228,7 +228,7 @@ or through `zonky.test.database.provider` property globally.
 ### Common Configuration
 
 The `@AutoConfigureEmbeddedDatabase` annotation can be used for some basic configuration, advanced configuration requires properties or yaml files.
-The following configuration keys are used by all providers:
+The following configuration keys are honored by all providers:
 
 ```properties
 zonky.test.database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparision matrix.
@@ -339,7 +339,7 @@ Note that not all architectures are supported by all platforms, look here for an
   
 Since `PostgreSQL 10.0`, there are additional artifacts with `alpine-lite` suffix. These artifacts contain postgres binaries for Alpine Linux with disabled [ICU support](https://blog.2ndquadrant.com/icu-support-postgresql-10/) for further size reduction.
 
-#### Zonky-specific provider configuration [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
+#### Zonky-provider specific configuration [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
 
 The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
 The obtained builder provides methods to change the configuration before the database is started.
@@ -392,7 +392,7 @@ public class DockerProviderIntegrationTest {
 }
 ```
 
-#### Docker-specific provider configuration
+#### Docker-provider specific configuration
 
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
 
@@ -401,6 +401,30 @@ zonky.test.database.postgres.docker.image=postgres:10.9-alpine # Docker image co
 zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
 zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
 ``` 
+
+Or, the provider configuration can be also customized with bean implementing `PostgreSQLContainerCustomizer` interface.
+
+```java
+import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
+
+@Configuration
+public class EmbeddedPostgresConfiguration {
+    
+    @Bean
+    public PostgreSQLContainerCustomizer postgresContainerCustomizer() {
+        return container -> container.withStartupTimeout(Duration.ofSeconds(60L));
+    }
+}
+```
+
+```java
+@RunWith(SpringRunner.class)
+@AutoConfigureEmbeddedDatabase(provider = DOCKER)
+@ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
+public class EmbeddedPostgresIntegrationTest {
+    // class body...
+}
+```
 
 ### Using OpenTable Provider
 
@@ -425,7 +449,7 @@ public class OpenTableProviderIntegrationTest {
 }
 ```
 
-#### OpenTable-specific provider configuration
+#### OpenTable-provider specific configuration
 
 The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
 The obtained builder provides methods to change the configuration before the database is started.
@@ -475,7 +499,7 @@ public class YandexProviderIntegrationTest {
 }
 ```
 
-#### Yandex-specific provider configuration
+#### Yandex-provider specific configuration
 
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.yandex-provider` group.
 

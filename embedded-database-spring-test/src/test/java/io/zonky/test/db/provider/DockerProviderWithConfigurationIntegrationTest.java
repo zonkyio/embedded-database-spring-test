@@ -17,10 +17,13 @@
 package io.zonky.test.db.provider;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
@@ -41,12 +44,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration
 public class DockerProviderWithConfigurationIntegrationTest {
 
+    @Configuration
+    static class Config {
+
+        @Bean
+        public PostgreSQLContainerCustomizer postgresContainerCustomizer() {
+            return container -> container.withPassword("docker-postgres");
+        }
+    }
+
     @Autowired
     private DataSource dataSource;
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker");
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker-postgres");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String version = jdbcTemplate.queryForObject("show server_version", String.class);
