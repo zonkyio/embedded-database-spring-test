@@ -16,44 +16,32 @@
 
 package io.zonky.test.db;
 
-import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
-
-import io.zonky.test.category.FlywayIntegrationTests;
-import static io.zonky.test.util.FlywayTestUtils.createFlyway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@TestPropertySource(properties = "flyway.schemas=test")
 @JdbcTest
 public class SpringBootIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
     @Configuration
-    static class Config {
-
-        @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) throws Exception {
-            return createFlyway(dataSource, "test");
-        }
-    }
+    static class Config {}
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
