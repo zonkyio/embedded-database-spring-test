@@ -28,13 +28,13 @@ public class MockitoAssertions {
     public static <T> Condition<T> mockWithName(String name) {
         MockUtil mockUtil = new MockUtil();
 
-        Condition<T> isMock = new Condition<T>("target object is not a mock") {
+        Condition<T> isMock = new Condition<T>("target object should be a mock") {
             @Override
             public boolean matches(T object) {
                 return mockUtil.isMock(object);
             }
         };
-        Condition<T> hasName = new Condition<T>("mock has an unexpected name") {
+        Condition<T> hasName = new Condition<T>("mock should have a specified name") {
             @Override
             public boolean matches(T object) {
                 return name.equals(mockUtil.getMockName(object).toString());

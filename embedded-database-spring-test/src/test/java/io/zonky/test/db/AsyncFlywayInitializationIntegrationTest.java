@@ -17,10 +17,8 @@
 package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
-import io.zonky.test.category.FlywayIntegrationTests;
-import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
-import io.zonky.test.db.flyway.FlywayDataSourceContext;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.test.FlywayTestExecutionListener;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -32,6 +30,7 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
@@ -39,11 +38,15 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import io.zonky.test.category.FlywayIntegrationTests;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@TestExecutionListeners(mergeMode = MERGE_WITH_DEFAULTS, listeners = FlywayTestExecutionListener.class)
 @ContextConfiguration
 public class AsyncFlywayInitializationIntegrationTest {
 
@@ -61,12 +64,13 @@ public class AsyncFlywayInitializationIntegrationTest {
             return flyway;
         }
 
-        @Bean
-        public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
-            DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
-            dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
-            return dataSourceContext;
-        }
+        // TODO:
+//        @Bean
+//        public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
+//            DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
+//            dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
+//            return dataSourceContext;
+//        }
 
         @Bean
         public LongTimeInitializingBean longTimeInitializingBean(DataSource dataSource) {
@@ -91,7 +95,7 @@ public class AsyncFlywayInitializationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test(timeout = 10000)
-    public void loadDefaultMigrations() {
+    public void testAsyncInitialization() {
         Duration duration = longTimeInitializingBean.getInitializationDuration();
         assertThat(duration).isGreaterThan(Duration.ofSeconds(1));
 

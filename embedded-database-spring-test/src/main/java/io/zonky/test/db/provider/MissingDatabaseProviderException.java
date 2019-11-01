@@ -16,20 +16,16 @@
 
 package io.zonky.test.db.provider;
 
-public class MissingDatabaseProviderException extends IllegalStateException {
+public class MissingDatabaseProviderException extends RuntimeException {
 
     private final DatabaseDescriptor descriptor;
 
     public MissingDatabaseProviderException(DatabaseDescriptor descriptor) {
+        super(String.format("Missing database provider for descriptor: %s", descriptor));
         this.descriptor = descriptor;
     }
 
     public DatabaseDescriptor getDescriptor() {
         return descriptor;
-    }
-
-    @Override
-    public String getMessage() {
-        return String.format("Missing database provider for descriptor: %s", descriptor);
     }
 }

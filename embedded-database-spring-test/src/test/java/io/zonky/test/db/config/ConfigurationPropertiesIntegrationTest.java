@@ -54,7 +54,7 @@ public class ConfigurationPropertiesIntegrationTest {
         assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
-        assertThat(maxConnections).isEqualTo("300"); // this is a default value that can not be changed
+        assertThat(maxConnections).isEqualTo("100");
 
         String sharedBuffers = jdbcTemplate.queryForObject("show shared_buffers", String.class);
         assertThat(sharedBuffers).isEqualTo("64MB");

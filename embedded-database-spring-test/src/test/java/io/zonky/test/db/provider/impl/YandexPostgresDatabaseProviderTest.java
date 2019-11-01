@@ -18,9 +18,6 @@ package io.zonky.test.db.provider.impl;
 
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseType;
-import io.zonky.test.db.provider.ProviderType;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,19 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class YandexPostgresDatabaseProviderTest {
 
     @Test
-    public void databaseTypeShouldBePostgres() {
-        YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
-        assertThat(provider.getDatabaseType()).isEqualTo(DatabaseType.POSTGRES);
-    }
-
-    @Test
-    public void providerTypeShouldBeYandex() {
-        YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
-        assertThat(provider.getProviderType()).isEqualTo(ProviderType.YANDEX);
-    }
-
-    @Test
-    public void testGetDatabase() throws SQLException {
+    public void testGetDatabase() throws Exception {
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
 
         DatabasePreparer preparer1 = dataSource -> {
@@ -61,9 +46,9 @@ public class YandexPostgresDatabaseProviderTest {
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
         };
 
-        DataSource dataSource1 = provider.getDatabase(preparer1);
-        DataSource dataSource2 = provider.getDatabase(preparer1);
-        DataSource dataSource3 = provider.getDatabase(preparer2);
+        DataSource dataSource1 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource2 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource3 = provider.createDatabase(preparer2).getDataSource();
 
         assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
         assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
@@ -86,7 +71,7 @@ public class YandexPostgresDatabaseProviderTest {
     }
 
     @Test
-    public void testConfigurationProperties() throws SQLException {
+    public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "9.6.11-1");
         environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
@@ -96,7 +81,7 @@ public class YandexPostgresDatabaseProviderTest {
 
         DatabasePreparer preparer = dataSource -> {};
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(environment);
-        DataSource dataSource = provider.getDatabase(preparer);
+        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
 

@@ -23,22 +23,22 @@ import java.util.Objects;
 
 public final class DatabaseDescriptor {
 
-    private final DatabaseType databaseType;
-    private final ProviderType providerType;
+    private final String databaseName;
+    private final String providerName;
 
-    public DatabaseDescriptor(DatabaseType databaseType, ProviderType providerType) {
-        Assert.notNull(databaseType, "Database type must not be null");
-        Assert.notNull(providerType, "Provider type must not be null");
-        this.databaseType = databaseType;
-        this.providerType = providerType;
+    public DatabaseDescriptor(String databaseName, String providerName) {
+        Assert.notNull(databaseName, "Database name must not be null");
+        Assert.notNull(providerName, "Provider name must not be null");
+        this.databaseName = databaseName.toLowerCase();
+        this.providerName = providerName.toLowerCase();
     }
 
-    public DatabaseType getDatabaseType() {
-        return databaseType;
+    public String getDatabaseName() {
+        return databaseName;
     }
 
-    public ProviderType getProviderType() {
-        return providerType;
+    public String getProviderName() {
+        return providerName;
     }
 
     @Override
@@ -46,20 +46,20 @@ public final class DatabaseDescriptor {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DatabaseDescriptor that = (DatabaseDescriptor) o;
-        return Objects.equals(databaseType, that.databaseType) &&
-                Objects.equals(providerType, that.providerType);
+        return Objects.equals(databaseName, that.databaseName) &&
+                Objects.equals(providerName, that.providerName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(databaseType, providerType);
+        return Objects.hash(databaseName, providerName);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("databaseType", databaseType)
-                .add("providerType", providerType)
+                .add("databaseName", databaseName)
+                .add("providerName", providerName)
                 .toString();
     }
 }

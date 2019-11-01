@@ -16,10 +16,15 @@
 
 package io.zonky.test.db.provider;
 
-import javax.sql.DataSource;
+public interface TemplatableDatabaseProvider extends DatabaseProvider {
 
-public interface GenericDatabaseProvider {
+    DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception;
 
-    DataSource getDatabase(DatabasePreparer preparer, DatabaseDescriptor descriptor) throws Exception;
+    DatabaseResult createDatabase(DatabaseRequest request) throws Exception;
+
+    default DatabaseResult createDatabase(DatabasePreparer preparer) throws Exception {
+        DatabaseRequest request = new DatabaseRequest(preparer);
+        return createDatabase(request);
+    }
 
 }

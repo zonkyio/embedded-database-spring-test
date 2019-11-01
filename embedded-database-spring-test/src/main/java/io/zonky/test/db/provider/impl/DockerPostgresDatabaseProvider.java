@@ -23,10 +23,10 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseType;
-import io.zonky.test.db.provider.ProviderType;
-import io.zonky.test.db.provider.impl.DockerPostgresDatabaseProvider.DatabaseInstance.DatabaseTemplate;
+import io.zonky.test.db.provider.DatabaseRequest;
+import io.zonky.test.db.provider.DatabaseResult;
+import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
-public class DockerPostgresDatabaseProvider implements DatabaseProvider {
+public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
     private static final String POSTGRES_USERNAME = "postgres";
     private static final String POSTGRES_PASSWORD = "docker";
@@ -78,20 +78,15 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public DatabaseType getDatabaseType() {
-        return DatabaseType.POSTGRES;
+    public DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception {
+        DatabaseResult result = createDatabase(request);
+        return new DatabaseTemplate(result.getDatabaseName());
     }
 
     @Override
-    public ProviderType getProviderType() {
-        return ProviderType.DOCKER;
-    }
-
-    @Override
-    public DataSource getDatabase(DatabasePreparer preparer) throws SQLException {
+    public DatabaseResult createDatabase(DatabaseRequest request) throws Exception {
         DatabaseInstance instance = databases.getUnchecked(databaseConfig);
-        DatabaseTemplate template = instance.getTemplate(clientConfig, preparer);
-        return template.createDatabase();
+        return instance.createDatabase(clientConfig, request);
     }
 
     @Override
@@ -112,13 +107,6 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
 
         private final PostgreSQLContainer container;
         private final Semaphore semaphore;
-
-        private final LoadingCache<TemplateKey, DatabaseTemplate> templates = CacheBuilder.newBuilder()
-                .build(new CacheLoader<TemplateKey, DatabaseTemplate>() {
-                    public DatabaseTemplate load(TemplateKey key) throws Exception {
-                        return new DatabaseTemplate(key.config, key.preparer);
-                    }
-                });
 
         private DatabaseInstance(DatabaseConfig config) {
             String initdbArgs = config.initdbProperties.entrySet().stream()
@@ -156,81 +144,51 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class)));
 
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
-
         }
 
-        public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {
-            return templates.getUnchecked(new TemplateKey(config, preparer));
-        }
+        public DatabaseResult createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
+            DatabaseTemplate template = request.getTemplate();
+            DatabasePreparer preparer = request.getPreparer();
 
-        protected class DatabaseTemplate {
+            String databaseName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
 
-            private final ClientConfig config;
-            private final String templateName;
+            if (template != null) {
+                executeStatement(config, String.format("CREATE DATABASE %s TEMPLATE %s OWNER %s ENCODING 'utf8'", databaseName, template.getTemplateName(), "postgres"));
+            } else {
+                executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
+            }
 
-            private DatabaseTemplate(ClientConfig config, DatabasePreparer preparer) throws SQLException {
-                this.config = config;
-                this.templateName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
+            DataSource dataSource = getDatabase(config, databaseName);
 
-                executeStatement(String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", templateName, "postgres"));
-                DataSource dataSource = getDatabase(templateName);
+            if (preparer != null) {
                 preparer.prepare(dataSource);
             }
 
-            public DataSource createDatabase() throws SQLException {
-                String databaseName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
-                executeStatement(String.format("CREATE DATABASE %s TEMPLATE %s OWNER %s ENCODING 'utf8'", databaseName, templateName, "postgres"));
-                return getDatabase(databaseName);
-            }
+            return new DatabaseResult(dataSource, databaseName);
+        }
 
-            private void executeStatement(String ddlStatement) throws SQLException {
-                DataSource dataSource = getDatabase("postgres");
-                try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
-                    stmt.execute();
-                }
-            }
-
-            private DataSource getDatabase(String dbName) throws SQLException {
-                PGSimpleDataSource dataSource = new PGSimpleDataSource();
-
-                dataSource.setServerName(container.getContainerIpAddress());
-                dataSource.setPortNumber(container.getMappedPort(POSTGRESQL_PORT));
-                dataSource.setDatabaseName(dbName);
-
-                dataSource.setUser(POSTGRES_USERNAME);
-                dataSource.setPassword(POSTGRES_PASSWORD);
-
-                for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
-                    dataSource.setProperty(entry.getKey(), entry.getValue());
-                }
-
-                return new BlockingDataSourceWrapper(dataSource, semaphore);
+        private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
+            DataSource dataSource = getDatabase(config, "postgres");
+            try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
+                stmt.execute();
             }
         }
 
-        protected static class TemplateKey {
+        private DataSource getDatabase(ClientConfig config, String dbName) throws SQLException {
+            PGSimpleDataSource dataSource = new PGSimpleDataSource();
 
-            private final ClientConfig config;
-            private final DatabasePreparer preparer;
+            dataSource.setServerName(container.getContainerIpAddress());
+            dataSource.setPortNumber(container.getMappedPort(POSTGRESQL_PORT));
+            dataSource.setDatabaseName(dbName);
 
-            private TemplateKey(ClientConfig config, DatabasePreparer preparer) {
-                this.config = config;
-                this.preparer = preparer;
+            dataSource.setUser(POSTGRES_USERNAME);
+            dataSource.setPassword(POSTGRES_PASSWORD);
+
+            for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
+                dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                TemplateKey that = (TemplateKey) o;
-                return Objects.equals(config, that.config) &&
-                        Objects.equals(preparer, that.preparer);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(config, preparer);
-            }
+            return new BlockingDataSourceWrapper(dataSource, semaphore);
         }
     }
 

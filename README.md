@@ -42,13 +42,13 @@ The configuration of the embedded database is driven by `@AutoConfigureEmbeddedD
 
 ## Examples
 
-### Creating a new empty database with a specified bean name
+### Creating a new empty database
 
-A new data source with a specified name will be created and injected into all related components. You can also inject it into test class as shown below. 
+A new data source will be created and injected into all related components. You can also inject it into test class as shown below. 
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 public class EmptyDatabaseIntegrationTest {
     
     @Autowired
@@ -74,7 +74,7 @@ public class EmptyDatabaseIntegrationTest {
 ### Creating multiple databases within a single test class
 
 The `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, so you can annotate a test class with multiple annotations to create multiple independent databases.
-Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
+Each of them can have completely different configuration parameters, including the database provider as demonstrated in the example below.
 
 Note that if multiple annotations on a single class are applied, some optimization techniques can not be used and database initialization may be slower.
 

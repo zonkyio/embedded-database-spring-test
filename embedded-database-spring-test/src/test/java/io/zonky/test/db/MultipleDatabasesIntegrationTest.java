@@ -16,8 +16,8 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.MultiFlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
@@ -35,17 +36,21 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import io.zonky.test.category.MultiFlywayIntegrationTests;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
 @Category(MultiFlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource1", provider = ZONKY)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource2", provider = DOCKER)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = ZONKY)
+@TestExecutionListeners(mergeMode = MERGE_WITH_DEFAULTS, listeners = FlywayTestExecutionListener.class)
 @ContextConfiguration
 public class MultipleDatabasesIntegrationTest {
 

@@ -24,10 +24,10 @@ import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseType;
-import io.zonky.test.db.provider.ProviderType;
-import io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider.DatabaseInstance.DatabaseTemplate;
+import io.zonky.test.db.provider.DatabaseRequest;
+import io.zonky.test.db.provider.DatabaseResult;
+import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.ObjectProvider;
@@ -49,7 +49,7 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 
-public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
+public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
     private static final int MAX_DATABASE_CONNECTIONS = 300;
 
@@ -77,21 +77,16 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public DatabaseType getDatabaseType() {
-        return DatabaseType.POSTGRES;
+    public DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception {
+        DatabaseResult result = createDatabase(request);
+        return new DatabaseTemplate(result.getDatabaseName());
     }
 
     @Override
-    public ProviderType getProviderType() {
-        return ProviderType.ZONKY;
-    }
-
-    @Override
-    public DataSource getDatabase(DatabasePreparer preparer) throws SQLException {
-        ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, preparer);
+    public DatabaseResult createDatabase(DatabaseRequest request) throws Exception {
+        ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, request.getPreparer()); // TODO: request.getPreparer()
         DatabaseInstance instance = databases.getUnchecked(clusterKey);
-        DatabaseTemplate template = instance.getTemplate(clientConfig, preparer);
-        return template.createDatabase();
+        return instance.createDatabase(clientConfig, request);
     }
 
     @Override
@@ -113,82 +108,45 @@ public class ZonkyPostgresDatabaseProvider implements DatabaseProvider {
         private final EmbeddedPostgres postgres;
         private final Semaphore semaphore;
 
-        private final LoadingCache<TemplateKey, DatabaseTemplate> templates = CacheBuilder.newBuilder()
-                .build(new CacheLoader<TemplateKey, DatabaseTemplate>() {
-                    public DatabaseTemplate load(TemplateKey key) throws Exception {
-                        return new DatabaseTemplate(key.config, key.preparer);
-                    }
-                });
-
         private DatabaseInstance(DatabaseConfig config) throws IOException {
             EmbeddedPostgres.Builder builder = EmbeddedPostgres.builder();
             config.applyTo(builder);
 
             postgres = builder.start();
             semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
-
         }
 
-        public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {
-            return templates.getUnchecked(new TemplateKey(config, preparer));
-        }
+        public DatabaseResult createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
+            DatabaseTemplate template = request.getTemplate();
+            DatabasePreparer preparer = request.getPreparer();
 
-        protected class DatabaseTemplate {
+            String databaseName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
 
-            private final ClientConfig config;
-            private final String templateName;
+            if (template != null) {
+                executeStatement(config, String.format("CREATE DATABASE %s TEMPLATE %s OWNER %s ENCODING 'utf8'", databaseName, template.getTemplateName(), "postgres"));
+            } else {
+                executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
+            }
 
-            private DatabaseTemplate(ClientConfig config, DatabasePreparer preparer) throws SQLException {
-                this.config = config;
-                this.templateName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
+            DataSource dataSource = getDatabase(config, databaseName);
 
-                executeStatement(String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", templateName, "postgres"));
-                DataSource dataSource = getDatabase(templateName);
+            if (preparer != null) {
                 preparer.prepare(dataSource);
             }
 
-            public DataSource createDatabase() throws SQLException {
-                String databaseName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
-                executeStatement(String.format("CREATE DATABASE %s TEMPLATE %s OWNER %s ENCODING 'utf8'", databaseName, templateName, "postgres"));
-                return getDatabase(databaseName);
-            }
+            return new DatabaseResult(dataSource, databaseName);
+        }
 
-            private void executeStatement(String ddlStatement) throws SQLException {
-                DataSource dataSource = getDatabase("postgres");
-                try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
-                    stmt.execute();
-                }
-            }
-
-            private DataSource getDatabase(String dbName) {
-                DataSource dataSource = postgres.getDatabase("postgres", dbName, config.connectProperties);
-                return new BlockingDataSourceWrapper(dataSource, semaphore);
+        private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
+            DataSource dataSource = getDatabase(config, "postgres");
+            try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
+                stmt.execute();
             }
         }
 
-        protected static class TemplateKey {
-
-            private final ClientConfig config;
-            private final DatabasePreparer preparer;
-
-            private TemplateKey(ClientConfig config, DatabasePreparer preparer) {
-                this.config = config;
-                this.preparer = preparer;
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                TemplateKey that = (TemplateKey) o;
-                return Objects.equals(config, that.config) &&
-                        Objects.equals(preparer, that.preparer);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(config, preparer);
-            }
+        private DataSource getDatabase(ClientConfig config, String dbName) {
+            DataSource dataSource = postgres.getDatabase("postgres", dbName, config.connectProperties);
+            return new BlockingDataSourceWrapper(dataSource, semaphore);
         }
     }
 

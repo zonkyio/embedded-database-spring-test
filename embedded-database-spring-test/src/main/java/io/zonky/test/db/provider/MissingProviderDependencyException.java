@@ -16,21 +16,9 @@
 
 package io.zonky.test.db.provider;
 
-public class MissingProviderDependencyException extends MissingDatabaseProviderException {
+public class MissingProviderDependencyException extends RuntimeException {
 
-    public MissingProviderDependencyException(DatabaseDescriptor descriptor) {
-        super(descriptor);
-    }
-
-    @Override
-    public String getMessage() {
-        ProviderType providerType = getDescriptor().getProviderType();
-        String dependencyInfo = providerType.getDependencyInfo();
-
-        if (dependencyInfo != null) {
-            return String.format("You must add the following Maven dependency: '%s'", dependencyInfo);
-        } else {
-            return String.format("You must add a Maven dependency for '%s' provider", providerType);
-        }
+    public MissingProviderDependencyException(String message) {
+        super(message);
     }
 }

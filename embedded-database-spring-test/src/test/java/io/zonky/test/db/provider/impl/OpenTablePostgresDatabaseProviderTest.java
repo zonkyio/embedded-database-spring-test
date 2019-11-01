@@ -19,8 +19,6 @@ package io.zonky.test.db.provider.impl;
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseType;
-import io.zonky.test.db.provider.ProviderType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,19 +53,7 @@ public class OpenTablePostgresDatabaseProviderTest {
     }
 
     @Test
-    public void databaseTypeShouldBePostgres() {
-        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        assertThat(provider.getDatabaseType()).isEqualTo(DatabaseType.POSTGRES);
-    }
-
-    @Test
-    public void providerTypeShouldBeOpenTable() {
-        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        assertThat(provider.getProviderType()).isEqualTo(ProviderType.OPENTABLE);
-    }
-
-    @Test
-    public void testGetDatabase() throws SQLException {
+    public void testGetDatabase() throws Exception {
         OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
 
         DatabasePreparer preparer1 = dataSource -> {
@@ -80,9 +66,9 @@ public class OpenTablePostgresDatabaseProviderTest {
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
         };
 
-        DataSource dataSource1 = provider.getDatabase(preparer1);
-        DataSource dataSource2 = provider.getDatabase(preparer1);
-        DataSource dataSource3 = provider.getDatabase(preparer2);
+        DataSource dataSource1 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource2 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource3 = provider.createDatabase(preparer2).getDataSource();
 
         assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
         assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
@@ -105,19 +91,19 @@ public class OpenTablePostgresDatabaseProviderTest {
     }
 
     @Test
-    public void testDatabaseCustomizers() throws SQLException {
+    public void testDatabaseCustomizers() throws Exception {
         int randomPort = SocketUtils.findAvailableTcpPort();
         when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
 
         DatabasePreparer preparer = dataSource -> {};
         OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        DataSource dataSource = provider.getDatabase(preparer);
+        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(randomPort);
     }
 
     @Test
-    public void testConfigurationProperties() throws SQLException {
+    public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
         environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
@@ -126,7 +112,7 @@ public class OpenTablePostgresDatabaseProviderTest {
 
         DatabasePreparer preparer = dataSource -> {};
         OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
-        DataSource dataSource = provider.getDatabase(preparer);
+        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
 

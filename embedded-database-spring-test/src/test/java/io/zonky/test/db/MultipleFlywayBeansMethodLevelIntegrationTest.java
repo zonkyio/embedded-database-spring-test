@@ -16,8 +16,8 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.MultiFlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -29,18 +29,23 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import io.zonky.test.category.MultiFlywayIntegrationTests;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
 @Category(MultiFlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@TestExecutionListeners(mergeMode = MERGE_WITH_DEFAULTS, listeners = FlywayTestExecutionListener.class)
 @ContextConfiguration
 public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
@@ -49,7 +54,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
         @Primary
         @DependsOn("flyway2")
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway1(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
@@ -58,7 +63,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
             return flyway;
         }
 
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway2(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
@@ -67,7 +72,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
             return flyway;
         }
 
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway3(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);

@@ -35,6 +35,7 @@ public class EmbeddedDatabaseReporter {
         logger.info("JDBC URL to connect to the embedded database: {}", getJdbcUrl(dataSource));
     }
 
+    // TODO:
     public static void reportDataSource(DataSource dataSource, AnnotatedElement element) {
         logger.info("JDBC URL to connect to the embedded database: {}, scope: {}", getJdbcUrl(dataSource), getElementName(element));
     }

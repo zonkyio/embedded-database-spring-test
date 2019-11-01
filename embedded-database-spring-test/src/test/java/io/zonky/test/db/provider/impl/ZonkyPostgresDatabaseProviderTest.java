@@ -19,8 +19,6 @@ package io.zonky.test.db.provider.impl;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseType;
-import io.zonky.test.db.provider.ProviderType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,19 +53,7 @@ public class ZonkyPostgresDatabaseProviderTest {
     }
 
     @Test
-    public void databaseTypeShouldBePostgres() {
-        ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        assertThat(provider.getDatabaseType()).isEqualTo(DatabaseType.POSTGRES);
-    }
-
-    @Test
-    public void providerTypeShouldBeZonky() {
-        ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        assertThat(provider.getProviderType()).isEqualTo(ProviderType.ZONKY);
-    }
-
-    @Test
-    public void testGetDatabase() throws SQLException {
+    public void testGetDatabase() throws Exception {
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
 
         DatabasePreparer preparer1 = dataSource -> {
@@ -80,9 +66,9 @@ public class ZonkyPostgresDatabaseProviderTest {
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
         };
 
-        DataSource dataSource1 = provider.getDatabase(preparer1);
-        DataSource dataSource2 = provider.getDatabase(preparer1);
-        DataSource dataSource3 = provider.getDatabase(preparer2);
+        DataSource dataSource1 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource2 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource3 = provider.createDatabase(preparer2).getDataSource();
 
         assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
         assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
@@ -105,7 +91,7 @@ public class ZonkyPostgresDatabaseProviderTest {
     }
 
     @Test
-    public void testClusterPreparerIsolation() throws SQLException {
+    public void testClusterPreparerIsolation() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("zonky.test.database.postgres.zonky-provider.preparer-isolation", "cluster");
 
@@ -121,8 +107,8 @@ public class ZonkyPostgresDatabaseProviderTest {
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
         };
 
-        DataSource dataSource1 = provider.getDatabase(preparer1);
-        DataSource dataSource2 = provider.getDatabase(preparer2);
+        DataSource dataSource1 = provider.createDatabase(preparer1).getDataSource();
+        DataSource dataSource2 = provider.createDatabase(preparer2).getDataSource();
 
         assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
         assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
@@ -131,19 +117,19 @@ public class ZonkyPostgresDatabaseProviderTest {
     }
 
     @Test
-    public void testDatabaseCustomizers() throws SQLException {
+    public void testDatabaseCustomizers() throws Exception {
         int randomPort = SocketUtils.findAvailableTcpPort();
         when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
 
         DatabasePreparer preparer = dataSource -> {};
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
-        DataSource dataSource = provider.getDatabase(preparer);
+        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(randomPort);
     }
 
     @Test
-    public void testConfigurationProperties() throws SQLException {
+    public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
         environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
@@ -152,7 +138,7 @@ public class ZonkyPostgresDatabaseProviderTest {
 
         DatabasePreparer preparer = dataSource -> {};
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(environment, databaseCustomizers);
-        DataSource dataSource = provider.getDatabase(preparer);
+        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
 
