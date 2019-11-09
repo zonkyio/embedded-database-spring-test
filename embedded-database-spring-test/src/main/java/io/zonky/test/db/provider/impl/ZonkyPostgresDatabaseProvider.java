@@ -25,11 +25,13 @@ import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseResult;
 import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.PostgresEmbeddedDatabase;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
@@ -48,6 +50,7 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 
 public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
@@ -78,12 +81,12 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
 
     @Override
     public DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception {
-        DatabaseResult result = createDatabase(request);
+        EmbeddedDatabase result = createDatabase(request);
         return new DatabaseTemplate(result.getDatabaseName());
     }
 
     @Override
-    public DatabaseResult createDatabase(DatabaseRequest request) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabaseRequest request) throws Exception {
         ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, request.getPreparer()); // TODO: request.getPreparer()
         DatabaseInstance instance = databases.getUnchecked(clusterKey);
         return instance.createDatabase(clientConfig, request);
@@ -116,7 +119,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
         }
 
-        public DatabaseResult createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
+        public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
             DatabaseTemplate template = request.getTemplate();
             DatabasePreparer preparer = request.getPreparer();
 
@@ -128,13 +131,13 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
                 executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
             }
 
-            DataSource dataSource = getDatabase(config, databaseName);
+            EmbeddedDatabase database = getDatabase(config, databaseName);
 
             if (preparer != null) {
-                preparer.prepare(dataSource);
+                preparer.prepare(database);
             }
 
-            return new DatabaseResult(dataSource, databaseName);
+            return database;
         }
 
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
@@ -144,9 +147,9 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             }
         }
 
-        private DataSource getDatabase(ClientConfig config, String dbName) {
-            DataSource dataSource = postgres.getDatabase("postgres", dbName, config.connectProperties);
-            return new BlockingDataSourceWrapper(dataSource, semaphore);
+        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
+            PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, emptyMap()), semaphore);
         }
     }
 

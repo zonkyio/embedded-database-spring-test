@@ -17,7 +17,7 @@
 package io.zonky.test.db.provider.impl;
 
 import io.zonky.test.db.provider.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseResult;
+import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.mock.env.MockEnvironment;
 
-import javax.sql.DataSource;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,15 +59,15 @@ public class PrefetchingDatabaseProviderTest {
     @Test
     public void testPrefetching() throws Exception {
         DatabasePreparer preparer = mock(DatabasePreparer.class);
-        List<DataSource> dataSources = Stream.generate(() -> mock(DataSource.class))
+        List<EmbeddedDatabase> dataSources = Stream.generate(() -> mock(EmbeddedDatabase.class))
                 .limit(6).collect(Collectors.toList());
 
-        BlockingQueue<DataSource> providerReturns = new LinkedBlockingQueue<>(dataSources);
-        doAnswer(i -> new DatabaseResult(providerReturns.poll(), null)).when(databaseProvider).createDatabase(same(preparer));
+        BlockingQueue<EmbeddedDatabase> providerReturns = new LinkedBlockingQueue<>(dataSources);
+        doAnswer(i -> providerReturns.poll()).when(databaseProvider).createDatabase(same(preparer));
 
-        Set<DataSource> results = new HashSet<>();
+        Set<EmbeddedDatabase> results = new HashSet<>();
         for (int i = 0; i < 3; i++) {
-            results.add(prefetchingProvider.createDatabase(preparer).getDataSource());
+            results.add(prefetchingProvider.createDatabase(preparer));
         }
         assertThat(results).hasSize(3).isSubsetOf(dataSources);
 
@@ -80,9 +79,9 @@ public class PrefetchingDatabaseProviderTest {
 //    public void testMultipleProviders() throws Exception {
 //        DatabasePreparer preparer = mock(DatabasePreparer.class);
 //
-//        doAnswer(i -> mock(DataSource.class, "mockDataSource1")).when(databaseProvider1).createDatabase(any());
-//        doAnswer(i -> mock(DataSource.class, "mockDataSource2")).when(databaseProvider2).createDatabase(any());
-//        doAnswer(i -> mock(DataSource.class, "mockDataSource3")).when(databaseProvider3).createDatabase(any());
+//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource1")).when(databaseProvider1).createDatabase(any());
+//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource2")).when(databaseProvider2).createDatabase(any());
+//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource3")).when(databaseProvider3).createDatabase(any());
 //
 //        for (int i = 0; i < 3; i++) {
 //            assertThat(prefetchingProvider.createDatabase(preparer, newDescriptor("database1", "provider1"))).is(mockWithName("mockDataSource1"));
@@ -101,13 +100,13 @@ public class PrefetchingDatabaseProviderTest {
         DatabasePreparer preparer2 = mock(DatabasePreparer.class);
         DatabasePreparer preparer3 = mock(DatabasePreparer.class);
 
-        doAnswer(i -> new DatabaseResult(mock(DataSource.class, "mockDataSource1"), null)).when(databaseProvider).createDatabase(same(preparer1));
-        doAnswer(i -> new DatabaseResult(mock(DataSource.class, "mockDataSource2"), null)).when(databaseProvider).createDatabase(same(preparer2));
-        doAnswer(i -> new DatabaseResult(mock(DataSource.class, "mockDataSource3"), null)).when(databaseProvider).createDatabase(same(preparer3));
+        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource1")).when(databaseProvider).createDatabase(same(preparer1));
+        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource2")).when(databaseProvider).createDatabase(same(preparer2));
+        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource3")).when(databaseProvider).createDatabase(same(preparer3));
 
-        assertThat(prefetchingProvider.createDatabase(preparer1).getDataSource()).is(mockWithName("mockDataSource1"));
-        assertThat(prefetchingProvider.createDatabase(preparer2).getDataSource()).is(mockWithName("mockDataSource2"));
-        assertThat(prefetchingProvider.createDatabase(preparer3).getDataSource()).is(mockWithName("mockDataSource3"));
+        assertThat(prefetchingProvider.createDatabase(preparer1)).is(mockWithName("mockDataSource1"));
+        assertThat(prefetchingProvider.createDatabase(preparer2)).is(mockWithName("mockDataSource2"));
+        assertThat(prefetchingProvider.createDatabase(preparer3)).is(mockWithName("mockDataSource3"));
 
         verify(databaseProvider, timeout(100).times(12)).createDatabase(any(DatabasePreparer.class));
     }

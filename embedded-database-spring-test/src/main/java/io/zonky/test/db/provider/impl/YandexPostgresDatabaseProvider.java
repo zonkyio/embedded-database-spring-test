@@ -25,8 +25,9 @@ import de.flapdoodle.embed.process.distribution.IVersion;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseResult;
 import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.PostgresEmbeddedDatabase;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -49,6 +50,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Collections.emptyMap;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_DB_NAME;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_HOST;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.defaultRuntimeConfig;
@@ -81,12 +83,12 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
 
     @Override
     public DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception {
-        DatabaseResult result = createDatabase(request);
+        EmbeddedDatabase result = createDatabase(request);
         return new DatabaseTemplate(result.getDatabaseName());
     }
 
     @Override
-    public DatabaseResult createDatabase(DatabaseRequest request) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabaseRequest request) throws Exception {
         DatabaseInstance instance = databases.getUnchecked(databaseConfig);
         return instance.createDatabase(clientConfig, request);
     }
@@ -134,7 +136,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
         }
 
-        public DatabaseResult createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
+        public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
             DatabaseTemplate template = request.getTemplate();
             DatabasePreparer preparer = request.getPreparer();
 
@@ -146,13 +148,13 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
             }
 
-            DataSource dataSource = getDatabase(config, databaseName);
+            EmbeddedDatabase database = getDatabase(config, databaseName);
 
             if (preparer != null) {
-                preparer.prepare(dataSource);
+                preparer.prepare(database);
             }
 
-            return new DatabaseResult(dataSource, databaseName);
+            return database;
         }
 
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
@@ -162,7 +164,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
             }
         }
 
-        private DataSource getDatabase(ClientConfig config, String dbName) throws SQLException {
+        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) throws SQLException {
             PGSimpleDataSource dataSource = new PGSimpleDataSource();
 
             dataSource.setServerName(DEFAULT_HOST);
@@ -176,7 +178,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDataSourceWrapper(dataSource, semaphore);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, emptyMap()), semaphore);
         }
     }
 

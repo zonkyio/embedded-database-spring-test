@@ -8,8 +8,8 @@ import io.zonky.test.db.flyway.CompositeDatabasePreparer;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseResult;
 import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 
 import java.util.List;
@@ -42,7 +42,7 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public DatabaseResult createDatabase(DatabasePreparer preparer) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
         CompositeDatabasePreparer compositePreparer = preparer instanceof CompositeDatabasePreparer ?
                 (CompositeDatabasePreparer) preparer : new CompositeDatabasePreparer(ImmutableList.of(preparer));
 

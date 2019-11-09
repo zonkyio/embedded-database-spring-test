@@ -1,6 +1,7 @@
 package io.zonky.test.db.flyway;
 
-import javax.sql.DataSource;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+
 import java.io.PrintWriter;
 import java.sql.Array;
 import java.sql.Blob;
@@ -28,12 +29,12 @@ import java.util.logging.Logger;
  * Blocking data source wrapper that should avoid to exhaustion of database connections.
  * It is a better choice than using a connection pool because database connections can be released as soon as possible.
  */
-public class BlockingDataSourceWrapper implements DataSource {
+public class BlockingDataSourceWrapper implements EmbeddedDatabase {
 
-    private final DataSource delegate;
+    private final EmbeddedDatabase delegate;
     private final Semaphore semaphore;
 
-    public BlockingDataSourceWrapper(DataSource delegate, Semaphore semaphore) {
+    public BlockingDataSourceWrapper(EmbeddedDatabase delegate, Semaphore semaphore) {
         this.delegate = delegate;
         this.semaphore = semaphore;
     }
@@ -85,6 +86,41 @@ public class BlockingDataSourceWrapper implements DataSource {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return delegate.isWrapperFor(iface);
+    }
+
+    @Override
+    public String getServerName() {
+        return delegate.getServerName();
+    }
+
+    @Override
+    public String getDatabaseName() {
+        return delegate.getDatabaseName();
+    }
+
+    @Override
+    public String getUser() {
+        return delegate.getUser();
+    }
+
+    @Override
+    public String getPassword() {
+        return delegate.getPassword();
+    }
+
+    @Override
+    public int getPortNumber() {
+        return delegate.getPortNumber();
+    }
+
+    @Override
+    public String getUrl() {
+        return delegate.getUrl();
+    }
+
+    @Override
+    public Map<String, String> getAliases() {
+        return delegate.getAliases();
     }
 
     protected static class BlockingConnectionWrapper implements Connection {

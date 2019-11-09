@@ -16,42 +16,19 @@
 
 package io.zonky.test.db.logging;
 
-import org.apache.commons.lang3.StringUtils;
-import org.postgresql.ds.common.BaseDataSource;
+import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 
 public class EmbeddedDatabaseReporter {
 
-    private static final String JDBC_FORMAT = "jdbc:postgresql://localhost:%s/%s?user=%s";
-
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedDatabaseReporter.class);
 
-    public static void reportDataSource(DataSource dataSource) {
-        logger.info("JDBC URL to connect to the embedded database: {}", getJdbcUrl(dataSource));
-    }
-
-    // TODO:
-    public static void reportDataSource(DataSource dataSource, AnnotatedElement element) {
-        logger.info("JDBC URL to connect to the embedded database: {}, scope: {}", getJdbcUrl(dataSource), getElementName(element));
-    }
-
-    private static String getJdbcUrl(DataSource dataSource) {
-        try {
-            BaseDataSource ds = dataSource.unwrap(BaseDataSource.class);
-            if (StringUtils.isBlank(ds.getPassword())) {
-                return String.format(JDBC_FORMAT, ds.getPortNumber(), ds.getDatabaseName(), ds.getUser());
-            } else {
-                return String.format(JDBC_FORMAT + "&password=%s", ds.getPortNumber(), ds.getDatabaseName(), ds.getUser(), ds.getPassword());
-            }
-        } catch (Exception e) {
-            logger.warn("Unexpected error occurred while resolving url to the embedded database", e);
-            return "unknown";
-        }
+    public static void reportDataSource(String beanName, EmbeddedDatabase database, AnnotatedElement element) {
+        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, database.getUrl(), getElementName(element));
     }
 
     private static String getElementName(AnnotatedElement element) {

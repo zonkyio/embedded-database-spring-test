@@ -554,7 +554,7 @@ public class FlywayMigrationIntegrationTest {
 When you use a breakpoint to pause the tests, you can connect to a temporary embedded database. Connection details can be found in the log as shown in the example below:
 
 ```log
-i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to the embedded database: jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres, scope: TestClass#testMethod
+i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to 'dataSource1': url='jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres', scope='TestClass#testMethod'
 ```
 
 If you are using `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in such case multiple isolated databases may be created.

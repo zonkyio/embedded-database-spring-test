@@ -47,9 +47,9 @@ public class DockerPostgresDatabaseProviderTest {
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
         };
 
-        DataSource dataSource1 = provider.createDatabase(preparer1).getDataSource();
-        DataSource dataSource2 = provider.createDatabase(preparer1).getDataSource();
-        DataSource dataSource3 = provider.createDatabase(preparer2).getDataSource();
+        DataSource dataSource1 = provider.createDatabase(preparer1);
+        DataSource dataSource2 = provider.createDatabase(preparer1);
+        DataSource dataSource3 = provider.createDatabase(preparer2);
 
         assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
         assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
@@ -82,7 +82,7 @@ public class DockerPostgresDatabaseProviderTest {
 
         DatabasePreparer preparer = dataSource -> {};
         DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(environment);
-        DataSource dataSource = provider.createDatabase(preparer).getDataSource();
+        DataSource dataSource = provider.createDatabase(preparer);
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
 

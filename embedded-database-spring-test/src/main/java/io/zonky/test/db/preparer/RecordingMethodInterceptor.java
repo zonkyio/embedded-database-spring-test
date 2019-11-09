@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -77,8 +78,12 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
             }
         }
 
-        if (method.getDeclaringClass() == RecordingDataSource.class && method.getReturnType() == DatabasePreparer.class) {
-            return new ReplayableDatabasePreparer(context);
+        if (method.getDeclaringClass() == RecordingDataSource.class && methodName.equals("getPreparer")) {
+            if (context.recordData.isEmpty()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(new ReplayableDatabasePreparer(context));
+            }
         }
 
         Object result = invocation.proceed();
@@ -142,7 +147,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         }
 
         private RecordingContext(RecordingContext context) {
-            this.recordData = new ArrayList<>(context.recordData);
+            this.recordData = new ArrayList<>(context.recordData); // TODO: maybe it could be optimized because the list is used for append-only operations, so it is not necessary to make a copy of the list and might be sufficient to just pass the index of the last record
             this.argMapping = new IdentityHashMap<>(context.argMapping);
         }
 

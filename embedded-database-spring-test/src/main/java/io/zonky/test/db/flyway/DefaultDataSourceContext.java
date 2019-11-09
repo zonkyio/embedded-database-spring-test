@@ -1,11 +1,9 @@
 package io.zonky.test.db.flyway;
 
-import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseResult;
 import io.zonky.test.db.provider.config.DatabaseProviders;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +14,7 @@ import javax.sql.DataSource;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -52,7 +51,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     }
 
     @Override
-    public synchronized Object getTarget() throws Exception {
+    public synchronized Object getTarget() {
         if (initialized && dataSource == null) {
             refreshDatabase();
         }
@@ -90,10 +89,13 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     private void stopRecording() {
         if (dataSource instanceof RecordingDataSource) {
             RecordingDataSource recordingDataSource = (RecordingDataSource) this.dataSource;
-            PreparerOperation operation = new PreparerOperation(recordingDataSource.buildPreparer());
+            Optional<DatabasePreparer> recordedPreparer = recordingDataSource.getPreparer();
             dataSource = (DataSource) AopProxyUtils.getSingletonTarget(dataSource); // TODO: use java.sql.Wrapper.unwrap instead
-            apply(operation);
-            refreshDatabase(); // TODO: refresh database only when it is necessary
+
+            recordedPreparer.ifPresent(preparer -> {
+                apply(new PreparerOperation(preparer));
+                refreshDatabase(); // TODO: refresh database only when it is necessary
+            });
         }
     }
 
@@ -130,13 +132,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
             CompositeDatabasePreparer compositePreparer = new CompositeDatabasePreparer(preparers);
 
             DatabaseProvider provider = databaseProviders.getProvider(databaseDescriptor);
-            DatabaseResult result = provider.createDatabase(compositePreparer);
-
-            if (initialized) { // TODO: skip reporting during initialization phase
-                EmbeddedDatabaseReporter.reportDataSource(result.getDataSource());
-            }
-
-            dataSource = result.getDataSource();
+            dataSource = provider.createDatabase(compositePreparer);
         } catch (Exception e) {
             throw new RuntimeException(e); // TODO
         }

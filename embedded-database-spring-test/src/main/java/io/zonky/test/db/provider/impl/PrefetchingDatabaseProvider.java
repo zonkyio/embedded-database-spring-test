@@ -21,7 +21,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseResult;
+import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -78,7 +78,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public DatabaseResult createDatabase(DatabasePreparer preparer) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.trace("Prefetching pipelines: {}", pipelines.values());
 
@@ -108,18 +108,18 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             }
         }
 
-        DatabaseResult database = result != null ? result.get() : pipeline.results.take().get();
+        EmbeddedDatabase database = result != null ? result.get() : pipeline.results.take().get();
         logger.debug("Database has been successfully returned in {}", stopwatch);
         return database;
     }
 
-    private ListenableFutureTask<DatabaseResult> prepareDatabase(PipelineKey key, int priority) throws Exception {
+    private ListenableFutureTask<EmbeddedDatabase> prepareDatabase(PipelineKey key, int priority) throws Exception {
         PrefetchingTask task = new PrefetchingTask(key.provider, key.preparer, priority);
         DatabasePipeline pipeline = pipelines.get(key);
 
-        task.addCallback(new ListenableFutureCallback<DatabaseResult>() {
+        task.addCallback(new ListenableFutureCallback<EmbeddedDatabase>() {
             @Override
-            public void onSuccess(DatabaseResult result) {
+            public void onSuccess(EmbeddedDatabase result) {
                 pipeline.tasks.remove(task);
                 pipeline.results.offer(PreparedResult.success(result));
             }
@@ -181,10 +181,10 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
     private static class PreparedResult {
 
-        private final DatabaseResult result;
+        private final EmbeddedDatabase result;
         private final Throwable error;
 
-        public static PreparedResult success(DatabaseResult result) {
+        public static PreparedResult success(EmbeddedDatabase result) {
             return new PreparedResult(result, null);
         }
 
@@ -192,12 +192,12 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             return new PreparedResult(null, error);
         }
 
-        private PreparedResult(DatabaseResult result, Throwable error) {
+        private PreparedResult(EmbeddedDatabase result, Throwable error) {
             this.result = result;
             this.error = error;
         }
 
-        public DatabaseResult get() throws Exception {
+        public EmbeddedDatabase get() throws Exception {
             if (result != null) {
                 return result;
             }
@@ -214,7 +214,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         }
     }
 
-    private static class PrefetchingTask extends ListenableFutureTask<DatabaseResult> implements Comparable<PrefetchingTask> {
+    private static class PrefetchingTask extends ListenableFutureTask<EmbeddedDatabase> implements Comparable<PrefetchingTask> {
 
         private final AtomicBoolean active = new AtomicBoolean(true);
         private final int priority;

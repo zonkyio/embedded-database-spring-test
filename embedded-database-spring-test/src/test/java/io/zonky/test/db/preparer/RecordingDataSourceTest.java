@@ -1,5 +1,6 @@
 package io.zonky.test.db.preparer;
 
+import io.zonky.test.db.provider.DatabasePreparer;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
@@ -18,8 +19,6 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Arrays;
-
-import io.zonky.test.db.provider.DatabasePreparer;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +59,7 @@ public class RecordingDataSourceTest {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.createStatement()).thenReturn(mockStatement);
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement);
@@ -95,7 +94,7 @@ public class RecordingDataSourceTest {
         when(mockConnection.createStatement()).thenReturn(mockStatement);
         when(mockStatement.executeQuery(any())).thenReturn(mockResultSet);
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
 
         verifyZeroInteractions(mockResultSet);
@@ -117,7 +116,7 @@ public class RecordingDataSourceTest {
         PGSimpleDataSource mockUnwrappedDataSource = mock(PGSimpleDataSource.class);
         when(mockDataSource.unwrap(PGSimpleDataSource.class)).thenReturn(mockUnwrappedDataSource);
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockUnwrappedDataSource);
@@ -146,7 +145,7 @@ public class RecordingDataSourceTest {
         when(mockConnection.setSavepoint()).thenReturn(mockSavepoint);
         when(mockConnection.createStatement()).thenReturn(mockStatement);
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement);
@@ -197,7 +196,7 @@ public class RecordingDataSourceTest {
             }
         }));
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
     }
 
@@ -234,7 +233,7 @@ public class RecordingDataSourceTest {
             return null;
         }).when(mockStatement).setBinaryStream(eq(1), any());
 
-        DatabasePreparer preparer = recordingDataSource.buildPreparer();
+        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
         preparer.prepare(mockDataSource);
 
         verify(mockStatement).setBinaryStream(anyInt(), any());
@@ -293,9 +292,17 @@ public class RecordingDataSourceTest {
         connection2.commit();
         connection2.close();
 
-        DatabasePreparer databasePreparer1 = recordingDataSource1.buildPreparer();
-        DatabasePreparer databasePreparer2 = recordingDataSource2.buildPreparer();
+        DatabasePreparer databasePreparer1 = recordingDataSource1.getPreparer().get();
+        DatabasePreparer databasePreparer2 = recordingDataSource2.getPreparer().get();
 
         assertThat(databasePreparer1).isEqualTo(databasePreparer2);
+    }
+
+    @Test
+    public void testProxyTargetClass() {
+        PGSimpleDataSource targetDataSource = new PGSimpleDataSource();
+        RecordingDataSource recordingDataSource = RecordingDataSource.wrap(targetDataSource);
+
+        assertThat(recordingDataSource).isInstanceOf(PGSimpleDataSource.class);
     }
 }

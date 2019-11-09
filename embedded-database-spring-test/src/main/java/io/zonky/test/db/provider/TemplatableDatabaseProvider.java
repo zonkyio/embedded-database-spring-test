@@ -20,9 +20,9 @@ public interface TemplatableDatabaseProvider extends DatabaseProvider {
 
     DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception;
 
-    DatabaseResult createDatabase(DatabaseRequest request) throws Exception;
+    EmbeddedDatabase createDatabase(DatabaseRequest request) throws Exception;
 
-    default DatabaseResult createDatabase(DatabasePreparer preparer) throws Exception {
+    default EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
         DatabaseRequest request = new DatabaseRequest(preparer);
         return createDatabase(request);
     }
