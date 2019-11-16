@@ -8,11 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
-import java.lang.reflect.InvocationTargetException;
-
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
-import static org.springframework.test.util.ReflectionTestUtils.getField;
-import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 
 public class FlywayClassUtils {
 
@@ -41,7 +39,7 @@ public class FlywayClassUtils {
             LoggerFactory.getLogger(FlywayConfigSnapshot.class).error("Unexpected error occurred while resolving flyway version", e);
             version = "0";
         }
-        flywayVersion = Integer.valueOf(version);
+        flywayVersion = Integer.parseInt(version);
 
         if (flywayVersion >= 50) {
             boolean isCommercial;
@@ -58,8 +56,6 @@ public class FlywayClassUtils {
                 isCommercial = true;
             } catch (FlywayException e) {
                 isCommercial = false;
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
             }
             isFlywayPro = isCommercial;
         } else {

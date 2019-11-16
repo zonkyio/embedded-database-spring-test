@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
@@ -14,7 +13,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static org.springframework.test.util.ReflectionTestUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 
 /**
  * Represents an <b>immutable</b> snapshot of Flyway's configuration.
@@ -221,7 +221,7 @@ public class FlywayConfigSnapshot {
                     .collect(Collectors.toList()));
         } else {
             this.tablespace = null;
-            this.javaMigrations = ImmutableList.of();;
+            this.javaMigrations = ImmutableList.of();
         }
 
         if (flywayVersion >= 60 && isFlywayPro) {
@@ -232,15 +232,15 @@ public class FlywayConfigSnapshot {
     }
 
     private static <T> T getValue(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     private static <E> E[] getArray(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     private static <K, V> Map<K, V> getMap(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     public ClassLoader getClassLoader() {

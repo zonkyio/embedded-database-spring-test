@@ -1,30 +1,29 @@
 package io.zonky.test.util;
 
+import io.zonky.test.db.flyway.FlywayClassUtils;
 import org.flywaydb.core.Flyway;
 import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
 import java.util.List;
 
-import io.zonky.test.db.flyway.FlywayClassUtils;
-
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 import static java.util.Collections.emptyList;
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
-import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 public class FlywayTestUtils {
 
     private FlywayTestUtils() {}
 
-    public static Flyway createFlyway(DataSource dataSource, String schema) throws Exception {
+    public static Flyway createFlyway(DataSource dataSource, String schema) {
         return createFlyway(dataSource, schema, emptyList());
     }
 
-    public static Flyway createFlyway(DataSource dataSource, String schema, List<String> locations) throws Exception {
+    public static Flyway createFlyway(DataSource dataSource, String schema, List<String> locations) {
         return createFlyway(dataSource, schema, locations, true);
     }
 
-    public static Flyway createFlyway(DataSource dataSource, String schema, List<String> locations, boolean validateOnMigrate) throws Exception {
+    public static Flyway createFlyway(DataSource dataSource, String schema, List<String> locations, boolean validateOnMigrate) {
         int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
         if (flywayVersion >= 60) {
