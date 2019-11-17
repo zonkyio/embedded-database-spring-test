@@ -20,7 +20,6 @@ import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseType;
 import io.zonky.test.db.provider.ProviderType;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
