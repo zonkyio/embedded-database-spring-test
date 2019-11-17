@@ -65,7 +65,7 @@
       "name": "zonky.test.database.postgres.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing PostgreSQL database.",
-      "defaultValue": "postgres:10.10-alpine"
+      "defaultValue": "postgres:10.11-alpine"
     },
     {
       "name": "zonky.test.database.postgres.docker.tmpfs.enabled",
@@ -83,7 +83,7 @@
       "name": "zonky.test.database.postgres.yandex-provider.postgres-version",
       "type": "java.lang.String",
       "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
-      "defaultValue": "10.10-1"
+      "defaultValue": "10.11-1"
     }
   ],
   "hints": [
