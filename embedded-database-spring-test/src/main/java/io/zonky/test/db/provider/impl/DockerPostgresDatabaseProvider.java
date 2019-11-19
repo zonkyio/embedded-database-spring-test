@@ -71,7 +71,7 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public DockerPostgresDatabaseProvider(Environment environment, ObjectProvider<List<PostgreSQLContainerCustomizer>> containerCustomizers) {
-        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.10-alpine");
+        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.11-alpine");
         String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
 
