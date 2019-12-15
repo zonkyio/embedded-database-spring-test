@@ -6,9 +6,13 @@ import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
 import org.flywaydb.core.internal.database.DatabaseFactory;
 import org.flywaydb.core.internal.util.scanner.Scanner;
+import org.springframework.aop.TargetSource;
+import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.util.ClassUtils;
 
+import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,15 +21,32 @@ import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
 import static org.springframework.test.util.ReflectionTestUtils.getField;
 import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
-public class FlywayAdapter {
+public class FlywayWrapper {
 
     private static final ClassLoader classLoader = FlywayContextExtension.class.getClassLoader();
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     private final Flyway flyway;
 
-    public FlywayAdapter(Flyway flyway) {
+    public FlywayWrapper(Flyway flyway) {
         this.flyway = flyway;
+    }
+
+    public Flyway getFlyway() {
+        return flyway;
+    }
+
+    public DataSourceContext getDataSourceContext() {
+        DataSource dataSource = flyway.getDataSource();
+
+        if (dataSource instanceof Advised) {
+            TargetSource targetSource = ((Advised) dataSource).getTargetSource();
+            if (targetSource instanceof DataSourceContext) {
+                return (DataSourceContext) targetSource;
+            }
+        }
+
+        throw new IllegalStateException("Data source context cannot be resolved");
     }
 
     public Collection<ResolvedMigration> getMigrations() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -43,6 +64,8 @@ public class FlywayAdapter {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        flyway = AopTestUtils.getUltimateTargetObject(flyway);
+
         if (flywayVersion >= 52) {
             Object configuration = getField(flyway, "configuration");
             Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);

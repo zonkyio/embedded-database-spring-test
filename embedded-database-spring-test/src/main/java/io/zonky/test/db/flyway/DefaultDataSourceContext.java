@@ -1,43 +1,40 @@
 package io.zonky.test.db.flyway;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.config.DatabaseProviders;
 import org.springframework.aop.framework.AopProxyUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 import javax.sql.DataSource;
-import java.util.Collections;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 public class DefaultDataSourceContext implements DataSourceContext, ApplicationListener<ContextRefreshedEvent> {
 
-    @Autowired
-    private DatabaseProviders databaseProviders;
+    protected final DatabaseProviders databaseProviders;
 
     protected DatabaseDescriptor databaseDescriptor;
 
-    private final LinkedList<DatabaseSnapshot> snapshots;
+    protected DataSource dataSource;
 
-    private DataSource dataSource;
+    protected List<DatabasePreparer> corePreparers = new LinkedList<>();
+    protected List<DatabasePreparer> testPreparers = new LinkedList<>();
 
-    private boolean initialized = false;
+    protected boolean initialized = false;
+    protected boolean dirty = false; // TODO: improve the detection of non-tracked changes
 
-    public DefaultDataSourceContext() {
-        this.snapshots = new LinkedList<>();
-//        apply(new TagOperation(null)); // TODO
-        TagOperation tagOperation = new TagOperation(null);
-        DatabasePrescription description = tagOperation.apply(this);
-        DatabaseSnapshot snapshot = new DatabaseSnapshot(tagOperation, description);
-        snapshots.add(snapshot);
+    public DefaultDataSourceContext(DatabaseProviders databaseProviders) {
+        this.databaseProviders = databaseProviders;
     }
 
     @Override
@@ -56,6 +53,10 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
             refreshDatabase();
         }
 
+        if (initialized) {
+            dirty = true;
+        }
+
         if (initialized || dataSource instanceof RecordingDataSource) {
             return dataSource;
         }
@@ -70,8 +71,9 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     }
 
     @Override
-    public boolean isInitialized() {
-        return initialized;
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        stopRecording();
+        initialized = true;
     }
 
     @Override
@@ -82,57 +84,62 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     }
 
     @Override
-    public List<DatabaseSnapshot> getSnapshots() {
-        return Collections.unmodifiableList(snapshots);
+    public void reset() {
+        checkState(initialized, "data source context must be initialized");
+        stopRecording();
+
+        testPreparers.clear();
+        dataSource = null;
+        dirty = false;
     }
 
-    private void stopRecording() {
+    @Override
+    public void apply(DatabasePreparer preparer) {
+        checkNotNull(preparer, "preparer must not be null");
+        stopRecording();
+
+        if (!initialized) {
+            corePreparers.add(preparer);
+            refreshDatabase();
+        } else if (!dirty) {
+            testPreparers.add(preparer);
+            dataSource = null;
+        } else {
+            try {
+                preparer.prepare(dataSource);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private synchronized void stopRecording() {
         if (dataSource instanceof RecordingDataSource) {
             RecordingDataSource recordingDataSource = (RecordingDataSource) this.dataSource;
             Optional<DatabasePreparer> recordedPreparer = recordingDataSource.getPreparer();
             dataSource = (DataSource) AopProxyUtils.getSingletonTarget(dataSource); // TODO: use java.sql.Wrapper.unwrap instead
+            dirty = false;
 
             recordedPreparer.ifPresent(preparer -> {
-                apply(new PreparerOperation(preparer));
+                corePreparers.add(preparer);
                 refreshDatabase(); // TODO: refresh database only when it is necessary
             });
         }
     }
 
-    @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        stopRecording();
-        initialized = true;
-//        dataSource = null; // TODO;
-        apply(new TagOperation(event));
-    }
-
-    @Override
-    public synchronized DatabaseSnapshot apply(ContextOperation operation) {
-        checkNotNull(operation, "operation must not be null");
-//        checkState(!initialized || dataSource == null, "context contains unrecorded changes");
-        stopRecording();
-
-        DatabasePrescription description = operation.apply(this);
-        DatabaseSnapshot snapshot = new DatabaseSnapshot(operation, description);
-        snapshots.add(snapshot);
-
-        if (!initialized) {
-            refreshDatabase();
-        } else {
-            dataSource = null;
-        }
-
-        return snapshot;
-    }
-
     private void refreshDatabase() {
-        try {
-            List<DatabasePreparer> preparers = snapshots.getLast().getDescriptor().getPreparers();
-            CompositeDatabasePreparer compositePreparer = new CompositeDatabasePreparer(preparers);
+        dirty = false;
 
-            DatabaseProvider provider = databaseProviders.getProvider(databaseDescriptor);
-            dataSource = provider.createDatabase(compositePreparer);
+        List<DatabasePreparer> preparers = ImmutableList.<DatabasePreparer>builder()
+                .addAll(corePreparers)
+                .addAll(testPreparers)
+                .build();
+
+        checkState(databaseDescriptor != null, "database descriptor must be set");
+        DatabaseProvider provider = databaseProviders.getProvider(databaseDescriptor);
+
+        try {
+            dataSource = provider.createDatabase(new CompositeDatabasePreparer(preparers));
         } catch (Exception e) {
             throw new RuntimeException(e); // TODO
         }

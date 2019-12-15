@@ -1,14 +1,21 @@
 package io.zonky.test.db.flyway;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
+import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
+import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
+import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.springframework.aop.TargetSource;
+import org.springframework.aop.Advisor;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.ProxyFactory;
@@ -16,20 +23,22 @@ import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
-import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import io.zonky.test.db.flyway.operation.CleanFlywayContextOperation;
-import io.zonky.test.db.flyway.operation.MigrateFlywayContextOperation;
-import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class FlywayContextExtension implements BeanPostProcessor {
+
+    protected final Multimap<DataSourceContext, Flyway> flywayBeans = HashMultimap.create();
+    protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -38,17 +47,16 @@ public class FlywayContextExtension implements BeanPostProcessor {
         }
 
         if (bean instanceof Flyway) {
-            Advice advice = new FlywayContextExtensionInterceptor((Flyway) bean);
-            NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor(advice);
-            advisor.setMappedNames("clean", "baseline", "migrate");
+            FlywayWrapper wrapper = new FlywayWrapper(((Flyway) bean));
+            flywayBeans.put(wrapper.getDataSourceContext(), wrapper.getFlyway());
 
             if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
-                ((Advised) bean).addAdvisor(0, advisor);
+                ((Advised) bean).addAdvisor(0, createAdvisor(wrapper));
                 return bean;
             } else {
                 ProxyFactory proxyFactory = new ProxyFactory(bean);
+                proxyFactory.addAdvisor(createAdvisor(wrapper));
                 proxyFactory.setProxyTargetClass(true);
-                proxyFactory.addAdvisor(advisor);
                 return proxyFactory.getProxy();
             }
         }
@@ -61,98 +69,183 @@ public class FlywayContextExtension implements BeanPostProcessor {
         return bean;
     }
 
-    protected class FlywayContextExtensionInterceptor implements MethodInterceptor {
+    public void processPendingOperations() {
+        List<FlywayOperation> pendingOperations = new LinkedList<>();
+        this.pendingOperations.drainTo(pendingOperations);
 
-        private final Lock lock = new ReentrantLock(true);
+        Map<DataSourceContext, List<FlywayOperation>> databaseOperations = pendingOperations.stream()
+                .collect(Collectors.groupingBy(operation -> operation.getFlywayWrapper().getDataSourceContext()));
 
-        private final DataSourceContext dataSourceContext;
+        for (Map.Entry<DataSourceContext, List<FlywayOperation>> entry : databaseOperations.entrySet()) {
+            DataSourceContext dataSourceContext = entry.getKey();
+            List<FlywayOperation> flywayOperations = entry.getValue();
 
-        private final String[] defaultLocations;
+            Function<FlywayOperation, Set<String>> schemasExtractor = op ->
+                    ImmutableSet.copyOf(op.getFlywayWrapper().getFlyway().getSchemas());
 
-        private final Flyway flywayBean;
+            if (flywayBeans.get(dataSourceContext).size() == 1 && flywayOperations.stream().map(schemasExtractor).distinct().count() == 1) {
+                flywayOperations = squashOperations(flywayOperations);
 
-        private final FlywayAdapter flywayAdapter;
+                if (flywayOperations.size() == 2 && flywayOperations.get(0).isClean() && flywayOperations.get(1).isMigrate()) {
+                    FlywayOperation flywayOperation = flywayOperations.get(1);
 
-        FlywayContextExtensionInterceptor(Flyway flywayBean) {
-            this.flywayBean = flywayBean;
-            this.flywayAdapter = new FlywayAdapter(flywayBean);
-            this.defaultLocations = flywayAdapter.getLocations();
+                    dataSourceContext.reset();
 
-            DataSource dataSource = flywayBean.getDataSource();
-            this.dataSourceContext = getDataSourceContext(dataSource).orElse(null); // TODO: fix potential NPEs
-        }
-
-        // TODO: extract to utils class
-        private Optional<DataSourceContext> getDataSourceContext(DataSource dataSource) {
-            if (dataSource instanceof Advised) {
-                TargetSource targetSource = ((Advised) dataSource).getTargetSource();
-                if (targetSource instanceof DataSourceContext) {
-                    return Optional.of((DataSourceContext) targetSource);
+                    if (isAppendable(flywayOperation)) {
+                        applyTestMigrations(flywayOperation);
+                        continue;
+                    }
                 }
             }
-            return Optional.empty();
+
+            flywayOperations.forEach(operation -> dataSourceContext.apply(operation.getPreparer()));
+        }
+    }
+
+    protected Advisor createAdvisor(FlywayWrapper wrapper) {
+        Advice advice = new FlywayContextExtensionInterceptor(wrapper);
+        NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor(advice);
+        advisor.setMappedNames("clean", "baseline", "migrate");
+        return advisor;
+    }
+
+    protected class FlywayContextExtensionInterceptor implements MethodInterceptor {
+
+        protected final FlywayWrapper flywayWrapper;
+
+        protected FlywayContextExtensionInterceptor(FlywayWrapper flywayWrapper) {
+            this.flywayWrapper = flywayWrapper;
         }
 
         @Override
         public Object invoke(MethodInvocation invocation) throws Throwable {
-            lock.lock();
-            try {
-                String methodName = invocation.getMethod().getName();
-
-                if (StringUtils.equals(methodName, "clean")) {
-                    dataSourceContext.apply(new CleanFlywayContextOperation(flywayBean));
-                } else if (StringUtils.equals(methodName, "baseline")) {
-                    if (dataSourceContext.isInitialized()) {
-                        flywayBean.baseline(); // TODO:
-                    } else {
-                        dataSourceContext.apply(new DataSourceContext.PreparerOperation(new BaselineFlywayDatabasePreparer(flywayBean))); // TODO
-                    }
-                } else if (StringUtils.equals(methodName, "migrate")) {
-                    MigrateFlywayContextOperation migrateOperation = new MigrateFlywayContextOperation(flywayBean);
-
-                    if (isAppendable(flywayAdapter, defaultLocations)) {
-                        String[] oldLocations = flywayAdapter.getLocations();
-                        try {
-                            flywayAdapter.setLocations(defaultLocations);
-                            dataSourceContext.apply(migrateOperation);
-                        } finally {
-                            flywayAdapter.setLocations(oldLocations);
-                        }
-                        int appliedMigrations = migrateOperation.getResult().isDone() ? migrateOperation.getResult().get() : 0;
-                        return appliedMigrations + flywayBean.migrate(); // TODO: try to use baseline to skip verification
-                    } else {
-                        dataSourceContext.apply(migrateOperation);
-                        return migrateOperation.getResult().isDone() ? migrateOperation.getResult().get() : 0;
-                    }
-                } else {
+            switch (invocation.getMethod().getName()) {
+                case "clean":
+                    return apply(CleanFlywayDatabasePreparer::new);
+                case "baseline":
+                    return apply(BaselineFlywayDatabasePreparer::new);
+                case "migrate":
+                    return apply(MigrateFlywayDatabasePreparer::new);
+                default:
                     return invocation.proceed();
-                }
+            }
+        }
 
-            } finally {
-                lock.unlock();
+        protected Object apply(Function<Flyway, FlywayDatabasePreparer> creator) {
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            boolean deferredProcessing = Arrays.stream(stackTrace)
+                    .anyMatch(e -> e.getClassName().endsWith("FlywayTestExecutionListener")
+                            && (e.getMethodName().equals("dbResetWithAnnotation") || e.getMethodName().equals("dbResetWithAnotation")));
+
+            FlywayDatabasePreparer preparer = creator.apply(flywayWrapper.getFlyway());
+
+            if (deferredProcessing) {
+                pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
+            } else {
+                DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
+                dataSourceContext.apply(preparer);
+            }
+
+            if (preparer instanceof MigrateFlywayDatabasePreparer) {
+                return ((MigrateFlywayDatabasePreparer) preparer).getResult().completable().getNow(0);
             }
 
             return null;
         }
     }
 
+    protected static class FlywayOperation {
+
+        private final FlywayWrapper flywayWrapper;
+        private final FlywayDatabasePreparer preparer;
+
+        public FlywayOperation(FlywayWrapper flywayWrapper, FlywayDatabasePreparer preparer) {
+            this.flywayWrapper = flywayWrapper;
+            this.preparer = preparer;
+        }
+
+        public FlywayWrapper getFlywayWrapper() {
+            return flywayWrapper;
+        }
+
+        public FlywayDatabasePreparer getPreparer() {
+            return preparer;
+        }
+
+        public boolean isClean() {
+            return preparer instanceof CleanFlywayDatabasePreparer;
+        }
+
+        public boolean isBaseline() {
+            return preparer instanceof BaselineFlywayDatabasePreparer;
+        }
+
+        public boolean isMigrate() {
+            return preparer instanceof MigrateFlywayDatabasePreparer;
+        }
+    }
+
+    protected List<FlywayOperation> squashOperations(List<FlywayOperation> operations) {
+        if (operations.stream().anyMatch(FlywayOperation::isBaseline)) {
+            return operations;
+        }
+
+        int reverseIndex = Iterables.indexOf(Lists.reverse(operations), FlywayOperation::isClean);
+        if (reverseIndex == -1) {
+            return operations;
+        }
+
+        return operations.subList(operations.size() - 1 - reverseIndex, operations.size());
+    }
+
+    protected void applyTestMigrations(FlywayOperation operation) {
+        FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
+        MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
+
+        FlywayConfigSnapshot configSnapshot = migratePreparer.getConfigSnapshot();
+        String[] preparerLocations = configSnapshot.getLocations().stream().map(o -> ((String) o)).toArray(String[]::new);
+
+        DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
+
+        String[] testLocations = resolveTestLocations(flywayWrapper, preparerLocations);
+        if (testLocations.length > 0) {
+
+            Flyway flywayBean = flywayWrapper.getFlyway();
+            String[] defaultLocations = flywayWrapper.getLocations();
+            boolean ignoreMissingMigrations = flywayBean.isIgnoreMissingMigrations();
+            try {
+                flywayWrapper.setLocations(testLocations);
+                flywayBean.setIgnoreMissingMigrations(true);
+                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(flywayBean));
+            } finally {
+                flywayWrapper.setLocations(defaultLocations);
+                flywayBean.setIgnoreMissingMigrations(ignoreMissingMigrations);
+            }
+        }
+    }
+
+    protected boolean isAppendable(FlywayOperation operation) {
+        FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
+        MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
+
+        FlywayConfigSnapshot configSnapshot = migratePreparer.getConfigSnapshot();
+        String[] preparerLocations = configSnapshot.getLocations().stream().map(o -> ((String) o)).toArray(String[]::new);
+
+        return isAppendable(flywayWrapper, preparerLocations);
+    }
+
     /**
      * Checks if test migrations are appendable to core migrations.
      */
-    protected boolean isAppendable(FlywayAdapter flyway, String[] defaultLocations) throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
-        String[] flywayLocations = flyway.getLocations();
-
-        if (!Arrays.asList(flywayLocations).containsAll(Arrays.asList(defaultLocations))) {
+    protected boolean isAppendable(FlywayWrapper flyway, String[] locations) {
+        String[] defaultLocations = flyway.getLocations();
+        if (!Arrays.asList(locations).containsAll(Arrays.asList(defaultLocations))) {
             return false;
         }
 
-        // TODO
-        List<String> testLocations0 = Lists.newArrayList(flywayLocations);
-        testLocations0.removeAll(Arrays.asList(defaultLocations));
-        String[] testLocations = testLocations0.toArray(new String[0]);
-
+        String[] testLocations = resolveTestLocations(flyway, locations);
         if (testLocations.length == 0) {
-            return false;
+            return true;
         }
 
         MigrationVersion testFirstVersion = findFirstVersion(flyway, testLocations);
@@ -164,7 +257,14 @@ public class FlywayContextExtension implements BeanPostProcessor {
         return coreLastVersion.compareTo(testFirstVersion) < 0;
     }
 
-    protected MigrationVersion findFirstVersion(FlywayAdapter flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    protected String[] resolveTestLocations(FlywayWrapper flyway, String[] locations) {
+        String[] defaultLocations = flyway.getLocations();
+        List<String> testLocations = Lists.newArrayList(locations);
+        testLocations.removeAll(Arrays.asList(defaultLocations));
+        return testLocations.toArray(new String[0]);
+    }
+
+    protected MigrationVersion findFirstVersion(FlywayWrapper flyway, String... locations) {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         return migrations.stream()
                 .filter(migration -> migration.getVersion() != null)
@@ -173,7 +273,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
                 .orElse(MigrationVersion.EMPTY);
     }
 
-    protected MigrationVersion findLastVersion(FlywayAdapter flyway, String... locations) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    protected MigrationVersion findLastVersion(FlywayWrapper flyway, String... locations) {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         return migrations.stream()
                 .filter(migration -> migration.getVersion() != null)
@@ -182,11 +282,13 @@ public class FlywayContextExtension implements BeanPostProcessor {
                 .orElse(MigrationVersion.EMPTY);
     }
 
-    protected Collection<ResolvedMigration> resolveMigrations(FlywayAdapter flyway, String[] locations) throws ClassNotFoundException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    protected Collection<ResolvedMigration> resolveMigrations(FlywayWrapper flyway, String[] locations) {
         String[] oldLocations = flyway.getLocations();
         try {
             flyway.setLocations(locations);
             return flyway.getMigrations();
+        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) { // TODO: #70 fixes it
+            throw new RuntimeException(e);
         } finally {
             flyway.setLocations(oldLocations);
         }
