@@ -50,7 +50,6 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyMap;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_DB_NAME;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_HOST;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.defaultRuntimeConfig;
@@ -178,7 +177,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, emptyMap()), semaphore);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource), semaphore);
         }
     }
 

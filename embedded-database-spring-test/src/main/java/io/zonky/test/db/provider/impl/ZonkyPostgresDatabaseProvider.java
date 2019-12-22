@@ -50,7 +50,6 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 
 public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
@@ -149,7 +148,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
 
         private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
             PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, emptyMap()), semaphore);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource), semaphore);
         }
     }
 

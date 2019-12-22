@@ -31,7 +31,7 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
 
         for (Entry<String, DataSourceContext> entry : dataSourceContexts.entrySet()) {
             String beanName = StringUtils.substringBeforeLast(entry.getKey(), "Context");
-            EmbeddedDatabase database = ((EmbeddedDatabase) entry.getValue().getTarget());
+            EmbeddedDatabase database = (EmbeddedDatabase) entry.getValue().getTarget();
             EmbeddedDatabaseReporter.reportDataSource(beanName, database, testMethod);
         }
     }

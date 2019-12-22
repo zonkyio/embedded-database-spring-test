@@ -5,6 +5,8 @@ import java.util.Map;
 
 public interface EmbeddedDatabase extends DataSource {
 
+    String getUrl();
+
     String getServerName();
 
     String getDatabaseName();
@@ -15,8 +17,8 @@ public interface EmbeddedDatabase extends DataSource {
 
     int getPortNumber();
 
-    String getUrl();
-
     Map<String, String> getAliases();
+
+    void shutdown();
 
 }

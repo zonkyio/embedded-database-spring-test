@@ -48,7 +48,6 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyMap;
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
 public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvider {
@@ -190,7 +189,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, emptyMap()), semaphore);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource), semaphore);
         }
     }
 

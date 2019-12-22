@@ -89,6 +89,11 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
     }
 
     @Override
+    public String getUrl() {
+        return delegate.getUrl();
+    }
+
+    @Override
     public String getServerName() {
         return delegate.getServerName();
     }
@@ -114,13 +119,13 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
-        return delegate.getUrl();
+    public Map<String, String> getAliases() {
+        return delegate.getAliases();
     }
 
     @Override
-    public Map<String, String> getAliases() {
-        return delegate.getAliases();
+    public void shutdown() {
+        delegate.shutdown();
     }
 
     protected static class BlockingConnectionWrapper implements Connection {

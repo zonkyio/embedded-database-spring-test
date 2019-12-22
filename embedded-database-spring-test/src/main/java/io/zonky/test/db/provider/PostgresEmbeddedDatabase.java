@@ -1,23 +1,21 @@
 package io.zonky.test.db.provider;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Logger;
 
 public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
 
     private final PGSimpleDataSource dataSource;
-    private final Map<String, String> aliases;
 
-    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, Map<String, String> aliases) {
+    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource) {
         this.dataSource = dataSource;
-        this.aliases = ImmutableMap.copyOf(aliases);
     }
 
     @Override
@@ -66,6 +64,17 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
     }
 
     @Override
+    public String getUrl() {
+        String url = dataSource.getUrl() + String.format("?user=%s", getUser());
+
+        if (StringUtils.isNotBlank(getPassword())) {
+            url += String.format("&password=%s", getPassword());
+        }
+
+        return url;
+    }
+
+    @Override
     public String getServerName() {
         return dataSource.getServerName();
     }
@@ -91,18 +100,11 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
-        String url = dataSource.getUrl() + String.format("?user=%s", getUser());
-
-        if (StringUtils.isNotBlank(getPassword())) {
-            url += String.format("&password=%s", getPassword());
-        }
-
-        return url;
+    public Map<String, String> getAliases() {
+        return Collections.emptyMap();
     }
 
     @Override
-    public Map<String, String> getAliases() {
-        return aliases;
+    public void shutdown() {
     }
 }

@@ -96,7 +96,6 @@ public class DefaultDataSourceContextTest {
 
         InOrder inOrder = inOrder(dataSourceContext, databaseProvider, preparer5);
         inOrder.verify(dataSourceContext).setDescriptor(any());
-        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of()));
         inOrder.verify(dataSourceContext).apply(preparer1);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1)));
         inOrder.verify(dataSourceContext).apply(preparer2);
@@ -147,17 +146,21 @@ public class DefaultDataSourceContextTest {
 
         manualOperations.accept((DataSource) dataSourceContext.getTarget());
 
+        dataSourceContext.reset();
+        dataSourceContext.getTarget();
+
         InOrder inOrder = inOrder(dataSourceContext, databaseProvider);
         inOrder.verify(dataSourceContext).setDescriptor(any());
-        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of()));
         inOrder.verify(dataSourceContext).getTarget();
+        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of()));
         inOrder.verify(dataSourceContext).apply(preparer1);
-        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer)));
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1)));
         inOrder.verify(dataSourceContext).getTarget();
         inOrder.verify(dataSourceContext).onApplicationEvent(null);
-        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1, recordedPreparer)));
         inOrder.verify(dataSourceContext).getTarget();
+        inOrder.verify(dataSourceContext).reset();
+        inOrder.verify(dataSourceContext).getTarget();
+        inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1, recordedPreparer)));
 
         verifyNoMoreInteractions(databaseProvider);
     }
