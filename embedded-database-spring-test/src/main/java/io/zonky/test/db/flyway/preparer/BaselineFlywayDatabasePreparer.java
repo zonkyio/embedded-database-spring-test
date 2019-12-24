@@ -1,11 +1,12 @@
 package io.zonky.test.db.flyway.preparer;
 
+import io.zonky.test.db.flyway.FlywayDescriptor;
 import org.flywaydb.core.Flyway;
 
 public class BaselineFlywayDatabasePreparer extends FlywayDatabasePreparer {
 
-    public BaselineFlywayDatabasePreparer(Flyway flyway) {
-        super(flyway);
+    public BaselineFlywayDatabasePreparer(FlywayDescriptor descriptor) {
+        super(descriptor);
     }
 
     @Override

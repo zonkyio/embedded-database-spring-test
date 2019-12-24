@@ -131,13 +131,14 @@ public class FlywayContextExtension implements BeanPostProcessor {
             }
         }
 
-        protected Object apply(Function<Flyway, FlywayDatabasePreparer> creator) {
+        protected Object apply(Function<FlywayDescriptor, FlywayDatabasePreparer> creator) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             boolean deferredProcessing = Arrays.stream(stackTrace)
                     .anyMatch(e -> e.getClassName().endsWith("FlywayTestExecutionListener")
                             && (e.getMethodName().equals("dbResetWithAnnotation") || e.getMethodName().equals("dbResetWithAnotation")));
 
-            FlywayDatabasePreparer preparer = creator.apply(flywayWrapper.getFlyway());
+            FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper.getFlyway());
+            FlywayDatabasePreparer preparer = creator.apply(descriptor);
 
             if (deferredProcessing) {
                 pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
@@ -200,23 +201,21 @@ public class FlywayContextExtension implements BeanPostProcessor {
 
     protected void applyTestMigrations(FlywayOperation operation) {
         FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
+        DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
 
-        FlywayConfigSnapshot configSnapshot = migratePreparer.getConfigSnapshot();
-        String[] preparerLocations = configSnapshot.getLocations().stream().map(o -> ((String) o)).toArray(String[]::new);
+        List<String> preparerLocations = migratePreparer.getFlywayDescriptor().getLocations();
+        List<String> testLocations = resolveTestLocations(flywayWrapper, preparerLocations);
 
-        DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
-
-        String[] testLocations = resolveTestLocations(flywayWrapper, preparerLocations);
-        if (testLocations.length > 0) {
-
+        if (!testLocations.isEmpty()) {
             Flyway flywayBean = flywayWrapper.getFlyway();
-            String[] defaultLocations = flywayWrapper.getLocations();
+            List<String> defaultLocations = flywayWrapper.getLocations();
             boolean ignoreMissingMigrations = flywayBean.isIgnoreMissingMigrations();
             try {
                 flywayWrapper.setLocations(testLocations);
-                flywayBean.setIgnoreMissingMigrations(true);
-                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(flywayBean));
+                flywayBean.setIgnoreMissingMigrations(true); // TODO: consider using different migration techniques
+                FlywayDescriptor descriptor = FlywayDescriptor.from(flywayBean);
+                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor)); // TODO: it is not necessary this line to be in try-finally block
             } finally {
                 flywayWrapper.setLocations(defaultLocations);
                 flywayBean.setIgnoreMissingMigrations(ignoreMissingMigrations);
@@ -227,24 +226,20 @@ public class FlywayContextExtension implements BeanPostProcessor {
     protected boolean isAppendable(FlywayOperation operation) {
         FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
-
-        FlywayConfigSnapshot configSnapshot = migratePreparer.getConfigSnapshot();
-        String[] preparerLocations = configSnapshot.getLocations().stream().map(o -> ((String) o)).toArray(String[]::new);
-
-        return isAppendable(flywayWrapper, preparerLocations);
+        return isAppendable(flywayWrapper, migratePreparer.getFlywayDescriptor().getLocations());
     }
 
     /**
      * Checks if test migrations are appendable to core migrations.
      */
-    protected boolean isAppendable(FlywayWrapper flyway, String[] locations) {
-        String[] defaultLocations = flyway.getLocations();
-        if (!Arrays.asList(locations).containsAll(Arrays.asList(defaultLocations))) {
+    protected boolean isAppendable(FlywayWrapper flyway, List<String> locations) {
+        List<String> defaultLocations = flyway.getLocations();
+        if (!locations.containsAll(defaultLocations)) {
             return false;
         }
 
-        String[] testLocations = resolveTestLocations(flyway, locations);
-        if (testLocations.length == 0) {
+        List<String> testLocations = resolveTestLocations(flyway, locations);
+        if (testLocations.isEmpty()) {
             return true;
         }
 
@@ -257,14 +252,14 @@ public class FlywayContextExtension implements BeanPostProcessor {
         return coreLastVersion.compareTo(testFirstVersion) < 0;
     }
 
-    protected String[] resolveTestLocations(FlywayWrapper flyway, String[] locations) {
-        String[] defaultLocations = flyway.getLocations();
+    protected List<String> resolveTestLocations(FlywayWrapper flyway, List<String> locations) {
+        List<String> defaultLocations = flyway.getLocations();
         List<String> testLocations = Lists.newArrayList(locations);
-        testLocations.removeAll(Arrays.asList(defaultLocations));
-        return testLocations.toArray(new String[0]);
+        testLocations.removeAll(defaultLocations);
+        return testLocations;
     }
 
-    protected MigrationVersion findFirstVersion(FlywayWrapper flyway, String... locations) {
+    protected MigrationVersion findFirstVersion(FlywayWrapper flyway, List<String> locations) {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         return migrations.stream()
                 .filter(migration -> migration.getVersion() != null)
@@ -273,7 +268,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
                 .orElse(MigrationVersion.EMPTY);
     }
 
-    protected MigrationVersion findLastVersion(FlywayWrapper flyway, String... locations) {
+    protected MigrationVersion findLastVersion(FlywayWrapper flyway, List<String> locations) {
         Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
         return migrations.stream()
                 .filter(migration -> migration.getVersion() != null)
@@ -282,8 +277,8 @@ public class FlywayContextExtension implements BeanPostProcessor {
                 .orElse(MigrationVersion.EMPTY);
     }
 
-    protected Collection<ResolvedMigration> resolveMigrations(FlywayWrapper flyway, String[] locations) {
-        String[] oldLocations = flyway.getLocations();
+    protected Collection<ResolvedMigration> resolveMigrations(FlywayWrapper flyway, List<String> locations) {
+        List<String> oldLocations = flyway.getLocations();
         try {
             flyway.setLocations(locations);
             return flyway.getMigrations();

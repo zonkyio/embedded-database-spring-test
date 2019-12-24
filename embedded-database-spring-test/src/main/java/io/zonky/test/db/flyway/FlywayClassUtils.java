@@ -31,7 +31,7 @@ public class FlywayClassUtils {
                 return 30;
             }
         } catch (Exception e) {
-            LoggerFactory.getLogger(FlywayConfigSnapshot.class).error("Unexpected error occurred while resolving flyway version", e);
+            LoggerFactory.getLogger(FlywayClassUtils.class).error("Unexpected error occurred while resolving flyway version", e);
             return 0;
         }
     }

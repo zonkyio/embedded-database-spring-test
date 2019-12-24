@@ -175,32 +175,32 @@ public class FlywayContextExtensionTest {
 
     @Test
     public void defaultLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, new String[]{"classpath:db/migration"});
+        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration"));
         assertThat(result).isTrue();
     }
 
     @Test
     public void appendableLocation() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, new String[]{"classpath:db/migration", "classpath:db/test_migration/appendable"});
+        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/appendable"));
         assertThat(result).isTrue();
     }
 
     @Test
     public void dependentLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, new String[]{"classpath:db/migration", "classpath:db/test_migration/dependent"});
+        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/dependent"));
         assertThat(result).isFalse();
     }
 
     @Test
     public void separatedLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, new String[]{"classpath:db/test_migration/separated"});
+        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/test_migration/separated"));
         assertThat(result).isFalse();
     }
 
     @Test
     public void resolveTestLocations() {
-        String[] testLocations = flywayExtension.resolveTestLocations(
-                flywayWrapper, new String[]{"classpath:db/migration", "classpath:db/test_migration/dependent"});
+        List<String> testLocations = flywayExtension.resolveTestLocations(
+                flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/dependent"));
 
         assertThat(testLocations).containsExactly("classpath:db/test_migration/dependent");
     }
@@ -208,7 +208,7 @@ public class FlywayContextExtensionTest {
     @Test
     public void findFirstVersion() {
         MigrationVersion firstVersion = flywayExtension.findFirstVersion(
-                flywayWrapper, "db/test_migration/dependent");
+                flywayWrapper, ImmutableList.of("db/test_migration/dependent"));
 
         assertThat(firstVersion).isNotNull();
         assertThat(firstVersion.getVersion()).isEqualTo("0001.2");
@@ -217,7 +217,7 @@ public class FlywayContextExtensionTest {
     @Test
     public void findLastVersion() {
         MigrationVersion firstVersion = flywayExtension.findLastVersion(
-                flywayWrapper, "db/test_migration/dependent");
+                flywayWrapper, ImmutableList.of("db/test_migration/dependent"));
 
         assertThat(firstVersion).isNotNull();
         assertThat(firstVersion.getVersion()).isEqualTo("0999.1");
@@ -226,7 +226,7 @@ public class FlywayContextExtensionTest {
     @Test
     public void resolveMigrations() {
         Collection<ResolvedMigration> resolvedMigrations = flywayExtension.resolveMigrations(
-                flywayWrapper, new String[]{"db/migration", "db/test_migration/dependent"});
+                flywayWrapper, ImmutableList.of("db/migration", "db/test_migration/dependent"));
 
         assertThat(resolvedMigrations).extracting("version.version")
                 .containsExactly("0001.1", "0001.2", "0002.1", "0999.1", null);
@@ -241,17 +241,17 @@ public class FlywayContextExtensionTest {
     }
 
     private static CleanFlywayDatabasePreparer cleanPreparer(FlywayWrapper wrapper) {
-        return new CleanFlywayDatabasePreparer(wrapper.getFlyway());
+        return new CleanFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
     }
 
     private static BaselineFlywayDatabasePreparer baselinePreparer(FlywayWrapper wrapper) {
-        return new BaselineFlywayDatabasePreparer(wrapper.getFlyway());
+        return new BaselineFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
     }
 
     private static MigrateFlywayDatabasePreparer migratePreparer(FlywayWrapper wrapper, FlywayPreparerCustomizer... customizers) {
         try {
             Arrays.stream(customizers).forEach(customizer -> customizer.before(wrapper));
-            return new MigrateFlywayDatabasePreparer(wrapper.getFlyway());
+            return new MigrateFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
         } finally {
             Arrays.stream(customizers).forEach(customizer -> customizer.after(wrapper));
         }
@@ -259,12 +259,12 @@ public class FlywayContextExtensionTest {
 
     private FlywayPreparerCustomizer withLocations(String... locations) {
         return new FlywayPreparerCustomizer() {
-            private String[] oldLocations;
+            private List<String> oldLocations;
 
             @Override
             public void before(FlywayWrapper wrapper) {
                 oldLocations = wrapper.getLocations();
-                wrapper.setLocations(locations);
+                wrapper.setLocations(ImmutableList.copyOf(locations));
             }
 
             @Override
