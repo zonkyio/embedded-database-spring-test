@@ -156,6 +156,7 @@ project(':embedded-database-spring-test') {
         compile 'org.testcontainers:postgresql:1.12.1', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
+        compile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE', optional
         
         compile 'org.springframework:spring-context:4.3.25.RELEASE'
         compile 'org.springframework:spring-test:4.3.25.RELEASE'
@@ -167,8 +168,7 @@ project(':embedded-database-spring-test') {
         compile('com.cedarsoftware:java-util:1.34.0') {
             exclude group: 'org.apache.logging.log4j'
         }
-        
-        testCompile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE'
+
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
     }
 

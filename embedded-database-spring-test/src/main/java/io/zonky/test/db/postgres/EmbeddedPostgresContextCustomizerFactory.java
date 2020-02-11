@@ -38,10 +38,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.EnvironmentAware;
@@ -143,8 +145,6 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
 
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
-        private static final NullPlaceholder NULL = new NullPlaceholder();
-
         private final ConfigurableEnvironment environment;
 
         public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
@@ -155,31 +155,31 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
             environment.getPropertySources().addFirst(new MapPropertySource(
                     PreloadableEmbeddedPostgresContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of(
-                            "spring.test.database.replace", "NONE",
-                            "spring.flyway.url", NULL,
-                            "spring.flyway.user", NULL,
-                            "flyway.url", NULL,
-                            "flyway.user", NULL
-                    )));
+                    ImmutableMap.of("spring.test.database.replace", "NONE")));
         }
 
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
             // nothing to do
         }
+    }
 
-        protected static class NullPlaceholder {
+    protected static class FlywayPropertiesPostProcessor implements BeanPostProcessor {
 
-            // this method is required to hook up org.springframework.core.convert.support.FallbackObjectToStringConverter
-            public static NullPlaceholder valueOf(String value) {
-                throw new IllegalStateException("This method should never be called!");
+        @Override
+        public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+            return bean;
+        }
+
+        @Override
+        public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+            if (bean instanceof FlywayProperties) {
+                FlywayProperties properties = (FlywayProperties) bean;
+                properties.setUrl(null);
+                properties.setUser(null);
+                properties.setPassword(null);
             }
-
-            @Override
-            public String toString() {
-                return null;
-            }
+            return bean;
         }
     }
 
@@ -217,6 +217,9 @@ public class EmbeddedPostgresContextCustomizerFactory implements ContextCustomiz
             }
             if (ClassUtils.isPresent("ru.yandex.qatools.embed.postgresql.EmbeddedPostgres", null)) {
                 registerBeanIfMissing(registry, "yandexPostgresProvider", YandexPostgresDatabaseProvider.class);
+            }
+            if (ClassUtils.isPresent("org.springframework.boot.autoconfigure.flyway.FlywayProperties", null)) {
+                registerBeanIfMissing(registry, "flywayPropertiesPostProcessor", FlywayPropertiesPostProcessor.class);
             }
 
             for (AutoConfigureEmbeddedDatabase databaseAnnotation : databaseAnnotations) {
