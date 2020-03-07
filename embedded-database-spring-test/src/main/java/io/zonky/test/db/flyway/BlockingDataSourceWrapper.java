@@ -124,8 +124,8 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public void shutdown() {
-        delegate.shutdown();
+    public void close() throws SQLException {
+        delegate.close();
     }
 
     protected static class BlockingConnectionWrapper implements Connection {

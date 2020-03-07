@@ -156,6 +156,10 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
             return database;
         }
 
+        private void dropDatabase(ClientConfig config, String dbName) throws SQLException {
+            executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+        }
+
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
             DataSource dataSource = getDatabase(config, "postgres");
             try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
@@ -177,7 +181,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource), semaphore);
+            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
         }
     }
 

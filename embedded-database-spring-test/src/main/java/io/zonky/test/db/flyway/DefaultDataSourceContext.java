@@ -11,14 +11,20 @@ import io.zonky.test.db.provider.config.DatabaseProviders;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.test.context.transaction.TestTransaction;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static io.zonky.test.db.flyway.DataSourceContext.State.AHEAD;
+import static io.zonky.test.db.flyway.DataSourceContext.State.DIRTY;
+import static io.zonky.test.db.flyway.DataSourceContext.State.FRESH;
+import static io.zonky.test.db.flyway.DataSourceContext.State.INITIALIZING;
 
 public class DefaultDataSourceContext implements DataSourceContext, ApplicationListener<ContextRefreshedEvent> {
 
@@ -52,8 +58,13 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
             refreshDatabase();
         }
 
-        if (initialized) {
-            dirty = true;
+        if (initialized && !dirty) {
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            boolean excludedCaller = Arrays.stream(stackTrace)
+                    .anyMatch(e -> e.getClassName().equals("io.zonky.test.db.logging.EmbeddedDatabaseTestExecutionListener"));
+            if (!excludedCaller) {
+                dirty = true;
+            }
         }
 
         if (initialized || dataSource instanceof RecordingDataSource) {
@@ -77,7 +88,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     @Override
     public synchronized void setDescriptor(DatabaseDescriptor descriptor) {
-        checkState(!dirty, "data source context must not be dirty");
+        checkState(getState() != DIRTY, "data source context must not be dirty");
         stopRecording();
 
         this.databaseDescriptor = descriptor;
@@ -85,12 +96,27 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     }
 
     @Override
-    public synchronized void reset() {
-        checkState(initialized, "data source context must be initialized");
-        stopRecording();
+    public State getState() {
+        if (!initialized) {
+            return INITIALIZING;
+        } else if (dirty) {
+            return DIRTY;
+        } else if (!testPreparers.isEmpty()) {
+            return AHEAD;
+        } else {
+            return FRESH;
+        }
+    }
 
-        testPreparers.clear();
-        cleanDatabase();
+    @Override
+    public synchronized void reset() {
+        checkState(getState() != INITIALIZING, "data source context must be initialized");
+        checkState(!TestTransaction.isActive(), "cannot reset the data source context without ending the existing transaction first");
+
+        if (getState() != FRESH) {
+            testPreparers.clear();
+            cleanDatabase();
+        }
     }
 
     @Override
@@ -99,10 +125,10 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
         stopRecording();
 
         try {
-            if (!initialized) {
+            if (getState() == INITIALIZING) {
                 corePreparers.add(preparer);
                 refreshDatabase();
-            } else if (!dirty) {
+            } else if (getState() != DIRTY) {
                 testPreparers.add(preparer);
                 cleanDatabase();
             } else {
@@ -140,7 +166,12 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     private synchronized void cleanDatabase() {
         if (dataSource != null) {
-            dataSource.shutdown();
+            try {
+                dataSource.close();
+            } catch (Exception e) {
+                Throwables.throwIfUnchecked(e);
+                throw new RuntimeException(e); // TODO: maybe use a more specific exception?
+            }
         }
         dataSource = null;
         dirty = false;

@@ -40,6 +40,8 @@ public class FlywayContextExtension implements BeanPostProcessor {
     protected final Multimap<DataSourceContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
 
+    protected boolean optimizedTestExecutionListenerActive = false;
+
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof AopInfrastructureBean) {
@@ -69,7 +71,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
         return bean;
     }
 
-    public void processPendingOperations() {
+    void processPendingOperations() {
         List<FlywayOperation> pendingOperations = new LinkedList<>();
         this.pendingOperations.drainTo(pendingOperations);
 
@@ -133,14 +135,23 @@ public class FlywayContextExtension implements BeanPostProcessor {
 
         protected Object apply(Function<FlywayDescriptor, FlywayDatabasePreparer> creator) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            boolean deferredProcessing = Arrays.stream(stackTrace)
+
+            boolean listenerProcessing = Arrays.stream(stackTrace)
                     .anyMatch(e -> e.getClassName().endsWith("FlywayTestExecutionListener")
                             && (e.getMethodName().equals("dbResetWithAnnotation") || e.getMethodName().equals("dbResetWithAnotation")));
+            boolean optimizedListenerProcessing = listenerProcessing && Arrays.stream(stackTrace)
+                    .anyMatch(e -> e.getClassName().endsWith("OptimizedFlywayTestExecutionListener"));
+            boolean standardListenerProcessing = listenerProcessing && !optimizedListenerProcessing;
 
             FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper.getFlyway());
             FlywayDatabasePreparer preparer = creator.apply(descriptor);
 
-            if (deferredProcessing) {
+            if (standardListenerProcessing && optimizedTestExecutionListenerActive) {
+                return preparer instanceof MigrateFlywayDatabasePreparer ? 0 : null;
+            }
+
+            if (optimizedListenerProcessing) {
+                optimizedTestExecutionListenerActive = true;
                 pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
             } else {
                 DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
@@ -215,7 +226,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
                 flywayWrapper.setLocations(testLocations);
                 flywayBean.setIgnoreMissingMigrations(true); // TODO: consider using different migration techniques
                 FlywayDescriptor descriptor = FlywayDescriptor.from(flywayBean);
-                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor)); // TODO: it is not necessary this line to be in try-finally block
+                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor)); // TODO: it is not necessary to be this line in try-finally block anymore
             } finally {
                 flywayWrapper.setLocations(defaultLocations);
                 flywayBean.setIgnoreMissingMigrations(ignoreMissingMigrations);

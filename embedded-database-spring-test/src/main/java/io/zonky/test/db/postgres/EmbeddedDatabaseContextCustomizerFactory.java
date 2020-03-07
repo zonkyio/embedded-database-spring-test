@@ -21,9 +21,8 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabases;
 import io.zonky.test.db.flyway.DefaultDataSourceContext;
-import io.zonky.test.db.flyway.FlywayContextExtension;
 import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.config.DatabaseProvidersConfiguration;
+import io.zonky.test.db.provider.config.EmbeddedDatabaseConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,20 +103,15 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
             context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
 
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
-            RootBeanDefinition registrarDefinition = new RootBeanDefinition();
 
-            registrarDefinition.setBeanClass(PreloadableEmbeddedPostgresRegistrar.class);
-            registrarDefinition.getConstructorArgumentValues()
-                    .addIndexedArgumentValue(0, databaseAnnotations);
+            RootBeanDefinition configDefinition = new RootBeanDefinition(EmbeddedDatabaseConfiguration.class);
+            registry.registerBeanDefinition("embeddedDatabaseConfiguration", configDefinition);
 
-            registry.registerBeanDefinition("preloadableEmbeddedPostgresRegistrar", registrarDefinition);
-
-            // TODO:
-            RootBeanDefinition configurationDefinition = new RootBeanDefinition(DatabaseProvidersConfiguration.class);
-            registry.registerBeanDefinition("databaseProvidersConfiguration", configurationDefinition);
+            RootBeanDefinition registrarDefinition = new RootBeanDefinition(EmbeddedDatabaseRegistrar.class);
+            registrarDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, databaseAnnotations);
+            registry.registerBeanDefinition("embeddedDatabaseRegistrar", registrarDefinition);
         }
 
-        // TODO
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -129,7 +123,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
             return databaseAnnotations.equals(that.databaseAnnotations);
         }
 
-        // TODO
         @Override
         public int hashCode() {
             return databaseAnnotations.hashCode();
@@ -157,13 +150,13 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         }
     }
 
-    protected static class PreloadableEmbeddedPostgresRegistrar implements BeanDefinitionRegistryPostProcessor, EnvironmentAware {
+    protected static class EmbeddedDatabaseRegistrar implements BeanDefinitionRegistryPostProcessor, EnvironmentAware {
 
         private final Set<AutoConfigureEmbeddedDatabase> databaseAnnotations;
 
         private Environment environment;
 
-        public PreloadableEmbeddedPostgresRegistrar(Set<AutoConfigureEmbeddedDatabase> databaseAnnotations) {
+        public EmbeddedDatabaseRegistrar(Set<AutoConfigureEmbeddedDatabase> databaseAnnotations) {
             this.databaseAnnotations = databaseAnnotations;
         }
 
@@ -178,8 +171,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                     "Embedded Database Auto-configuration can only be used with a ConfigurableListableBeanFactory");
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
 
-            registerBeanIfMissing(registry, "flywayAdvisingBeanPostProcessor", FlywayContextExtension.class); // TODO
-
             for (AutoConfigureEmbeddedDatabase databaseAnnotation : databaseAnnotations) {
                 DatabaseDescriptor databaseDescriptor = resolveDatabaseDescriptor(environment, databaseAnnotation);
                 BeanDefinitionHolder dataSourceInfo = getDataSourceBeanDefinition(beanFactory, databaseAnnotation);
@@ -187,8 +178,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                 String dataSourceBeanName = dataSourceInfo.getBeanName();
                 String dataSourceContextBeanName = dataSourceBeanName + "Context";
 
-                RootBeanDefinition dataSourceContextDefinition = new RootBeanDefinition();
-                dataSourceContextDefinition.setBeanClass(DefaultDataSourceContext.class);
+                RootBeanDefinition dataSourceContextDefinition = new RootBeanDefinition(DefaultDataSourceContext.class);
                 dataSourceContextDefinition.getPropertyValues().addPropertyValue("descriptor", databaseDescriptor);
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
@@ -221,13 +211,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                                     environment.getProperty("zonky.test.database.provider", "docker");
             String databaseName = databaseAnnotation.type().name();
             return new DatabaseDescriptor(databaseName, providerName);
-        }
-    }
-
-    protected static void registerBeanIfMissing(BeanDefinitionRegistry registry, String beanName, Class<?> beanClass) {
-        if (!registry.containsBeanDefinition(beanName)) {
-            RootBeanDefinition providerDefinition = new RootBeanDefinition(beanClass);
-            registry.registerBeanDefinition(beanName, providerDefinition);
         }
     }
 

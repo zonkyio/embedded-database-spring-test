@@ -13,9 +13,11 @@ import java.util.logging.Logger;
 public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
 
     private final PGSimpleDataSource dataSource;
+    private final CloseCallback closeCallback;
 
-    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource) {
+    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, CloseCallback closeCallback) {
         this.dataSource = dataSource;
+        this.closeCallback = closeCallback;
     }
 
     @Override
@@ -105,6 +107,14 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
     }
 
     @Override
-    public void shutdown() {
+    public synchronized void close() throws SQLException {
+        closeCallback.call();
+    }
+
+    @FunctionalInterface
+    public interface CloseCallback {
+
+        void call() throws SQLException;
+
     }
 }

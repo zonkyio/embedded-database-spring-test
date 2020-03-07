@@ -9,8 +9,17 @@ public interface DataSourceContext extends TargetSource {
 
     void setDescriptor(DatabaseDescriptor descriptor);
 
+    State getState();
+
     void reset();
 
     void apply(DatabasePreparer preparer);
 
+    enum State {
+
+        INITIALIZING,
+        FRESH,
+        AHEAD,
+        DIRTY
+    }
 }

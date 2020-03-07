@@ -55,7 +55,7 @@ public class FlywayContextExtensionTest {
     @Test
     public void cleanFromExecutionListenerShouldBeDeferred() {
         Flyway flyway = flywayWrapper.getFlyway();
-        FlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
 
         assertThat(flywayExtension.pendingOperations).hasSize(1);
         verifyZeroInteractions(dataSourceContext);
@@ -64,14 +64,14 @@ public class FlywayContextExtensionTest {
     @Test
     public void baselineFromExecutionListenerShouldBeDeferred() {
         Flyway flyway = flywayWrapper.getFlyway();
-        FlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline);
         assertThat(flywayExtension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void migrateFromExecutionListenerShouldBeDeferred() {
         Flyway flyway = flywayWrapper.getFlyway();
-        FlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate);
         assertThat(flywayExtension.pendingOperations).hasSize(1);
     }
 
@@ -299,7 +299,7 @@ public class FlywayContextExtensionTest {
 
     }
 
-    private static class FlywayTestExecutionListener {
+    private static class OptimizedFlywayTestExecutionListener {
 
         public static void dbResetWithAnnotation(Runnable operation) {
             operation.run();

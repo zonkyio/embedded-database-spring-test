@@ -1,5 +1,6 @@
 package io.zonky.test.db.provider.config;
 
+import io.zonky.test.db.flyway.FlywayContextExtension;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.MissingProviderDependencyException;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 @Configuration
-public class DatabaseProvidersConfiguration implements EnvironmentAware, BeanClassLoaderAware {
+public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClassLoaderAware {
 
     private Environment environment;
     private ClassLoader classLoader;
@@ -35,6 +36,11 @@ public class DatabaseProvidersConfiguration implements EnvironmentAware, BeanCla
     @Override
     public void setBeanClassLoader(ClassLoader classLoader) {
         this.classLoader = classLoader;
+    }
+
+    @Bean
+    public FlywayContextExtension flywayContextExtension() {
+        return new FlywayContextExtension();
     }
 
     @Bean

@@ -28,6 +28,7 @@ public class EmbeddedDatabaseReporter {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedDatabaseReporter.class);
 
     public static void reportDataSource(String beanName, EmbeddedDatabase database, AnnotatedElement element) {
+        // TODO: try to use java.sql.DatabaseMetaData to obtain jdbc url and other properties
         logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, database.getUrl(), getElementName(element));
     }
 
