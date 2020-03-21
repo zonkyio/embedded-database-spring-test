@@ -32,7 +32,8 @@ import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
@@ -65,13 +66,15 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
     private final DatabaseConfig databaseConfig;
     private final ClientConfig clientConfig;
 
-    public OpenTablePostgresDatabaseProvider(Environment environment, ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
+    public OpenTablePostgresDatabaseProvider(Environment environment, AutowireCapableBeanFactory beanFactory) {
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
-        List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
-        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers);
+        ConditionalParameters parameters = (ConditionalParameters) beanFactory.autowire(
+                ConditionalParameters.class, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, false);
+
+        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, parameters.customizers);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -208,6 +211,15 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
         @Override
         public int hashCode() {
             return Objects.hash(connectProperties);
+        }
+    }
+
+    protected static class ConditionalParameters {
+
+        private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
+
+        public ConditionalParameters(@Autowired(required = false) List<Consumer<EmbeddedPostgres.Builder>> customizers) {
+            this.customizers = Optional.ofNullable(customizers).orElse(emptyList());;
         }
     }
 }

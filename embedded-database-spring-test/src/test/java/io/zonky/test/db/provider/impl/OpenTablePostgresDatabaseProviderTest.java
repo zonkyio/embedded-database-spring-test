@@ -16,16 +16,16 @@
 
 package io.zonky.test.db.provider.impl;
 
-import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
 import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.provider.impl.OpenTablePostgresDatabaseProvider.ConditionalParameters;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.SocketUtils;
@@ -34,27 +34,29 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenTablePostgresDatabaseProviderTest {
 
     @Mock
-    private ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers;
+    private AutowireCapableBeanFactory beanFactory;
 
     @Before
     public void setUp() {
-        when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.emptyList());
+        when(beanFactory.autowire(eq(ConditionalParameters.class), anyInt(), anyBoolean()))
+                .thenReturn(new ConditionalParameters(Collections.emptyList()));
     }
 
     @Test
     public void testGetDatabase() throws Exception {
-        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
+        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), beanFactory);
 
         DatabasePreparer preparer1 = dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
@@ -93,10 +95,12 @@ public class OpenTablePostgresDatabaseProviderTest {
     @Test
     public void testDatabaseCustomizers() throws Exception {
         int randomPort = SocketUtils.findAvailableTcpPort();
-        when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
+
+        when(beanFactory.autowire(eq(ConditionalParameters.class), anyInt(), anyBoolean()))
+                .thenReturn(new ConditionalParameters(Collections.singletonList(builder -> builder.setPort(randomPort))));
 
         DatabasePreparer preparer = dataSource -> {};
-        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
+        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(new MockEnvironment(), beanFactory);
         DataSource dataSource = provider.createDatabase(preparer);
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPortNumber()).isEqualTo(randomPort);
@@ -111,7 +115,7 @@ public class OpenTablePostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
         DatabasePreparer preparer = dataSource -> {};
-        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
+        OpenTablePostgresDatabaseProvider provider = new OpenTablePostgresDatabaseProvider(environment, beanFactory);
         DataSource dataSource = provider.createDatabase(preparer);
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
@@ -132,8 +136,8 @@ public class OpenTablePostgresDatabaseProviderTest {
     public void providersWithDefaultConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
 
-        OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
-        OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
+        OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment, beanFactory);
+        OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment, beanFactory);
 
         assertThat(provider1).isEqualTo(provider2);
     }
@@ -145,8 +149,8 @@ public class OpenTablePostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
         environment.setProperty("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
-        OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
-        OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers);
+        OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment, beanFactory);
+        OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment, beanFactory);
 
         assertThat(provider1).isEqualTo(provider2);
     }
@@ -174,8 +178,8 @@ public class OpenTablePostgresDatabaseProviderTest {
 
             environment2.setProperty(diffProperty.getKey(), diffProperty.getValue());
 
-            OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment1, databaseCustomizers);
-            OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment2, databaseCustomizers);
+            OpenTablePostgresDatabaseProvider provider1 = new OpenTablePostgresDatabaseProvider(environment1, beanFactory);
+            OpenTablePostgresDatabaseProvider provider2 = new OpenTablePostgresDatabaseProvider(environment2, beanFactory);
 
             assertThat(provider1).isNotEqualTo(provider2);
         }

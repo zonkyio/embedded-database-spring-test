@@ -1,7 +1,6 @@
 package io.zonky.test.db.provider.config;
 
 import io.zonky.test.db.flyway.FlywayContextExtension;
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.MissingProviderDependencyException;
 import io.zonky.test.db.provider.impl.DockerPostgresDatabaseProvider;
@@ -11,16 +10,13 @@ import io.zonky.test.db.provider.impl.PrefetchingDatabaseProvider;
 import io.zonky.test.db.provider.impl.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider;
 import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 @Configuration
 public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClassLoaderAware {
@@ -57,16 +53,16 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "zonky", database = "postgres")
-    public DatabaseProvider zonkyPostgresDatabaseProvider(ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
+    public DatabaseProvider zonkyPostgresDatabaseProvider(AutowireCapableBeanFactory beanFactory) {
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
-        return new PrefetchingDatabaseProvider(new OptimizingDatabaseProvider(new ZonkyPostgresDatabaseProvider(environment, databaseCustomizers)), environment);
+        return new PrefetchingDatabaseProvider(new OptimizingDatabaseProvider(new ZonkyPostgresDatabaseProvider(environment, beanFactory)), environment);
     }
 
     @Bean
     @Provider(type = "opentable", database = "postgres")
-    public DatabaseProvider openTablePostgresDatabaseProvider(ObjectProvider<List<Consumer<com.opentable.db.postgres.embedded.EmbeddedPostgres.Builder>>> databaseCustomizers) {
+    public DatabaseProvider openTablePostgresDatabaseProvider(AutowireCapableBeanFactory beanFactory) {
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
-        return new PrefetchingDatabaseProvider(new OptimizingDatabaseProvider(new OpenTablePostgresDatabaseProvider(environment, databaseCustomizers)), environment);
+        return new PrefetchingDatabaseProvider(new OptimizingDatabaseProvider(new OpenTablePostgresDatabaseProvider(environment, beanFactory)), environment);
     }
 
     @Bean
