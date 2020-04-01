@@ -134,7 +134,7 @@ public class DefaultDataSourceContextTest {
 
         RecordingDataSource recordingDataSource = RecordingDataSource.wrap(mock(DataSource.class, RETURNS_MOCKS));
         manualOperations.accept(recordingDataSource);
-        DatabasePreparer recordedPreparer = recordingDataSource.getPreparer().orElseThrow(IllegalStateException::new);
+        DatabasePreparer recordedPreparer = recordingDataSource.getPreparer();
 
         manualOperations.accept((DataSource) dataSourceContext.getTarget());
 

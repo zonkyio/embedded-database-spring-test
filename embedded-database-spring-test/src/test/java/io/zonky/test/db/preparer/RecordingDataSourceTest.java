@@ -10,7 +10,10 @@ import org.postgresql.ds.PGSimpleDataSource;
 import javax.sql.DataSource;
 import javax.sql.rowset.serial.SerialBlob;
 import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
 import java.io.InputStream;
+import java.io.Reader;
+import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,22 +21,26 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.sql.Time;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 public class RecordingDataSourceTest {
@@ -59,7 +66,7 @@ public class RecordingDataSourceTest {
         when(mockDataSource.getConnection()).thenReturn(mockConnection);
         when(mockConnection.createStatement()).thenReturn(mockStatement);
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement);
@@ -83,7 +90,21 @@ public class RecordingDataSourceTest {
         ResultSet resultSet = statement.executeQuery("select data");
 
         assertThat(resultSet).isNotNull();
-        assertThat(resultSet.next()).isFalse();
+
+        resultSet.next();
+        resultSet.getString(1);
+        resultSet.getMetaData();
+        resultSet.updateString(3, "string");
+        resultSet.getBigDecimal(4);
+        resultSet.updateBinaryStream(5, IOUtils.toInputStream("input", UTF_8));
+        resultSet.getBytes(6);
+        resultSet.getBlob(7);
+        resultSet.updateBoolean(8, true);
+        resultSet.getDate(9);
+        resultSet.getCharacterStream(10);
+        resultSet.updateTime(11, new Time(0));
+        resultSet.getURL(12);
+        resultSet.cancelRowUpdates();
 
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);
@@ -94,10 +115,28 @@ public class RecordingDataSourceTest {
         when(mockConnection.createStatement()).thenReturn(mockStatement);
         when(mockStatement.executeQuery(any())).thenReturn(mockResultSet);
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
 
-        verifyZeroInteractions(mockResultSet);
+        InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement, mockResultSet);
+        inOrder.verify(mockDataSource).getConnection();
+        inOrder.verify(mockConnection).createStatement();
+        inOrder.verify(mockStatement).executeQuery(anyString());
+
+        inOrder.verify(mockResultSet).next();
+        inOrder.verify(mockResultSet, never()).getString(anyInt());
+        inOrder.verify(mockResultSet, never()).getMetaData();
+        inOrder.verify(mockResultSet).updateString(3, "string");
+        inOrder.verify(mockResultSet, never()).getBigDecimal(any());
+        inOrder.verify(mockResultSet).updateBinaryStream(eq(5), any());
+        inOrder.verify(mockResultSet, never()).getBytes(anyInt());
+        inOrder.verify(mockResultSet, never()).getBlob(7);
+        inOrder.verify(mockResultSet).updateBoolean(8, true);
+        inOrder.verify(mockResultSet, never()).getDate(any());
+        inOrder.verify(mockResultSet, never()).getCharacterStream(10);
+        inOrder.verify(mockResultSet).updateTime(11, new Time(0));
+        inOrder.verify(mockResultSet, never()).getURL(anyInt());
+        inOrder.verify(mockResultSet).cancelRowUpdates();
     }
 
     @Test
@@ -116,7 +155,7 @@ public class RecordingDataSourceTest {
         PGSimpleDataSource mockUnwrappedDataSource = mock(PGSimpleDataSource.class);
         when(mockDataSource.unwrap(PGSimpleDataSource.class)).thenReturn(mockUnwrappedDataSource);
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockUnwrappedDataSource);
@@ -145,7 +184,7 @@ public class RecordingDataSourceTest {
         when(mockConnection.setSavepoint()).thenReturn(mockSavepoint);
         when(mockConnection.createStatement()).thenReturn(mockStatement);
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
 
         InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement);
@@ -196,8 +235,45 @@ public class RecordingDataSourceTest {
             }
         }));
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
+    }
+
+    @Test
+    public void testArrayType() throws SQLException {
+        DataSource targetDataSource = mock(DataSource.class, RETURNS_DEEP_STUBS);
+
+        RecordingDataSource recordingDataSource = RecordingDataSource.wrap(targetDataSource);
+
+        Object[] objects = new Object[0];
+        Connection connection = recordingDataSource.getConnection();
+        Array array = connection.createArrayOf("type", objects);
+        PreparedStatement statement = connection.prepareStatement("insert data");
+        statement.setArray(1, array);
+        statement.executeUpdate();
+        statement.close();
+
+        DataSource mockDataSource = mock(DataSource.class);
+        Connection mockConnection = mock(Connection.class);
+        PreparedStatement mockStatement = mock(PreparedStatement.class);
+        Array mockArray = mock(Array.class);
+
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(any())).thenReturn(mockStatement);
+        when(mockConnection.createArrayOf(anyString(), any())).thenReturn(mockArray);
+
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
+        preparer.prepare(mockDataSource);
+
+        InOrder inOrder = inOrder(mockDataSource, mockConnection, mockStatement);
+        inOrder.verify(mockDataSource).getConnection();
+        inOrder.verify(mockConnection).createArrayOf(eq("type"), eq(objects));
+        inOrder.verify(mockConnection).prepareStatement("insert data");
+        inOrder.verify(mockStatement).setArray(1, mockArray);
+        inOrder.verify(mockStatement).executeUpdate();
+        inOrder.verify(mockStatement).close();
+
+        verify(mockConnection, never()).createArrayOf(any(), same(objects)); // the array must be a copy of the original array
     }
 
     @Test
@@ -233,39 +309,48 @@ public class RecordingDataSourceTest {
             return null;
         }).when(mockStatement).setBinaryStream(eq(1), any());
 
-        DatabasePreparer preparer = recordingDataSource.getPreparer().get();
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
 
         verify(mockStatement).setBinaryStream(anyInt(), any());
     }
 
-//    @Test
-//    public void testExcludedMethods() throws SQLException {
-//        ReplayableDatabasePreparer preparer = new ReplayableDatabasePreparer();
-//        DataSource recordingDataSource = preparer.record(mock(DataSource.class, RETURNS_MOCKS));
-//
-//        recordingDataSource.
-//
-//        assertThat(unwrappedDataSource).isNotNull();
-//
-////        Connection connection = recordingDataSource.getConnection();
-////        Statement statement = connection.createStatement();
-////        statement.executeQuery("select data");
-////
-//////        assertThat(resultSet).isNotNull();
-//////        assertThat(resultSet.next()).isFalse();
-////
-////        DataSource mockDataSource = mock(DataSource.class);
-////        Connection mockConnection = mock(Connection.class);
-////        Statement mockStatement = mock(Statement.class);
-////
-////        when(mockDataSource.getConnection()).thenReturn(mockConnection);
-////        when(mockConnection.createStatement()).thenReturn(mockStatement);
-////
-////        preparer.prepare(mockDataSource);
-////
-////        verifyZeroInteractions(mockResultSet);
-//    }
+    @Test
+    public void testReader() throws SQLException {
+        DataSource targetDataSource = mock(DataSource.class, RETURNS_DEEP_STUBS);
+        PreparedStatement preparedStatement = targetDataSource.getConnection().prepareStatement(any());
+        doAnswer(invocation -> {
+            Reader reader = invocation.getArgumentAt(1, Reader.class);
+            checkState("test".equals(IOUtils.toString(reader)));
+            return null;
+        }).when(preparedStatement).setCharacterStream(anyInt(), any());
+
+        RecordingDataSource recordingDataSource = RecordingDataSource.wrap(targetDataSource);
+
+        Connection connection = recordingDataSource.getConnection();
+        PreparedStatement statement = connection.prepareStatement("insert data");
+        statement.setCharacterStream(1, new CharArrayReader(new char[] {'t', 'e', 's', 't'}));
+        statement.executeUpdate();
+        statement.close();
+
+        DataSource mockDataSource = mock(DataSource.class);
+        Connection mockConnection = mock(Connection.class);
+        PreparedStatement mockStatement = mock(PreparedStatement.class);
+
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+        when(mockConnection.prepareStatement(any())).thenReturn(mockStatement);
+
+        doAnswer(invocation -> {
+            Reader reader = invocation.getArgumentAt(1, Reader.class);
+            checkState("test".equals(IOUtils.toString(reader)));
+            return null;
+        }).when(mockStatement).setCharacterStream(eq(1), any());
+
+        DatabasePreparer preparer = recordingDataSource.getPreparer();
+        preparer.prepare(mockDataSource);
+
+        verify(mockStatement).setCharacterStream(anyInt(), any());
+    }
 
     @Test
     public void testEquals() throws SQLException {
@@ -292,8 +377,8 @@ public class RecordingDataSourceTest {
         connection2.commit();
         connection2.close();
 
-        DatabasePreparer databasePreparer1 = recordingDataSource1.getPreparer().get();
-        DatabasePreparer databasePreparer2 = recordingDataSource2.getPreparer().get();
+        DatabasePreparer databasePreparer1 = recordingDataSource1.getPreparer();
+        DatabasePreparer databasePreparer2 = recordingDataSource2.getPreparer();
 
         assertThat(databasePreparer1).isEqualTo(databasePreparer2);
     }

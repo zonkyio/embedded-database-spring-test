@@ -3,6 +3,7 @@ package io.zonky.test.db.flyway;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.db.preparer.RecordingDataSource;
+import io.zonky.test.db.preparer.RecordingDataSource.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -17,7 +18,6 @@ import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -143,8 +143,11 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     private synchronized void stopRecording() {
         if (dataSource instanceof RecordingDataSource) {
             RecordingDataSource recordingDataSource = (RecordingDataSource) this.dataSource;
-            Optional<DatabasePreparer> recordedPreparer = recordingDataSource.getPreparer();
-            recordedPreparer.ifPresent(preparer -> corePreparers.add(preparer));
+            ReplayableDatabasePreparer recordedPreparer = recordingDataSource.getPreparer();
+
+            if (recordedPreparer.hasRecords()) {
+                corePreparers.add(recordedPreparer);
+            }
 
             dataSource = (EmbeddedDatabase) AopProxyUtils.getSingletonTarget(dataSource); // TODO: use java.sql.Wrapper.unwrap instead
             dirty = false;

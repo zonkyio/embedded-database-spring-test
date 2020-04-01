@@ -80,6 +80,9 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
+        if (EmbeddedDatabase.class.isAssignableFrom(iface) || BlockingDataSourceWrapper.class.isAssignableFrom(iface)) {
+            return (T) this;
+        }
         return delegate.unwrap(iface);
     }
 

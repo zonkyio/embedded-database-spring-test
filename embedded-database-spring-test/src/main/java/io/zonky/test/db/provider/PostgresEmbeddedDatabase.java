@@ -52,6 +52,9 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
+        if (EmbeddedDatabase.class.isAssignableFrom(iface) || PostgresEmbeddedDatabase.class.isAssignableFrom(iface)) {
+            return (T) this;
+        }
         return dataSource.unwrap(iface);
     }
 

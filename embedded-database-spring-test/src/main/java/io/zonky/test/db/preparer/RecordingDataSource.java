@@ -4,11 +4,10 @@ import io.zonky.test.db.provider.DatabasePreparer;
 import org.springframework.aop.framework.ProxyFactory;
 
 import javax.sql.DataSource;
-import java.util.Optional;
 
 public interface RecordingDataSource extends DataSource {
 
-    Optional<DatabasePreparer> getPreparer();
+    ReplayableDatabasePreparer getPreparer();
 
     static RecordingDataSource wrap(DataSource dataSource) {
         ProxyFactory proxyFactory = new ProxyFactory(dataSource);
@@ -16,5 +15,11 @@ public interface RecordingDataSource extends DataSource {
         proxyFactory.addInterface(RecordingDataSource.class);
         proxyFactory.setProxyTargetClass(true);
         return (RecordingDataSource) proxyFactory.getProxy();
+    }
+
+    interface ReplayableDatabasePreparer extends DatabasePreparer {
+
+        boolean hasRecords();
+
     }
 }
