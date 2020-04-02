@@ -614,15 +614,6 @@ Detailed instructions are [here](https://www.testcontainers.org/supported_docker
 Make sure that you do not use `org.flywaydb.test.junit.FlywayTestExecutionListener`. Because this library has its own test execution listener that can optimize database initialization.
 But this optimization has no effect if `FlywayTestExecutionListener` is also applied.
 
-### ERROR: role "..." already exists
-
-Since version [1.4.0](https://github.com/zonkyio/embedded-database-spring-test/releases/tag/v1.4.0), database prefetching has been improved. All databases are stored within a single database cluster.
-It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
-
-```properties
-zonky.test.database.postgres.zonky-provider.preparer-isolation=cluster
-```
-
 ## Building from Source
 The project uses a [Gradle](http://gradle.org)-based build system. In the instructions
 below, [`./gradlew`](http://vimeo.com/34436402) is invoked from the root of the source tree and serves as

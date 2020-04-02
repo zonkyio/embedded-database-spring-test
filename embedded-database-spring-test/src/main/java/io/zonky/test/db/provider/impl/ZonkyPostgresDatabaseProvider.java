@@ -60,10 +60,10 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
 
     private static final int MAX_DATABASE_CONNECTIONS = 300;
 
-    private static final LoadingCache<ClusterKey, DatabaseInstance> databases = CacheBuilder.newBuilder()
-            .build(new CacheLoader<ClusterKey, DatabaseInstance>() {
-                public DatabaseInstance load(ClusterKey key) throws IOException {
-                    return new DatabaseInstance(key.databaseConfig);
+    private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
+            .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
+                public DatabaseInstance load(DatabaseConfig config) throws IOException {
+                    return new DatabaseInstance(config);
                 }
             });
 
@@ -71,9 +71,6 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
     private final ClientConfig clientConfig;
 
     public ZonkyPostgresDatabaseProvider(Environment environment, AutowireCapableBeanFactory beanFactory) {
-        String preparerIsolation = environment.getProperty("zonky.test.database.postgres.zonky-provider.preparer-isolation", "database");
-        PreparerIsolation isolation = PreparerIsolation.valueOf(preparerIsolation.toUpperCase());
-
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
@@ -81,7 +78,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
         ConditionalParameters parameters = (ConditionalParameters) beanFactory.autowire(
                 ConditionalParameters.class, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, false);
 
-        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, parameters.customizers, isolation);
+        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, parameters.customizers);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -99,8 +96,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
     @Override
     public EmbeddedDatabase createDatabase(DatabaseRequest request) throws ProviderException {
         try {
-            ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, request.getPreparer()); // TODO: request.getPreparer()
-            DatabaseInstance instance = databases.get(clusterKey);
+            DatabaseInstance instance = databases.get(databaseConfig);
             return instance.createDatabase(clientConfig, request);
         } catch (ExecutionException e) {
             Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
@@ -181,13 +177,11 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
         private final Map<String, String> configProperties;
         private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
         private final EmbeddedPostgres.Builder builder;
-        private final PreparerIsolation isolation;
 
-        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers, PreparerIsolation isolation) {
+        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers) {
             this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
             this.configProperties = ImmutableMap.copyOf(configProperties);
             this.customizers = ImmutableList.copyOf(customizers);
-            this.isolation = isolation;
             this.builder = EmbeddedPostgres.builder();
             applyTo(this.builder);
         }
@@ -205,13 +199,12 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DatabaseConfig that = (DatabaseConfig) o;
-            return Objects.equals(builder, that.builder) &&
-                    Objects.equals(isolation, that.isolation);
+            return Objects.equals(builder, that.builder);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(builder, isolation);
+            return Objects.hash(builder);
         }
     }
 
@@ -235,54 +228,6 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
         public int hashCode() {
             return Objects.hash(connectProperties);
         }
-    }
-
-    private static class ClusterKey {
-
-        private final DatabaseConfig databaseConfig;
-        private final ClientConfig clientConfig;
-        private final DatabasePreparer preparer;
-
-        private ClusterKey(DatabaseConfig databaseConfig, ClientConfig clientConfig, DatabasePreparer preparer) {
-            this.databaseConfig = databaseConfig;
-
-            if (databaseConfig.isolation == PreparerIsolation.CLUSTER) {
-                this.clientConfig = clientConfig;
-                this.preparer = preparer;
-            } else {
-                this.clientConfig = null;
-                this.preparer = null;
-            }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ClusterKey that = (ClusterKey) o;
-            return Objects.equals(databaseConfig, that.databaseConfig) &&
-                    Objects.equals(clientConfig, that.clientConfig) &&
-                    Objects.equals(preparer, that.preparer);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(databaseConfig, clientConfig, preparer);
-        }
-    }
-
-    private enum PreparerIsolation {
-
-        /**
-         * All databases are stored within a single database cluster.
-         */
-        DATABASE,
-
-        /**
-         * A new database cluster is created for each template database.
-         */
-        CLUSTER
-
     }
 
     protected static class ConditionalParameters {
