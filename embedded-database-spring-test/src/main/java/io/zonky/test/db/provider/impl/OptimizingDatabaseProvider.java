@@ -1,5 +1,6 @@
 package io.zonky.test.db.provider.impl;
 
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -10,16 +11,18 @@ import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 public class OptimizingDatabaseProvider implements DatabaseProvider {
 
     private static final LoadingCache<TemplateKey, DatabaseTemplate> templates = CacheBuilder.newBuilder()
             .build(new CacheLoader<TemplateKey, DatabaseTemplate>() {
-                public DatabaseTemplate load(TemplateKey key) throws Exception {
+                public DatabaseTemplate load(TemplateKey key) throws ProviderException {
                     List<DatabasePreparer> preparers = ((CompositeDatabasePreparer) key.preparer).getPreparers();
 
                     for (int i = preparers.size() - 1; i > 0; i--) {
@@ -42,15 +45,24 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         CompositeDatabasePreparer compositePreparer = preparer instanceof CompositeDatabasePreparer ?
                 (CompositeDatabasePreparer) preparer : new CompositeDatabasePreparer(ImmutableList.of(preparer));
 
-        DatabaseTemplate template = templates.get(new TemplateKey(provider, compositePreparer));
+        DatabaseTemplate template = getTemplate(compositePreparer);
         DatabaseRequest request = new DatabaseRequest(template, null);
 //        DatabaseRequest request = new DatabaseRequest(null, preparer); // TODO: implement smarter optimizer
 
         return provider.createDatabase(request);
+    }
+
+    private DatabaseTemplate getTemplate(DatabasePreparer preparer) throws ProviderException {
+        try {
+            return templates.get(new TemplateKey(provider, preparer));
+        } catch (ExecutionException e) {
+            Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
+            throw new ProviderException("Unexpected error occurred while preparing a template", e.getCause());
+        }
     }
 
     protected static class TemplateKey {

@@ -16,16 +16,14 @@
 
 package io.zonky.test.db.postgres;
 
+import io.zonky.test.db.flyway.DataSourceContext;
 import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.core.Ordered;
 
 import javax.sql.DataSource;
-
-import io.zonky.test.db.flyway.DataSourceContext;
 
 /**
  * Implementation of the {@link org.springframework.beans.factory.FactoryBean} interface
@@ -49,7 +47,7 @@ public class EmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSo
     }
 
     @Override
-    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+    public void setBeanFactory(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
     }
 

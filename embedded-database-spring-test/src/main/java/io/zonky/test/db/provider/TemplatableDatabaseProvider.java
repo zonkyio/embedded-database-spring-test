@@ -18,11 +18,11 @@ package io.zonky.test.db.provider;
 
 public interface TemplatableDatabaseProvider extends DatabaseProvider {
 
-    DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception;
+    DatabaseTemplate createTemplate(DatabaseRequest request) throws ProviderException;
 
-    EmbeddedDatabase createDatabase(DatabaseRequest request) throws Exception;
+    EmbeddedDatabase createDatabase(DatabaseRequest request) throws ProviderException;
 
-    default EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
+    default EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         DatabaseRequest request = new DatabaseRequest(preparer);
         return createDatabase(request);
     }

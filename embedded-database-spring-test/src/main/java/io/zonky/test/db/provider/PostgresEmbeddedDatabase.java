@@ -1,6 +1,5 @@
 package io.zonky.test.db.provider;
 
-import org.apache.commons.lang3.StringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.PrintWriter;
@@ -70,27 +69,11 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
 
     @Override
     public String getUrl() {
-        String url = dataSource.getUrl() + String.format("?user=%s", getUser());
-
-        if (StringUtils.isNotBlank(getPassword())) {
-            url += String.format("&password=%s", getPassword());
-        }
-
-        return url;
+        return dataSource.getUrl();
     }
 
     @Override
-    public String getServerName() {
-        return dataSource.getServerName();
-    }
-
-    @Override
-    public String getDatabaseName() {
-        return dataSource.getDatabaseName();
-    }
-
-    @Override
-    public String getUser() {
+    public String getUsername() {
         return dataSource.getUser();
     }
 
@@ -100,18 +83,17 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
     }
 
     @Override
-    public int getPortNumber() {
-        return dataSource.getPortNumber();
-    }
-
-    @Override
     public Map<String, String> getAliases() {
         return Collections.emptyMap();
     }
 
     @Override
-    public synchronized void close() throws SQLException {
-        closeCallback.call();
+    public synchronized void close() {
+        try {
+            closeCallback.call();
+        } catch (SQLException e) {
+            throw new ProviderException("Unexpected error occurred while releasing the database", e);
+        }
     }
 
     @FunctionalInterface

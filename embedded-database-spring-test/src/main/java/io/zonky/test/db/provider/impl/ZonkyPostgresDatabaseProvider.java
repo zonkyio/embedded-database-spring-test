@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.provider.impl;
 
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -28,10 +29,12 @@ import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.PostgresEmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.postgresql.ds.common.BaseDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.core.env.Environment;
@@ -47,6 +50,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
@@ -82,16 +86,28 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
     }
 
     @Override
-    public DatabaseTemplate createTemplate(DatabaseRequest request) throws Exception {
-        EmbeddedDatabase result = createDatabase(request);
-        return new DatabaseTemplate(result.getDatabaseName());
+    public DatabaseTemplate createTemplate(DatabaseRequest request) throws ProviderException {
+        try {
+            EmbeddedDatabase result = createDatabase(request);
+            BaseDataSource dataSource = result.unwrap(BaseDataSource.class);
+            return new DatabaseTemplate(dataSource.getDatabaseName());
+        } catch (SQLException e) {
+            throw new ProviderException("Unexpected error occurred while creating a database", e);
+        }
     }
 
     @Override
-    public EmbeddedDatabase createDatabase(DatabaseRequest request) throws Exception {
-        ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, request.getPreparer()); // TODO: request.getPreparer()
-        DatabaseInstance instance = databases.getUnchecked(clusterKey);
-        return instance.createDatabase(clientConfig, request);
+    public EmbeddedDatabase createDatabase(DatabaseRequest request) throws ProviderException {
+        try {
+            ClusterKey clusterKey = new ClusterKey(databaseConfig, clientConfig, request.getPreparer()); // TODO: request.getPreparer()
+            DatabaseInstance instance = databases.get(clusterKey);
+            return instance.createDatabase(clientConfig, request);
+        } catch (ExecutionException e) {
+            Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
+            throw new ProviderException("Unexpected error occurred while preparing a database cluster", e.getCause());
+        } catch (SQLException e) {
+            throw new ProviderException("Unexpected error occurred while creating a database", e);
+        }
     }
 
     @Override

@@ -26,7 +26,6 @@ import io.zonky.test.db.provider.config.EmbeddedDatabaseConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -138,14 +137,14 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         }
 
         @Override
-        public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+        public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
             environment.getPropertySources().addFirst(new MapPropertySource(
                     EmbeddedDatabaseContextCustomizer.class.getSimpleName(),
                     ImmutableMap.of("spring.test.database.replace", "NONE")));
         }
 
         @Override
-        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
         }
     }
@@ -166,7 +165,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         }
 
         @Override
-        public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+        public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
             Assert.isInstanceOf(ConfigurableListableBeanFactory.class, registry,
                     "Embedded Database Auto-configuration can only be used with a ConfigurableListableBeanFactory");
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
@@ -198,7 +197,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         }
 
         @Override
-        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
         }
 

@@ -1,11 +1,11 @@
 package io.zonky.test.db;
 
+import io.zonky.test.category.FlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -17,8 +17,6 @@ import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
-
-import io.zonky.test.category.FlywayIntegrationTests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
@@ -63,7 +61,7 @@ public class EarlyInitializationIntegrationTest {
         }
 
         @Override
-        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             beanFactory.getBeanNamesForType(DataSource.class, true, true);
         }
     }

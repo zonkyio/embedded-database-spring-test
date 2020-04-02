@@ -22,6 +22,7 @@ import com.google.common.base.Throwables;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -56,7 +57,6 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     private final int pipelineCacheSize;
 
     static {
-        // TODO: move the executor into a separated class
         taskExecutor.setThreadNamePrefix("prefetching-");
         taskExecutor.setAllowCoreThreadTimeOut(true);
         taskExecutor.setKeepAliveSeconds(60);
@@ -78,7 +78,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     }
 
     @Override
-    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws Exception {
+    public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.trace("Prefetching pipelines: {}", pipelines.values());
 
@@ -108,12 +108,21 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             }
         }
 
-        EmbeddedDatabase database = result != null ? result.get() : pipeline.results.take().get();
+        if (result == null) {
+            try {
+                result = pipeline.results.take();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ProviderException("Provider interrupted", e);
+            }
+        }
+
+        EmbeddedDatabase database = result.get();
         logger.debug("Database has been successfully returned in {}", stopwatch);
         return database;
     }
 
-    private ListenableFutureTask<EmbeddedDatabase> prepareDatabase(PipelineKey key, int priority) throws Exception {
+    private ListenableFutureTask<EmbeddedDatabase> prepareDatabase(PipelineKey key, int priority) {
         PrefetchingTask task = new PrefetchingTask(key.provider, key.preparer, priority);
         DatabasePipeline pipeline = pipelines.get(key);
 
@@ -197,12 +206,12 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             this.error = error;
         }
 
-        public EmbeddedDatabase get() throws Exception {
+        public EmbeddedDatabase get() throws ProviderException {
             if (result != null) {
                 return result;
             }
-            Throwables.propagateIfPossible(error, Exception.class);
-            throw new RuntimeException(error);
+            Throwables.throwIfInstanceOf(error, ProviderException.class);
+            throw new ProviderException("Unexpected error occurred while prefetching a database", error);
         }
     }
 

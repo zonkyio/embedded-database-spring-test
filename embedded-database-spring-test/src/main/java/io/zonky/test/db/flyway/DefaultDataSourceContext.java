@@ -1,6 +1,5 @@
 package io.zonky.test.db.flyway;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.RecordingDataSource.ReplayableDatabasePreparer;
@@ -15,6 +14,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.test.context.transaction.TestTransaction;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,7 +53,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     }
 
     @Override
-    public synchronized Object getTarget() throws Exception {
+    public synchronized Object getTarget() {
         if (dataSource == null) {
             refreshDatabase();
         }
@@ -124,19 +124,18 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
         checkNotNull(preparer, "preparer must not be null");
         stopRecording();
 
-        try {
-            if (getState() == INITIALIZING) {
-                corePreparers.add(preparer);
-                refreshDatabase();
-            } else if (getState() != DIRTY) {
-                testPreparers.add(preparer);
-                cleanDatabase();
-            } else {
+        if (getState() == INITIALIZING) {
+            corePreparers.add(preparer);
+            refreshDatabase();
+        } else if (getState() != DIRTY) {
+            testPreparers.add(preparer);
+            cleanDatabase();
+        } else {
+            try {
                 preparer.prepare(dataSource);
+            } catch (SQLException e) {
+                throw new RuntimeException("Unknown error occurred while applying the preparer", e);
             }
-        } catch (Exception e) {
-            Throwables.throwIfUnchecked(e);
-            throw new RuntimeException(e); // TODO: maybe use a more specific exception?
         }
     }
 
@@ -149,12 +148,12 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
                 corePreparers.add(recordedPreparer);
             }
 
-            dataSource = (EmbeddedDatabase) AopProxyUtils.getSingletonTarget(dataSource); // TODO: use java.sql.Wrapper.unwrap instead
+            dataSource = (EmbeddedDatabase) AopProxyUtils.getSingletonTarget(dataSource);
             dirty = false;
         }
     }
 
-    private synchronized void refreshDatabase() throws Exception {
+    private synchronized void refreshDatabase() {
         cleanDatabase();
 
         List<DatabasePreparer> preparers = ImmutableList.<DatabasePreparer>builder()
@@ -169,12 +168,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     private synchronized void cleanDatabase() {
         if (dataSource != null) {
-            try {
-                dataSource.close();
-            } catch (Exception e) {
-                Throwables.throwIfUnchecked(e);
-                throw new RuntimeException(e); // TODO: maybe use a more specific exception?
-            }
+            dataSource.close();
         }
         dataSource = null;
         dirty = false;

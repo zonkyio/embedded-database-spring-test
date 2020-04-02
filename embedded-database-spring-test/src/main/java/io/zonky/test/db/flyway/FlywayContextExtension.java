@@ -20,7 +20,6 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
 import java.lang.reflect.InvocationTargetException;
@@ -43,7 +42,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
     protected boolean optimizedTestExecutionListenerActive = false;
 
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessBeforeInitialization(Object bean, String beanName) {
         if (bean instanceof AopInfrastructureBean) {
             return bean;
         }
@@ -67,7 +66,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
     }
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessAfterInitialization(Object bean, String beanName) {
         return bean;
     }
 

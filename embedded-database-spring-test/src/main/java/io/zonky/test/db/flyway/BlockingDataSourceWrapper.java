@@ -97,18 +97,8 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public String getServerName() {
-        return delegate.getServerName();
-    }
-
-    @Override
-    public String getDatabaseName() {
-        return delegate.getDatabaseName();
-    }
-
-    @Override
-    public String getUser() {
-        return delegate.getUser();
+    public String getUsername() {
+        return delegate.getUsername();
     }
 
     @Override
@@ -117,17 +107,12 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public int getPortNumber() {
-        return delegate.getPortNumber();
-    }
-
-    @Override
     public Map<String, String> getAliases() {
         return delegate.getAliases();
     }
 
     @Override
-    public void close() throws SQLException {
+    public void close() {
         delegate.close();
     }
 
