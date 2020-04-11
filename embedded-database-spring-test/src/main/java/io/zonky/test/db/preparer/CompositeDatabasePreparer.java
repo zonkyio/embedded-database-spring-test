@@ -1,4 +1,4 @@
-package io.zonky.test.db.flyway;
+package io.zonky.test.db.preparer;
 
 import com.google.common.collect.ImmutableList;
 
@@ -6,8 +6,6 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
-
-import io.zonky.test.db.provider.DatabasePreparer;
 
 public class CompositeDatabasePreparer implements DatabasePreparer {
 

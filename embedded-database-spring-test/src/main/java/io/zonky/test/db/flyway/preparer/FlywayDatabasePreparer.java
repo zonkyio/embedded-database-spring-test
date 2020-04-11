@@ -1,7 +1,8 @@
 package io.zonky.test.db.flyway.preparer;
 
 import io.zonky.test.db.flyway.FlywayDescriptor;
-import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import org.flywaydb.core.Flyway;
 
 import javax.sql.DataSource;
@@ -24,9 +25,10 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
     @Override
     public void prepare(DataSource ds) {
         Flyway flyway = new Flyway();
+        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
 
-        descriptor.applyTo(flyway);
-        flyway.setDataSource(ds);
+        descriptor.applyTo(wrapper);
+        wrapper.setDataSource(ds);
 
         doOperation(flyway);
     }

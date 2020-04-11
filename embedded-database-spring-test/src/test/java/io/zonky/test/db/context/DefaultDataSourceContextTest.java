@@ -1,8 +1,10 @@
-package io.zonky.test.db.flyway;
+package io.zonky.test.db.context;
 
+import io.zonky.test.db.context.DatabaseDescriptor;
+import io.zonky.test.db.context.DefaultDataSourceContext;
+import io.zonky.test.db.preparer.CompositeDatabasePreparer;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
-import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.config.DatabaseProviders;
@@ -53,7 +55,7 @@ public class DefaultDataSourceContextTest {
     public void databaseDescriptorMustBeSet() {
         assertThatCode(() -> dataSourceContext.apply(dataSource -> {}))
                 .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessage("database descriptor must be set");
+                .hasMessage("Database descriptor must be set");
     }
 
     @Test
@@ -61,18 +63,18 @@ public class DefaultDataSourceContextTest {
         DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
         when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
 
-        dataSourceContext.setDescriptor(new DatabaseDescriptor("database", "provider"));
+        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
 
         assertThatCode(() -> dataSourceContext.reset())
                 .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessage("data source context must be initialized");
+                .hasMessage("Data source context must be initialized");
     }
 
     @Test
     public void testPreparers() throws Exception {
         DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
         when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
-        dataSourceContext.setDescriptor(new DatabaseDescriptor("database", "provider"));
+        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
 
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
         DatabasePreparer preparer2 = mock(DatabasePreparer.class);
@@ -114,11 +116,11 @@ public class DefaultDataSourceContextTest {
     }
 
     @Test
-    public void testRecording() throws Exception {
+    public void testRecording() {
         DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
         when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class, RETURNS_MOCKS));
-        dataSourceContext.setDescriptor(new DatabaseDescriptor("database", "provider"));
+        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
 
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
 

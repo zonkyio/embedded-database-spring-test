@@ -1,5 +1,6 @@
 package io.zonky.test.db.flyway;
 
+import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
@@ -20,7 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static io.zonky.test.db.flyway.FlywayContextExtension.FlywayOperation;
+import static io.zonky.test.db.flyway.FlywayExtension.FlywayOperation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -31,14 +32,16 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
-public class FlywayContextExtensionTest {
+public class FlywayExtensionTest {
 
     @Mock
     private DataSourceContext dataSourceContext;
 
+    private Flyway flyway;
+
     private FlywayWrapper flywayWrapper;
 
-    private FlywayContextExtension flywayExtension = new FlywayContextExtension();
+    private FlywayExtension flywayExtension = new FlywayExtension();
 
     @Before
     public void setUp() {
@@ -49,12 +52,12 @@ public class FlywayContextExtensionTest {
         flyway.setLocations("db/migration");
         flyway.setDataSource((DataSource) dataSource);
 
-        flywayWrapper = new FlywayWrapper(((Flyway) flywayExtension.postProcessBeforeInitialization(flyway, "flyway")));
+        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(flyway, "flyway");
+        this.flywayWrapper = FlywayWrapper.of(flyway);
     }
 
     @Test
     public void cleanFromExecutionListenerShouldBeDeferred() {
-        Flyway flyway = flywayWrapper.getFlyway();
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
 
         assertThat(flywayExtension.pendingOperations).hasSize(1);
@@ -63,21 +66,18 @@ public class FlywayContextExtensionTest {
 
     @Test
     public void baselineFromExecutionListenerShouldBeDeferred() {
-        Flyway flyway = flywayWrapper.getFlyway();
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline);
         assertThat(flywayExtension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void migrateFromExecutionListenerShouldBeDeferred() {
-        Flyway flyway = flywayWrapper.getFlyway();
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate);
         assertThat(flywayExtension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void cleanOutsideExecutionListenerShouldBeProcessedImmediately() {
-        Flyway flyway = flywayWrapper.getFlyway();
         flyway.clean();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
@@ -86,7 +86,6 @@ public class FlywayContextExtensionTest {
 
     @Test
     public void baselineOutsideExecutionListenerShouldBeProcessedImmediately() {
-        Flyway flyway = flywayWrapper.getFlyway();
         flyway.baseline();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
@@ -95,7 +94,6 @@ public class FlywayContextExtensionTest {
 
     @Test
     public void migrateOutsideExecutionListenerShouldBeProcessedImmediately() {
-        Flyway flyway = flywayWrapper.getFlyway();
         flyway.migrate();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
@@ -124,7 +122,12 @@ public class FlywayContextExtensionTest {
 
         InOrder inOrder = inOrder(dataSourceContext);
         inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
+
+        if (FlywayClassUtils.getFlywayVersion() >= 41) {
+            inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
+        } else {
+            inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));
+        }
 
         verifyNoMoreInteractions(dataSourceContext);
     }
@@ -241,17 +244,17 @@ public class FlywayContextExtensionTest {
     }
 
     private static CleanFlywayDatabasePreparer cleanPreparer(FlywayWrapper wrapper) {
-        return new CleanFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
+        return new CleanFlywayDatabasePreparer(FlywayDescriptor.from(wrapper));
     }
 
     private static BaselineFlywayDatabasePreparer baselinePreparer(FlywayWrapper wrapper) {
-        return new BaselineFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
+        return new BaselineFlywayDatabasePreparer(FlywayDescriptor.from(wrapper));
     }
 
     private static MigrateFlywayDatabasePreparer migratePreparer(FlywayWrapper wrapper, FlywayPreparerCustomizer... customizers) {
         try {
             Arrays.stream(customizers).forEach(customizer -> customizer.before(wrapper));
-            return new MigrateFlywayDatabasePreparer(FlywayDescriptor.from(wrapper.getFlyway()));
+            return new MigrateFlywayDatabasePreparer(FlywayDescriptor.from(wrapper));
         } finally {
             Arrays.stream(customizers).forEach(customizer -> customizer.after(wrapper));
         }
@@ -280,13 +283,13 @@ public class FlywayContextExtensionTest {
 
             @Override
             public void before(FlywayWrapper wrapper) {
-                ignoreMissingMigrations = wrapper.getFlyway().isIgnoreMissingMigrations();
-                wrapper.getFlyway().setIgnoreMissingMigrations(true);
+                ignoreMissingMigrations = wrapper.isIgnoreMissingMigrations();
+                wrapper.setIgnoreMissingMigrations(true);
             }
 
             @Override
             public void after(FlywayWrapper wrapper) {
-                wrapper.getFlyway().setIgnoreMissingMigrations(ignoreMissingMigrations);
+                wrapper.setIgnoreMissingMigrations(ignoreMissingMigrations);
             }
         };
     }

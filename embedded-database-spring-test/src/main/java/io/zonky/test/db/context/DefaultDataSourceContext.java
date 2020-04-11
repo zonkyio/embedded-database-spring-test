@@ -1,10 +1,10 @@
-package io.zonky.test.db.flyway;
+package io.zonky.test.db.context;
 
 import com.google.common.collect.ImmutableList;
+import io.zonky.test.db.preparer.CompositeDatabasePreparer;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
-import io.zonky.test.db.preparer.RecordingDataSource.ReplayableDatabasePreparer;
-import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.config.DatabaseProviders;
@@ -21,10 +21,10 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.zonky.test.db.flyway.DataSourceContext.State.AHEAD;
-import static io.zonky.test.db.flyway.DataSourceContext.State.DIRTY;
-import static io.zonky.test.db.flyway.DataSourceContext.State.FRESH;
-import static io.zonky.test.db.flyway.DataSourceContext.State.INITIALIZING;
+import static io.zonky.test.db.context.DataSourceContext.State.AHEAD;
+import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
+import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
+import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
 
 public class DefaultDataSourceContext implements DataSourceContext, ApplicationListener<ContextRefreshedEvent> {
 
@@ -88,7 +88,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     @Override
     public synchronized void setDescriptor(DatabaseDescriptor descriptor) {
-        checkState(getState() != DIRTY, "data source context must not be dirty");
+        checkState(getState() != DIRTY, "Data source context must not be dirty");
         stopRecording();
 
         this.databaseDescriptor = descriptor;
@@ -110,8 +110,8 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     @Override
     public synchronized void reset() {
-        checkState(getState() != INITIALIZING, "data source context must be initialized");
-        checkState(!TestTransaction.isActive(), "cannot reset the data source context without ending the existing transaction first");
+        checkState(getState() != INITIALIZING, "Data source context must be initialized");
+        checkState(!TestTransaction.isActive(), "Cannot reset the data source context without ending the existing transaction first");
 
         if (getState() != FRESH) {
             testPreparers.clear();
@@ -121,7 +121,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
     @Override
     public synchronized void apply(DatabasePreparer preparer) {
-        checkNotNull(preparer, "preparer must not be null");
+        checkNotNull(preparer, "Preparer must not be null");
         stopRecording();
 
         if (getState() == INITIALIZING) {
@@ -134,7 +134,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
             try {
                 preparer.prepare(dataSource);
             } catch (SQLException e) {
-                throw new RuntimeException("Unknown error occurred while applying the preparer", e);
+                throw new IllegalStateException("Unknown error occurred while applying the preparer", e);
             }
         }
     }
@@ -161,7 +161,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
                 .addAll(testPreparers)
                 .build();
 
-        checkState(databaseDescriptor != null, "database descriptor must be set");
+        checkState(databaseDescriptor != null, "Database descriptor must be set");
         DatabaseProvider provider = databaseProviders.getProvider(databaseDescriptor);
         dataSource = provider.createDatabase(new CompositeDatabasePreparer(preparers));
     }

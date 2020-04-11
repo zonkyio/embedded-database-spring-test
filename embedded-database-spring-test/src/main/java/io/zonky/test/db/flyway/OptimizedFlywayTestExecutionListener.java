@@ -56,7 +56,10 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
     private static void processPendingFlywayOperations(TestContext testContext) {
         ApplicationContext applicationContext = testContext.getApplicationContext();
-        FlywayContextExtension flywayExtension = applicationContext.getBean(FlywayContextExtension.class);
-        flywayExtension.processPendingOperations();
+
+        if (applicationContext.getBeanNamesForType(FlywayExtension.class, false, false).length > 0) {
+            FlywayExtension flywayExtension = applicationContext.getBean(FlywayExtension.class);
+            flywayExtension.processPendingOperations();
+        }
     }
 }

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.impl;
+package io.zonky.test.db.provider.postgres;
 
-import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
-import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,9 +49,9 @@ public class YandexPostgresDatabaseProviderTest {
         DataSource dataSource2 = provider.createDatabase(preparer1);
         DataSource dataSource3 = provider.createDatabase(preparer2);
 
-        assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
-        assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
-        assertThat(dataSource3).isNotNull().isExactlyInstanceOf(BlockingDataSourceWrapper.class);
+        assertThat(dataSource1).isNotNull().isExactlyInstanceOf(BlockingDatabaseWrapper.class);
+        assertThat(dataSource2).isNotNull().isExactlyInstanceOf(BlockingDatabaseWrapper.class);
+        assertThat(dataSource3).isNotNull().isExactlyInstanceOf(BlockingDatabaseWrapper.class);
 
         assertThat(getPort(dataSource1)).isEqualTo(getPort(dataSource2));
         assertThat(getPort(dataSource2)).isEqualTo(getPort(dataSource3));

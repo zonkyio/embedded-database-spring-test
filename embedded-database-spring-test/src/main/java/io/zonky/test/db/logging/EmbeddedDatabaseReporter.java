@@ -39,8 +39,8 @@ public class EmbeddedDatabaseReporter {
     }
 
     private static String getElementName(AnnotatedElement element) {
-        if (element instanceof Class) {
-            return ((Class) element).getSimpleName();
+        if (element instanceof Class<?>) {
+            return ((Class<?>) element).getSimpleName();
         } else if (element instanceof Method) {
             Method method = (Method) element;
             return getElementName(method.getDeclaringClass()) + "#" + method.getName();

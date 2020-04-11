@@ -1,10 +1,8 @@
-package io.zonky.test.db.flyway;
+package io.zonky.test.db.context;
 
-import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import org.springframework.aop.TargetSource;
 
-// TODO: move into a different package
 public interface DataSourceContext extends TargetSource {
 
     void setDescriptor(DatabaseDescriptor descriptor);

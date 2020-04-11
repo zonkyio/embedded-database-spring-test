@@ -1,5 +1,7 @@
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.postgres;
 
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.PrintWriter;

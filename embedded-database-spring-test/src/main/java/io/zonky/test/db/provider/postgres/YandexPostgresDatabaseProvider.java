@@ -14,51 +14,53 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.impl;
+package io.zonky.test.db.provider.postgres;
 
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.opentable.db.postgres.embedded.EmbeddedPostgres;
-import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
-import io.zonky.test.db.provider.DatabasePreparer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
+import de.flapdoodle.embed.process.distribution.GenericVersion;
+import de.flapdoodle.embed.process.distribution.IVersion;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.PostgresEmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.core.env.Environment;
+import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
+import ru.yandex.qatools.embed.postgresql.util.SocketUtil;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
+import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_DB_NAME;
+import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_HOST;
+import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.defaultRuntimeConfig;
 
-public class OpenTablePostgresDatabaseProvider implements TemplatableDatabaseProvider {
+public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
-    private static final int MAX_DATABASE_CONNECTIONS = 300;
+    private static final String POSTGRES_USERNAME = "postgres";
+    private static final String POSTGRES_PASSWORD = "yandex";
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
@@ -70,15 +72,14 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
     private final DatabaseConfig databaseConfig;
     private final ClientConfig clientConfig;
 
-    public OpenTablePostgresDatabaseProvider(Environment environment, AutowireCapableBeanFactory beanFactory) {
+    public YandexPostgresDatabaseProvider(Environment environment) {
+        String postgresVersion = environment.getProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "10.7-1");
+
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
 
-        ConditionalParameters parameters = (ConditionalParameters) beanFactory.autowire(
-                ConditionalParameters.class, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, false);
-
-        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, parameters.customizers);
+        this.databaseConfig = new DatabaseConfig(new GenericVersion(postgresVersion), initdbProperties, configProperties);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -98,7 +99,7 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
         try {
             DatabaseInstance instance = databases.get(databaseConfig);
             return instance.createDatabase(clientConfig, request);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | UncheckedExecutionException e) {
             Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
             throw new ProviderException("Unexpected error occurred while preparing a database cluster", e.getCause());
         } catch (SQLException e) {
@@ -110,7 +111,7 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        OpenTablePostgresDatabaseProvider that = (OpenTablePostgresDatabaseProvider) o;
+        YandexPostgresDatabaseProvider that = (YandexPostgresDatabaseProvider) o;
         return Objects.equals(databaseConfig, that.databaseConfig) &&
                 Objects.equals(clientConfig, that.clientConfig);
     }
@@ -126,11 +127,27 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
         private final Semaphore semaphore;
 
         private DatabaseInstance(DatabaseConfig config) throws IOException {
-            EmbeddedPostgres.Builder builder = EmbeddedPostgres.builder();
-            config.applyTo(builder);
+            Map<String, String> initdbProperties = new HashMap<>(config.initdbProperties);
+            initdbProperties.putIfAbsent("encoding", "UTF-8");
 
-            postgres = builder.start();
-            semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
+            List<String> initdbParams = initdbProperties.entrySet().stream()
+                    .map(e -> String.format("--%s=%s", e.getKey(), e.getValue()))
+                    .collect(Collectors.toList());
+
+            Map<String, String> serverProperties = new HashMap<>(config.configProperties);
+            serverProperties.putIfAbsent("max_connections", "300");
+
+            List<String> postgresParams = serverProperties.entrySet().stream()
+                    .flatMap(e -> Stream.of("-c", String.format("%s=%s", e.getKey(), e.getValue())))
+                    .collect(Collectors.toList());
+
+            postgres = new EmbeddedPostgres(config.version);
+            postgres.start(defaultRuntimeConfig(), DEFAULT_HOST, SocketUtil.findFreePort(),
+                    DEFAULT_DB_NAME, POSTGRES_USERNAME, POSTGRES_PASSWORD, initdbParams, postgresParams);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(postgres::close));
+
+            semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
@@ -165,33 +182,34 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
             }
         }
 
-        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
-            PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) throws SQLException {
+            PGSimpleDataSource dataSource = new PGSimpleDataSource();
+
+            dataSource.setServerName(DEFAULT_HOST);
+            dataSource.setPortNumber(postgres.getConfig().map(cfg -> cfg.net().port()).orElse(-1));
+            dataSource.setDatabaseName(dbName);
+
+            dataSource.setUser(POSTGRES_USERNAME);
+            dataSource.setPassword(POSTGRES_PASSWORD);
+
+            for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
+                dataSource.setProperty(entry.getKey(), entry.getValue());
+            }
+
+            return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
         }
     }
 
     private static class DatabaseConfig {
 
+        private final IVersion version;
         private final Map<String, String> initdbProperties;
         private final Map<String, String> configProperties;
-        private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
-        private final EmbeddedPostgres.Builder builder;
 
-        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers) {
+        private DatabaseConfig(IVersion version, Map<String, String> initdbProperties, Map<String, String> configProperties) {
+            this.version = version;
             this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
             this.configProperties = ImmutableMap.copyOf(configProperties);
-            this.customizers = ImmutableList.copyOf(customizers);
-            this.builder = EmbeddedPostgres.builder();
-            applyTo(this.builder);
-        }
-
-        public final void applyTo(EmbeddedPostgres.Builder builder) {
-            builder.setPGStartupWait(Duration.ofSeconds(20L));
-            initdbProperties.forEach(builder::setLocaleConfig);
-            configProperties.forEach(builder::setServerConfig);
-            customizers.forEach(c -> c.accept(builder));
-            builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
         }
 
         @Override
@@ -199,12 +217,14 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DatabaseConfig that = (DatabaseConfig) o;
-            return Objects.equals(builder, that.builder);
+            return Objects.equals(version, that.version) &&
+                    Objects.equals(initdbProperties, that.initdbProperties) &&
+                    Objects.equals(configProperties, that.configProperties);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(builder);
+            return Objects.hash(version, initdbProperties, configProperties);
         }
     }
 
@@ -227,15 +247,6 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
         @Override
         public int hashCode() {
             return Objects.hash(connectProperties);
-        }
-    }
-
-    protected static class ConditionalParameters {
-
-        private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
-
-        public ConditionalParameters(@Autowired(required = false) List<Consumer<EmbeddedPostgres.Builder>> customizers) {
-            this.customizers = Optional.ofNullable(customizers).orElse(emptyList());;
         }
     }
 }

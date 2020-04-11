@@ -1,9 +1,8 @@
 package io.zonky.test.db.provider.config;
 
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.provider.DatabaseDescriptor;
+import io.zonky.test.db.context.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.MissingDatabaseProviderException;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -12,8 +11,11 @@ import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.AutowireCandidateQualifier;
 import org.springframework.core.type.MethodMetadata;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+// TODO: add licence headers to all new files
 public class DatabaseProviders {
 
     private final Map<DatabaseDescriptor, ObjectFactory<DatabaseProvider>> databaseProviders;
@@ -36,8 +38,12 @@ public class DatabaseProviders {
         ObjectFactory<DatabaseProvider> factory = databaseProviders.get(descriptor);
 
         if (factory == null) {
-            // TODO: it should print available providers
-            throw new MissingDatabaseProviderException(descriptor);
+            List<String> availableProviders = databaseProviders.keySet().stream()
+                    .filter(d -> d.getDatabaseName().equals(descriptor.getDatabaseName()))
+                    .map(DatabaseDescriptor::getProviderName)
+                    .collect(Collectors.toList());
+
+            throw new MissingDatabaseProviderException(descriptor, availableProviders);
         }
 
         return factory.getObject();
@@ -51,7 +57,7 @@ public class DatabaseProviders {
             if (qualifier != null) {
                 String providerType = (String) qualifier.getAttribute("type");
                 String databaseType = (String) qualifier.getAttribute("database");
-                return new DatabaseDescriptor(databaseType, providerType);
+                return DatabaseDescriptor.of(databaseType, providerType);
             }
         }
 
@@ -62,7 +68,7 @@ public class DatabaseProviders {
                 if (qualifier != null) {
                     String providerType = (String) qualifier.get("type");
                     String databaseType = (String) qualifier.get("database");
-                    return new DatabaseDescriptor(databaseType, providerType);
+                    return DatabaseDescriptor.of(databaseType, providerType);
                 }
             }
         }

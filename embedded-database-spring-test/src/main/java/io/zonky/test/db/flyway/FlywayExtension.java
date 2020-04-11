@@ -1,10 +1,12 @@
 package io.zonky.test.db.flyway;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
@@ -30,11 +32,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class FlywayContextExtension implements BeanPostProcessor {
+public class FlywayExtension implements BeanPostProcessor {
+
+    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     protected final Multimap<DataSourceContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
@@ -48,8 +55,9 @@ public class FlywayContextExtension implements BeanPostProcessor {
         }
 
         if (bean instanceof Flyway) {
-            FlywayWrapper wrapper = new FlywayWrapper(((Flyway) bean));
-            flywayBeans.put(wrapper.getDataSourceContext(), wrapper.getFlyway());
+            Flyway flyway = (Flyway) bean;
+            FlywayWrapper wrapper = FlywayWrapper.of(flyway);
+            flywayBeans.put(wrapper.getDataSourceContext(), flyway);
 
             if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
                 ((Advised) bean).addAdvisor(0, createAdvisor(wrapper));
@@ -82,7 +90,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
             List<FlywayOperation> flywayOperations = entry.getValue();
 
             Function<FlywayOperation, Set<String>> schemasExtractor = op ->
-                    ImmutableSet.copyOf(op.getFlywayWrapper().getFlyway().getSchemas());
+                    ImmutableSet.copyOf(op.getFlywayWrapper().getSchemas());
 
             if (flywayBeans.get(dataSourceContext).size() == 1 && flywayOperations.stream().map(schemasExtractor).distinct().count() == 1) {
                 flywayOperations = squashOperations(flywayOperations);
@@ -142,7 +150,7 @@ public class FlywayContextExtension implements BeanPostProcessor {
                     .anyMatch(e -> e.getClassName().endsWith("OptimizedFlywayTestExecutionListener"));
             boolean standardListenerProcessing = listenerProcessing && !optimizedListenerProcessing;
 
-            FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper.getFlyway());
+            FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
             FlywayDatabasePreparer preparer = creator.apply(descriptor);
 
             if (standardListenerProcessing && optimizedTestExecutionListenerActive) {
@@ -158,7 +166,11 @@ public class FlywayContextExtension implements BeanPostProcessor {
             }
 
             if (preparer instanceof MigrateFlywayDatabasePreparer) {
-                return ((MigrateFlywayDatabasePreparer) preparer).getResult().completable().getNow(0);
+                try {
+                    return ((MigrateFlywayDatabasePreparer) preparer).getResult().get(0, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    return 0;
+                }
             }
 
             return null;
@@ -218,17 +230,21 @@ public class FlywayContextExtension implements BeanPostProcessor {
         List<String> testLocations = resolveTestLocations(flywayWrapper, preparerLocations);
 
         if (!testLocations.isEmpty()) {
-            Flyway flywayBean = flywayWrapper.getFlyway();
             List<String> defaultLocations = flywayWrapper.getLocations();
-            boolean ignoreMissingMigrations = flywayBean.isIgnoreMissingMigrations();
+            boolean ignoreMissingMigrations = flywayWrapper.isIgnoreMissingMigrations();
             try {
-                flywayWrapper.setLocations(testLocations);
-                flywayBean.setIgnoreMissingMigrations(true); // TODO: consider using different migration techniques
-                FlywayDescriptor descriptor = FlywayDescriptor.from(flywayBean);
-                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor)); // TODO: it is not necessary to be this line in try-finally block anymore
+                if (flywayVersion >= 41) {
+                    flywayWrapper.setLocations(testLocations);
+                    flywayWrapper.setIgnoreMissingMigrations(true);
+                } else {
+                    flywayWrapper.setLocations(ImmutableList.<String>builder()
+                            .addAll(defaultLocations).addAll(testLocations).build());
+                }
+                FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
+                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor));
             } finally {
                 flywayWrapper.setLocations(defaultLocations);
-                flywayBean.setIgnoreMissingMigrations(ignoreMissingMigrations);
+                flywayWrapper.setIgnoreMissingMigrations(ignoreMissingMigrations);
             }
         }
     }

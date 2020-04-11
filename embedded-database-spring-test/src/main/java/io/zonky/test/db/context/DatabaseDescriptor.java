@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.context;
 
 import com.google.common.base.MoreObjects;
 import org.springframework.util.Assert;
@@ -26,7 +26,11 @@ public final class DatabaseDescriptor {
     private final String databaseName;
     private final String providerName;
 
-    public DatabaseDescriptor(String databaseName, String providerName) {
+    public static DatabaseDescriptor of(String databaseName, String providerName) {
+        return new DatabaseDescriptor(databaseName, providerName);
+    }
+
+    private DatabaseDescriptor(String databaseName, String providerName) {
         Assert.notNull(databaseName, "Database name must not be null");
         Assert.notNull(providerName, "Provider name must not be null");
         this.databaseName = databaseName.toLowerCase();

@@ -1,6 +1,5 @@
 package io.zonky.test.db.preparer;
 
-import io.zonky.test.db.provider.DatabasePreparer;
 import org.springframework.aop.framework.ProxyFactory;
 
 import javax.sql.DataSource;
@@ -17,9 +16,4 @@ public interface RecordingDataSource extends DataSource {
         return (RecordingDataSource) proxyFactory.getProxy();
     }
 
-    interface ReplayableDatabasePreparer extends DatabasePreparer {
-
-        boolean hasRecords();
-
-    }
 }

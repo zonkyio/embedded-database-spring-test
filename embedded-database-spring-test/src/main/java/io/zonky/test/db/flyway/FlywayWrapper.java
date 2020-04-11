@@ -2,6 +2,7 @@ package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.zonky.test.db.context.DataSourceContext;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -34,7 +35,7 @@ import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 public class FlywayWrapper {
 
-    private static final ClassLoader classLoader = FlywayContextExtension.class.getClassLoader();
+    private static final ClassLoader classLoader = FlywayExtension.class.getClassLoader();
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
     private static final boolean isFlywayPro = FlywayClassUtils.isFlywayPro();
@@ -42,18 +43,18 @@ public class FlywayWrapper {
     private final Flyway flyway;
     private final Object config;
 
-    public FlywayWrapper(Flyway flyway) {
-        this.flyway = flyway;
-
-        if (flywayVersion >= 51) {
-            config = getField(flyway, "configuration");
-        } else {
-            config = flyway;
-        }
+    public static FlywayWrapper of(Flyway flyway) {
+        return new FlywayWrapper(flyway);
     }
 
-    public Flyway getFlyway() {
-        return flyway;
+    private FlywayWrapper(Flyway flyway) {
+        this.flyway = AopTestUtils.getUltimateTargetObject(flyway);
+
+        if (flywayVersion >= 51) {
+            config = getField(this.flyway, "configuration");
+        } else {
+            config = this.flyway;
+        }
     }
 
     public Collection<ResolvedMigration> getMigrations() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -70,8 +71,6 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        flyway = AopTestUtils.getUltimateTargetObject(flyway);
-
         if (flywayVersion >= 52) {
             Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
             Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");

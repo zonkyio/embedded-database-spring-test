@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.config;
+
+import io.zonky.test.db.context.DatabaseDescriptor;
+
+import java.util.List;
 
 public class MissingDatabaseProviderException extends RuntimeException {
 
-    private final DatabaseDescriptor descriptor;
-
-    public MissingDatabaseProviderException(DatabaseDescriptor descriptor) {
-        super(String.format("Missing database provider for descriptor: %s", descriptor));
-        this.descriptor = descriptor;
-    }
-
-    public DatabaseDescriptor getDescriptor() {
-        return descriptor;
+    public MissingDatabaseProviderException(DatabaseDescriptor descriptor, List<String> availableProviders) {
+        super(String.format("Missing database provider for: %s, available providers: %s", descriptor, availableProviders));
     }
 }

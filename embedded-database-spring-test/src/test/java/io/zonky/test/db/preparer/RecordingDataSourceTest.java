@@ -1,6 +1,5 @@
 package io.zonky.test.db.preparer;
 
-import io.zonky.test.db.provider.DatabasePreparer;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;

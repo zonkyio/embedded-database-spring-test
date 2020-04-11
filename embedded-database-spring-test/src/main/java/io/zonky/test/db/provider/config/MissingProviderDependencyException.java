@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.config;
 
-import javax.sql.DataSource;
-import java.sql.SQLException;
+public class MissingProviderDependencyException extends RuntimeException {
 
-public interface DatabasePreparer {
-
-    void prepare(DataSource dataSource) throws SQLException;
-
+    public MissingProviderDependencyException(String message) {
+        super(message);
+    }
 }

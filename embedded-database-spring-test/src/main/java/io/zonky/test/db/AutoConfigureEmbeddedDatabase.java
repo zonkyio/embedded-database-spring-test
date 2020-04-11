@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  * <p>
  * This annotation may be used as a <em>meta-annotation</em> to create custom <em>composed annotations</em>.
  *
- * @see io.zonky.test.db.postgres.EmbeddedDatabaseContextCustomizerFactory
+ * @see EmbeddedDatabaseContextCustomizerFactory
  */
 @Documented
 @Inherited

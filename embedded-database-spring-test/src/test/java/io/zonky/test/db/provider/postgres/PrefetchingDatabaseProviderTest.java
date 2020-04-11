@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.impl;
+package io.zonky.test.db.provider.postgres;
 
-import io.zonky.test.db.provider.DatabasePreparer;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import org.junit.Before;
@@ -57,7 +57,7 @@ public class PrefetchingDatabaseProviderTest {
     }
 
     @Test
-    public void testPrefetching() throws Exception {
+    public void testPrefetching() {
         DatabasePreparer preparer = mock(DatabasePreparer.class);
         List<EmbeddedDatabase> dataSources = Stream.generate(() -> mock(EmbeddedDatabase.class))
                 .limit(6).collect(Collectors.toList());
@@ -74,28 +74,8 @@ public class PrefetchingDatabaseProviderTest {
         verify(databaseProvider, timeout(100).times(6)).createDatabase(same(preparer));
     }
 
-    // TODO: move into DatabaseProvidersTest
-//    @Test
-//    public void testMultipleProviders() throws Exception {
-//        DatabasePreparer preparer = mock(DatabasePreparer.class);
-//
-//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource1")).when(databaseProvider1).createDatabase(any());
-//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource2")).when(databaseProvider2).createDatabase(any());
-//        doAnswer(i -> mock(EmbeddedDatabase.class, "mockDataSource3")).when(databaseProvider3).createDatabase(any());
-//
-//        for (int i = 0; i < 3; i++) {
-//            assertThat(prefetchingProvider.createDatabase(preparer, newDescriptor("database1", "provider1"))).is(mockWithName("mockDataSource1"));
-//            assertThat(prefetchingProvider.createDatabase(preparer, newDescriptor("database2", "provider1"))).is(mockWithName("mockDataSource2"));
-//            assertThat(prefetchingProvider.createDatabase(preparer, newDescriptor("database2", "provider2"))).is(mockWithName("mockDataSource3"));
-//        }
-//
-//        verify(databaseProvider1, timeout(100).times(6)).createDatabase(same(preparer));
-//        verify(databaseProvider2, timeout(100).times(6)).createDatabase(same(preparer));
-//        verify(databaseProvider3, timeout(100).times(6)).createDatabase(same(preparer));
-//    }
-
     @Test
-    public void testDifferentPreparers() throws Exception {
+    public void testDifferentPreparers() {
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
         DatabasePreparer preparer2 = mock(DatabasePreparer.class);
         DatabasePreparer preparer3 = mock(DatabasePreparer.class);

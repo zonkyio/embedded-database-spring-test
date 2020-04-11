@@ -14,54 +14,53 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.impl;
+package io.zonky.test.db.provider.postgres;
 
-import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.flyway.BlockingDataSourceWrapper;
-import io.zonky.test.db.provider.DatabasePreparer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.PostgresEmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
+import static java.util.Collections.emptyList;
 
-public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvider {
+public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
-    private static final String POSTGRES_USERNAME = "postgres";
-    private static final String POSTGRES_PASSWORD = "docker";
+    private static final int MAX_DATABASE_CONNECTIONS = 300;
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
-                public DatabaseInstance load(DatabaseConfig config) {
+                public DatabaseInstance load(DatabaseConfig config) throws IOException {
                     return new DatabaseInstance(config);
                 }
             });
@@ -69,16 +68,13 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
     private final DatabaseConfig databaseConfig;
     private final ClientConfig clientConfig;
 
-    public DockerPostgresDatabaseProvider(Environment environment) {
-        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.7-alpine");
-        String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
-        boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
-
+    public ZonkyPostgresDatabaseProvider(Environment environment, ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
+        List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
-        this.databaseConfig = new DatabaseConfig(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
+        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
@@ -98,7 +94,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
         try {
             DatabaseInstance instance = databases.get(databaseConfig);
             return instance.createDatabase(clientConfig, request);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | UncheckedExecutionException e) {
             Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
             throw new ProviderException("Unexpected error occurred while preparing a database cluster", e.getCause());
         } catch (SQLException e) {
@@ -110,7 +106,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DockerPostgresDatabaseProvider that = (DockerPostgresDatabaseProvider) o;
+        ZonkyPostgresDatabaseProvider that = (ZonkyPostgresDatabaseProvider) o;
         return Objects.equals(databaseConfig, that.databaseConfig) &&
                 Objects.equals(clientConfig, that.clientConfig);
     }
@@ -122,45 +118,15 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
 
     protected static class DatabaseInstance {
 
-        private final PostgreSQLContainer container;
+        private final EmbeddedPostgres postgres;
         private final Semaphore semaphore;
 
-        private DatabaseInstance(DatabaseConfig config) {
-            String initdbArgs = config.initdbProperties.entrySet().stream()
-                    .map(e -> String.format("--%s=%s", e.getKey(), e.getValue()))
-                    .collect(Collectors.joining(" "));
+        private DatabaseInstance(DatabaseConfig config) throws IOException {
+            EmbeddedPostgres.Builder builder = EmbeddedPostgres.builder();
+            config.applyTo(builder);
 
-            Map<String, String> serverProperties = new HashMap<>(config.configProperties);
-
-            serverProperties.putIfAbsent("fsync", "off");
-            serverProperties.putIfAbsent("full_page_writes", "off");
-            serverProperties.putIfAbsent("max_connections", "300");
-
-            String postgresArgs = serverProperties.entrySet().stream()
-                    .map(e -> String.format("-c %s=%s", e.getKey(), e.getValue()))
-                    .collect(Collectors.joining(" "));
-
-            container = new PostgreSQLContainer(config.dockerImage) {
-                @Override
-                protected void configure() {
-                    super.configure();
-                    addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
-                    setCommand("postgres " + postgresArgs);
-                }
-            };
-
-            if (config.tmpfsEnabled) {
-                Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
-                        .withTmpFs(ImmutableMap.of("/var/lib/postgresql/data", config.tmpfsOptions));
-                container.withCreateContainerCmdModifier(consumer);
-            }
-
-            container.withUsername(POSTGRES_USERNAME);
-            container.withPassword(POSTGRES_PASSWORD);
-            container.start();
-            container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class)));
-
-            semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
+            postgres = builder.start();
+            semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
@@ -195,38 +161,33 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
             }
         }
 
-        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) throws SQLException {
-            PGSimpleDataSource dataSource = new PGSimpleDataSource();
-
-            dataSource.setServerName(container.getContainerIpAddress());
-            dataSource.setPortNumber(container.getMappedPort(POSTGRESQL_PORT));
-            dataSource.setDatabaseName(dbName);
-
-            dataSource.setUser(POSTGRES_USERNAME);
-            dataSource.setPassword(POSTGRES_PASSWORD);
-
-            for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
-                dataSource.setProperty(entry.getKey(), entry.getValue());
-            }
-
-            return new BlockingDataSourceWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+        private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
+            PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
+            return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
         }
     }
 
     private static class DatabaseConfig {
 
-        private final String dockerImage;
-        private final String tmpfsOptions;
-        private final boolean tmpfsEnabled;
         private final Map<String, String> initdbProperties;
         private final Map<String, String> configProperties;
+        private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
+        private final EmbeddedPostgres.Builder builder;
 
-        private DatabaseConfig(String dockerImage, String tmpfsOptions, boolean tmpfsEnabled, Map<String, String> initdbProperties, Map<String, String> configProperties) {
-            this.dockerImage = dockerImage;
-            this.tmpfsOptions = tmpfsOptions;
-            this.tmpfsEnabled = tmpfsEnabled;
+        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers) {
             this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
             this.configProperties = ImmutableMap.copyOf(configProperties);
+            this.customizers = ImmutableList.copyOf(customizers);
+            this.builder = EmbeddedPostgres.builder();
+            applyTo(this.builder);
+        }
+
+        public final void applyTo(EmbeddedPostgres.Builder builder) {
+            builder.setPGStartupWait(Duration.ofSeconds(20L));
+            initdbProperties.forEach(builder::setLocaleConfig);
+            configProperties.forEach(builder::setServerConfig);
+            customizers.forEach(c -> c.accept(builder));
+            builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
         }
 
         @Override
@@ -234,16 +195,12 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DatabaseConfig that = (DatabaseConfig) o;
-            return tmpfsEnabled == that.tmpfsEnabled &&
-                    Objects.equals(dockerImage, that.dockerImage) &&
-                    Objects.equals(tmpfsOptions, that.tmpfsOptions) &&
-                    Objects.equals(initdbProperties, that.initdbProperties) &&
-                    Objects.equals(configProperties, that.configProperties);
+            return Objects.equals(builder, that.builder);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(dockerImage, tmpfsOptions, tmpfsEnabled, initdbProperties, configProperties);
+            return Objects.hash(builder);
         }
     }
 

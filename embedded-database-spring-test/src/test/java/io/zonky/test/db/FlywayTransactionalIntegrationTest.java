@@ -1,10 +1,9 @@
 package io.zonky.test.db;
 
 import io.zonky.test.category.FlywayIntegrationTests;
-import io.zonky.test.db.flyway.DataSourceContext;
+import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,25 +17,22 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.BeforeTransaction;
 
 import javax.sql.DataSource;
 
-import static io.zonky.test.db.flyway.DataSourceContext.State.DIRTY;
-import static io.zonky.test.db.flyway.DataSourceContext.State.FRESH;
+import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
+import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
-import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-@TestExecutionListeners(mergeMode = MERGE_WITH_DEFAULTS, listeners = FlywayTestExecutionListener.class)
 @JdbcTest
 public class FlywayTransactionalIntegrationTest {
 

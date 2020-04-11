@@ -248,7 +248,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         }
     }
 
-    public static class ReplayableDatabasePreparerImpl implements RecordingDataSource.ReplayableDatabasePreparer {
+    public static class ReplayableDatabasePreparerImpl implements ReplayableDatabasePreparer {
 
         private final List<Record> recordData;
 

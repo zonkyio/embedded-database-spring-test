@@ -1,6 +1,6 @@
 # ContextCustomizerFactories for the Spring TestContext Framework
 org.springframework.test.context.ContextCustomizerFactory = \
-  io.zonky.test.db.postgres.EmbeddedDatabaseContextCustomizerFactory
+  io.zonky.test.db.EmbeddedDatabaseContextCustomizerFactory
 
 # TestExecutionListeners for the Spring TestContext Framework
 org.springframework.test.context.TestExecutionListener = \

@@ -17,8 +17,9 @@
 package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
+import io.zonky.test.category.FlywayIntegrationTests;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.test.FlywayTestExecutionListener;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -26,11 +27,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
@@ -38,15 +36,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import io.zonky.test.category.FlywayIntegrationTests;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
+@Ignore // TODO: bring the async initialization feature back
 @RunWith(SpringRunner.class)
 @Category(FlywayIntegrationTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-@TestExecutionListeners(mergeMode = MERGE_WITH_DEFAULTS, listeners = FlywayTestExecutionListener.class)
 @ContextConfiguration
 public class AsyncFlywayInitializationIntegrationTest {
 
@@ -55,7 +50,7 @@ public class AsyncFlywayInitializationIntegrationTest {
     @Configuration
     static class Config {
 
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
@@ -63,14 +58,6 @@ public class AsyncFlywayInitializationIntegrationTest {
             flyway.setLocations("db/migration", "db/test_migration/slow");
             return flyway;
         }
-
-        // TODO:
-//        @Bean
-//        public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
-//            DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
-//            dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
-//            return dataSourceContext;
-//        }
 
         @Bean
         public LongTimeInitializingBean longTimeInitializingBean(DataSource dataSource) {
@@ -80,11 +67,6 @@ public class AsyncFlywayInitializationIntegrationTest {
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
-        }
-
-        @Bean
-        public TaskExecutor bootstrapExecutor() {
-            return new SimpleAsyncTaskExecutor("bootstrapExecutor-");
         }
     }
 

@@ -2,7 +2,6 @@ package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 
@@ -17,11 +16,11 @@ public class FlywayDescriptor {
     private final OutputStream dryRunOutput;
 
     // included in equals and hashCode methods
-    // but it will work only for empty arrays (that is common use-case)
+    // but it works only for empty arrays (that is common use-case)
     // because of missing equals and hashCode methods
     // on classes implementing these interfaces
     private final List<MigrationResolver> resolvers;
-    private final List<Object> callbacks; // TODO: check if the callbacks are still modified during the migration or not...
+    private final List<Object> callbacks;
     private final List<Object> errorHandlers;
 
     // included in equals and hashCode methods
@@ -267,8 +266,7 @@ public class FlywayDescriptor {
         this.connectRetries = connectRetries;
     }
 
-    public static FlywayDescriptor from(Flyway flyway) {
-        FlywayWrapper wrapper = new FlywayWrapper(flyway);
+    public static FlywayDescriptor from(FlywayWrapper wrapper) {
         return new FlywayDescriptor(
                 wrapper.getCallbacks(),
                 wrapper.getResolvers(),
@@ -315,8 +313,7 @@ public class FlywayDescriptor {
         );
     }
 
-    public void applyTo(Flyway flyway) {
-        FlywayWrapper wrapper = new FlywayWrapper(flyway);
+    public void applyTo(FlywayWrapper wrapper) {
         wrapper.setCallbacks(callbacks);
         wrapper.setResolvers(resolvers);
         wrapper.setErrorHandlers(errorHandlers);
@@ -386,6 +383,7 @@ public class FlywayDescriptor {
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
                 connectRetries == that.connectRetries &&
+                Objects.equals(callbacks, that.callbacks) &&
                 Objects.equals(resolvers, that.resolvers) &&
                 Objects.equals(errorHandlers, that.errorHandlers) &&
                 Objects.equals(baselineVersion, that.baselineVersion) &&
@@ -412,7 +410,7 @@ public class FlywayDescriptor {
     @Override
     public int hashCode() {
         return Objects.hash(
-                resolvers, errorHandlers,
+                callbacks, resolvers, errorHandlers,
                 baselineVersion, targetVersion, locations, schemas, sqlMigrationSuffixes,
                 errorOverrides, placeholders, table, baselineDescription,
                 undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,

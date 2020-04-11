@@ -1,4 +1,4 @@
-package io.zonky.test.db.flyway;
+package io.zonky.test.db.provider.postgres;
 
 import io.zonky.test.db.provider.EmbeddedDatabase;
 
@@ -29,12 +29,12 @@ import java.util.logging.Logger;
  * Blocking data source wrapper that should avoid to exhaustion of database connections.
  * It is a better choice than using a connection pool because database connections can be released as soon as possible.
  */
-public class BlockingDataSourceWrapper implements EmbeddedDatabase {
+public class BlockingDatabaseWrapper implements EmbeddedDatabase {
 
     private final EmbeddedDatabase delegate;
     private final Semaphore semaphore;
 
-    public BlockingDataSourceWrapper(EmbeddedDatabase delegate, Semaphore semaphore) {
+    public BlockingDatabaseWrapper(EmbeddedDatabase delegate, Semaphore semaphore) {
         this.delegate = delegate;
         this.semaphore = semaphore;
     }
@@ -80,7 +80,7 @@ public class BlockingDataSourceWrapper implements EmbeddedDatabase {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (EmbeddedDatabase.class.isAssignableFrom(iface) || BlockingDataSourceWrapper.class.isAssignableFrom(iface)) {
+        if (EmbeddedDatabase.class.isAssignableFrom(iface) || BlockingDatabaseWrapper.class.isAssignableFrom(iface)) {
             return (T) this;
         }
         return delegate.unwrap(iface);

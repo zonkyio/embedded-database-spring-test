@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabases;
-import io.zonky.test.db.flyway.DefaultDataSourceContext;
-import io.zonky.test.db.provider.DatabaseDescriptor;
-import io.zonky.test.db.provider.config.EmbeddedDatabaseConfiguration;
+import io.zonky.test.db.context.DatabaseDescriptor;
+import io.zonky.test.db.context.DefaultDataSourceContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +179,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
                 dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
-                dataSourceDefinition.setBeanClass(EmbeddedPostgresDataSourceFactoryBean.class);
+                dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
                 dataSourceDefinition.getConstructorArgumentValues()
                         .addIndexedArgumentValue(0, dataSourceContextBeanName);
 
@@ -209,7 +206,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                             !databaseAnnotation.providerName().isEmpty() ? databaseAnnotation.providerName() :
                                     environment.getProperty("zonky.test.database.provider", "docker");
             String databaseName = databaseAnnotation.type().name();
-            return new DatabaseDescriptor(databaseName, providerName);
+            return DatabaseDescriptor.of(databaseName, providerName);
         }
     }
 

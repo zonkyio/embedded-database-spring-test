@@ -1,6 +1,6 @@
 package io.zonky.test.db.logging;
 
-import io.zonky.test.db.flyway.DataSourceContext;
+import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;

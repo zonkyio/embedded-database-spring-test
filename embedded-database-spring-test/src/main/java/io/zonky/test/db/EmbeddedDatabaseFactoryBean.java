@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.postgres;
+package io.zonky.test.db;
 
-import io.zonky.test.db.flyway.DataSourceContext;
+import io.zonky.test.db.context.DataSourceContext;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -30,14 +30,14 @@ import javax.sql.DataSource;
  * that provides fully cacheable instances of the embedded postgres database.
  */
 // TODO: replace by using factory method (java configuration)
-public class EmbeddedPostgresDataSourceFactoryBean implements FactoryBean<DataSource>, BeanFactoryAware, Ordered {
+public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, BeanFactoryAware, Ordered {
 
     private final String dataSourceContextName;
 
     private BeanFactory beanFactory;
     private DataSource proxyInstance;
 
-    public EmbeddedPostgresDataSourceFactoryBean(String dataSourceContextName) {
+    public EmbeddedDatabaseFactoryBean(String dataSourceContextName) {
         this.dataSourceContextName = dataSourceContextName;
     }
 
