@@ -26,8 +26,9 @@ ext {
             
             [core: '5.1.4', test: '5.1.0'],
 //            [core: '5.2.4', test: '5.2.4'], // TODO: improve flyway test execution listener
-//            [core: '6.0.2', test: '5.2.4'], // TODO: improve flyway test execution listener
-            
+//            [core: '6.0.2', test: '6.0.0'], // TODO: improve flyway test execution listener
+//            [core: '6.0.7', test: '6.0.0'], // TODO: improve flyway test execution listener
+
             [core: '5.0.7', test: '5.0.0'] // default version
     ]
     embeddedPostgresVersions = ['9.4.24', '9.5.19', '9.6.15', '10.10.0', '11.5.0']

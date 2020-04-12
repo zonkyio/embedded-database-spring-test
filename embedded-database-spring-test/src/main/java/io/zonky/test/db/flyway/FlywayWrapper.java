@@ -36,6 +36,7 @@ import org.springframework.util.ClassUtils;
 import javax.sql.DataSource;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -115,10 +116,21 @@ public class FlywayWrapper {
             Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
 
             Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
-            Object scanner = scannerType.getConstructors()[0].newInstance(
-                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                    invokeMethod(configuration, "getClassLoader"),
-                    invokeMethod(configuration, "getEncoding"));
+            Constructor<?> scannerConstructor = scannerType.getConstructors()[0];
+            Object scanner;
+
+            if (scannerConstructor.getParameterCount() == 4) {
+                scanner = scannerConstructor.newInstance(
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"));
+            } else {
+                scanner = scannerConstructor.newInstance(
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"));
+            }
 
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
         } else if (flywayVersion >= 52) {
