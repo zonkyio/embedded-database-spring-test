@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,46 +16,31 @@
 
 package io.zonky.test.db.logging;
 
+import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.apache.commons.lang3.StringUtils;
-import org.postgresql.ds.common.BaseDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 
 public class EmbeddedDatabaseReporter {
 
-    private static final String JDBC_FORMAT = "jdbc:postgresql://localhost:%s/%s?user=%s";
-
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedDatabaseReporter.class);
 
-    public static void reportDataSource(DataSource dataSource) {
-        logger.info("JDBC URL to connect to the embedded database: {}", getJdbcUrl(dataSource));
-    }
+    public static void reportDataSource(String beanName, EmbeddedDatabase database, AnnotatedElement element) {
+        String connectionString = database.getUrl() + String.format("?user=%s", database.getUsername());
 
-    public static void reportDataSource(DataSource dataSource, AnnotatedElement element) {
-        logger.info("JDBC URL to connect to the embedded database: {}, scope: {}", getJdbcUrl(dataSource), getElementName(element));
-    }
-
-    private static String getJdbcUrl(DataSource dataSource) {
-        try {
-            BaseDataSource ds = dataSource.unwrap(BaseDataSource.class);
-            if (StringUtils.isBlank(ds.getPassword())) {
-                return String.format(JDBC_FORMAT, ds.getPortNumber(), ds.getDatabaseName(), ds.getUser());
-            } else {
-                return String.format(JDBC_FORMAT + "&password=%s", ds.getPortNumber(), ds.getDatabaseName(), ds.getUser(), ds.getPassword());
-            }
-        } catch (Exception e) {
-            logger.warn("Unexpected error occurred while resolving url to the embedded database", e);
-            return "unknown";
+        if (StringUtils.isNotBlank(database.getPassword())) {
+            connectionString += String.format("&password=%s", database.getPassword());
         }
+
+        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, connectionString, getElementName(element));
     }
 
     private static String getElementName(AnnotatedElement element) {
-        if (element instanceof Class) {
-            return ((Class) element).getSimpleName();
+        if (element instanceof Class<?>) {
+            return ((Class<?>) element).getSimpleName();
         } else if (element instanceof Method) {
             Method method = (Method) element;
             return getElementName(method.getDeclaringClass()) + "#" + method.getName();

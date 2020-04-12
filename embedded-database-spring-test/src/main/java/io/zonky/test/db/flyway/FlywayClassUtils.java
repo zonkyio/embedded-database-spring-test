@@ -1,76 +1,72 @@
+/*
+ * Copyright 2020 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.zonky.test.db.flyway;
 
 import org.apache.commons.io.IOUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
-import org.flywaydb.test.annotation.FlywayTest;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.test.util.ReflectionTestUtils.getField;
 import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 public class FlywayClassUtils {
 
-    private static final boolean flywayNameAttributePresent = ClassUtils.hasMethod(FlywayTest.class, "flywayName");
-    private static final boolean flywayBaselineAttributePresent = ClassUtils.hasMethod(FlywayTest.class, "invokeBaselineDB");
-    private static final boolean repeatableAnnotationPresent = ClassUtils.isPresent(
-            "org.flywaydb.test.annotation.FlywayTests", FlywayClassUtils.class.getClassLoader());
-
-    private static final int flywayVersion;
-    private static final boolean isFlywayPro;
-
-    static {
-        String version;
-        try {
-            ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayConfigSnapshot.class.getClassLoader());
-            if (versionResource.exists()) {
-                version = IOUtils.readLines(versionResource.getInputStream()).get(0).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2");
-            } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
-                version = "32";
-            } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {
-                version = "31";
-            } else {
-                version = "30";
-            }
-        } catch (Exception e) {
-            LoggerFactory.getLogger(FlywayConfigSnapshot.class).error("Unexpected error occurred while resolving flyway version", e);
-            version = "0";
-        }
-        flywayVersion = Integer.valueOf(version);
-
-        if (flywayVersion >= 50) {
-            boolean isCommercial;
-            try {
-                if (flywayVersion >= 51) {
-                    Object flywayConfig = getField(new Flyway(), "configuration");
-                    invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
-                } else {
-                    new Flyway().getUndoSqlMigrationPrefix();
-                }
-                isCommercial = true;
-            } catch (FlywayException e) {
-                isCommercial = false;
-            }
-            isFlywayPro = isCommercial;
-        } else {
-            isFlywayPro = false;
-        }
-    }
+    private static final int flywayVersion = loadFlywayVersion();
+    private static final boolean flywayPro = loadFlywayPro();
 
     private FlywayClassUtils() {}
 
-    public static boolean isFlywayNameAttributePresent() {
-        return flywayNameAttributePresent;
+    private static int loadFlywayVersion() {
+        try {
+            ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayClassUtils.class.getClassLoader());
+            if (versionResource.exists()) {
+                return Integer.valueOf(IOUtils.readLines(versionResource.getInputStream(), UTF_8).get(0).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
+            } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
+                return 32;
+            } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {
+                return 31;
+            } else {
+                return 30;
+            }
+        } catch (Exception e) {
+            LoggerFactory.getLogger(FlywayClassUtils.class).error("Unexpected error occurred while resolving flyway version", e);
+            return 0;
+        }
     }
 
-    public static boolean isFlywayBaselineAttributePresent() {
-        return flywayBaselineAttributePresent;
-    }
-
-    public static boolean isRepeatableFlywayTestAnnotationPresent() {
-        return repeatableAnnotationPresent;
+    private static boolean loadFlywayPro() {
+        if (flywayVersion < 50) {
+            return false;
+        }
+        try {
+            if (flywayVersion >= 51) {
+                Object flywayConfig = getField(new Flyway(), "configuration");
+                invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
+            } else {
+                new Flyway().getUndoSqlMigrationPrefix();
+            }
+            return true;
+        } catch (FlywayException e) {
+            return false;
+        }
     }
 
     public static int getFlywayVersion() {
@@ -78,6 +74,6 @@ public class FlywayClassUtils {
     }
 
     public static boolean isFlywayPro() {
-        return isFlywayPro;
+        return flywayPro;
     }
 }

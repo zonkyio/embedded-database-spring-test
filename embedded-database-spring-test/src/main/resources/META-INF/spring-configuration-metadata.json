@@ -17,10 +17,6 @@
       "description": "Additional configuration properties for PostgreSQL database running in a Docker container. Only available if database provider is set to Docker."
     },
     {
-      "name": "zonky.test.database.postgres.zonky-provider",
-      "description": "Additional configuration properties for Zonky Embedded Postgres. Only available if database provider is set to Zonky."
-    },
-    {
       "name": "zonky.test.database.postgres.yandex-provider",
       "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
     }
@@ -82,12 +78,6 @@
       "type": "java.lang.String",
       "description": "Mount options used to configure the tmpfs filesystem.",
       "defaultValue": "rw,noexec,nosuid"
-    },
-    {
-      "name": "zonky.test.database.postgres.zonky-provider.preparer-isolation",
-      "type": "io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider$PreparerIsolation",
-      "description": "Whether there should be one shared database cluster or multiple independent database clusters.",
-      "defaultValue": "database"
     },
     {
       "name": "zonky.test.database.postgres.yandex-provider.postgres-version",

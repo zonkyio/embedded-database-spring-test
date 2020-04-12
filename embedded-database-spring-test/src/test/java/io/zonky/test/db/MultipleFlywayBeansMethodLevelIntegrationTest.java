@@ -49,7 +49,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
 
         @Primary
         @DependsOn("flyway2")
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway1(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
@@ -58,7 +58,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
             return flyway;
         }
 
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway2(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);
@@ -67,7 +67,7 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
             return flyway;
         }
 
-        @Bean
+        @Bean(initMethod = "migrate")
         public Flyway flyway3(DataSource dataSource) {
             Flyway flyway = new Flyway();
             flyway.setDataSource(dataSource);

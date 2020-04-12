@@ -42,13 +42,13 @@ The configuration of the embedded database is driven by `@AutoConfigureEmbeddedD
 
 ## Examples
 
-### Creating a new empty database with a specified bean name
+### Creating a new empty database
 
-A new data source with a specified name will be created and injected into all related components. You can also inject it into test class as shown below. 
+A new data source will be created and injected into all related components. You can also inject it into test class as shown below. 
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 public class EmptyDatabaseIntegrationTest {
     
     @Autowired
@@ -74,7 +74,7 @@ public class EmptyDatabaseIntegrationTest {
 ### Creating multiple databases within a single test class
 
 The `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, so you can annotate a test class with multiple annotations to create multiple independent databases.
-Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
+Each of them can have completely different configuration parameters, including the database provider as demonstrated in the example below.
 
 Note that if multiple annotations on a single class are applied, some optimization techniques can not be used and database initialization may be slower.
 
@@ -554,7 +554,7 @@ public class FlywayMigrationIntegrationTest {
 When you use a breakpoint to pause the tests, you can connect to a temporary embedded database. Connection details can be found in the log as shown in the example below:
 
 ```log
-i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to the embedded database: jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres, scope: TestClass#testMethod
+i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to 'dataSource1': url='jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres', scope='TestClass#testMethod'
 ```
 
 If you are using `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in such case multiple isolated databases may be created.
@@ -613,15 +613,6 @@ Detailed instructions are [here](https://www.testcontainers.org/supported_docker
 
 Make sure that you do not use `org.flywaydb.test.junit.FlywayTestExecutionListener`. Because this library has its own test execution listener that can optimize database initialization.
 But this optimization has no effect if `FlywayTestExecutionListener` is also applied.
-
-### ERROR: role "..." already exists
-
-Since version [1.4.0](https://github.com/zonkyio/embedded-database-spring-test/releases/tag/v1.4.0), database prefetching has been improved. All databases are stored within a single database cluster.
-It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
-
-```properties
-zonky.test.database.postgres.zonky-provider.preparer-isolation=cluster
-```
 
 ## Building from Source
 The project uses a [Gradle](http://gradle.org)-based build system. In the instructions

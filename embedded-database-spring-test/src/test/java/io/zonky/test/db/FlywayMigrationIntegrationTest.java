@@ -25,10 +25,15 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +53,7 @@ public class FlywayMigrationIntegrationTest {
     @Configuration
     static class Config {
 
+        @DependsOn("testDatabaseInitializer")
         @Bean(initMethod = "migrate")
         public Flyway flyway(DataSource dataSource) {
             Flyway flyway = new Flyway();
@@ -59,6 +65,30 @@ public class FlywayMigrationIntegrationTest {
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        public TestDatabaseInitializer testDatabaseInitializer(DataSource dataSource, ResourceLoader resourceLoader) {
+            return new TestDatabaseInitializer(dataSource, resourceLoader);
+        }
+    }
+
+    public static class TestDatabaseInitializer {
+
+        private final DataSource dataSource;
+        private final ResourceLoader resourceLoader;
+
+        public TestDatabaseInitializer(DataSource dataSource, ResourceLoader resourceLoader) {
+            this.dataSource = dataSource;
+            this.resourceLoader = resourceLoader;
+        }
+
+        @PostConstruct
+        public void init() {
+            ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+            populator.addScript(this.resourceLoader.getResource("db/create_address_table.sql"));
+            populator.setContinueOnError(true);
+            DatabasePopulatorUtils.execute(populator, this.dataSource);
         }
     }
 

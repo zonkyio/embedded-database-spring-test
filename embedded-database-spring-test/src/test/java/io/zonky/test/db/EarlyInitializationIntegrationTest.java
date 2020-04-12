@@ -5,7 +5,6 @@ import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -58,7 +57,7 @@ public class EarlyInitializationIntegrationTest {
         }
 
         @Override
-        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             beanFactory.getBeanNamesForType(DataSource.class, true, true);
         }
     }

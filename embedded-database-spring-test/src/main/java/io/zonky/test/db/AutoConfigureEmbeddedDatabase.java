@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,7 @@ import java.lang.annotation.Target;
  * <p>
  * This annotation may be used as a <em>meta-annotation</em> to create custom <em>composed annotations</em>.
  *
- * @see io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory
- * @see io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener
+ * @see EmbeddedDatabaseContextCustomizerFactory
  */
 @Documented
 @Inherited
@@ -63,7 +62,7 @@ public @interface AutoConfigureEmbeddedDatabase {
      *
      * @return the type of an embedded database
      */
-    EmbeddedDatabaseType type() default EmbeddedDatabaseType.POSTGRES;
+    DatabaseType type() default DatabaseType.POSTGRES;
 
     /**
      * Provider used to create the underlying embedded database,
@@ -71,9 +70,12 @@ public @interface AutoConfigureEmbeddedDatabase {
      * Note that the provider can also be configured
      * through {@code zonky.test.database.provider} property.
      *
-     * @return the provider of an embedded database
+     * @return the provider to create the embedded database
      */
     DatabaseProvider provider() default DatabaseProvider.DEFAULT;
+
+    // TODO: update javadoc
+    String providerName() default "";
 
     /**
      * What the test database can replace.
@@ -95,7 +97,7 @@ public @interface AutoConfigureEmbeddedDatabase {
     /**
      * The supported types of embedded databases.
      */
-    enum EmbeddedDatabaseType {
+    enum DatabaseType {
 
         /**
          * PostgreSQL Database
@@ -110,7 +112,7 @@ public @interface AutoConfigureEmbeddedDatabase {
     enum DatabaseProvider {
 
         /**
-         * Default typically equals to {@link #ZONKY} provider,
+         * Default typically equals to {@link #DOCKER} provider,
          * unless a different default has been configured by externalized configuration.
          */
         DEFAULT,
