@@ -127,6 +127,8 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
+        private static final NullPlaceholder NULL = new NullPlaceholder();
+
         private final ConfigurableEnvironment environment;
 
         public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
@@ -137,12 +139,31 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
             environment.getPropertySources().addFirst(new MapPropertySource(
                     EmbeddedDatabaseContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of("spring.test.database.replace", "NONE")));
+                    ImmutableMap.of(
+                            "spring.test.database.replace", "NONE",
+                            "spring.flyway.url", NULL,
+                            "spring.flyway.user", NULL,
+                            "flyway.url", NULL,
+                            "flyway.user", NULL
+                    )));
         }
 
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
+        }
+
+        protected static class NullPlaceholder {
+
+            // this method is required to hook up org.springframework.core.convert.support.FallbackObjectToStringConverter
+            public static NullPlaceholder valueOf(String value) {
+                throw new IllegalStateException("This method should never be called!");
+            }
+
+            @Override
+            public String toString() {
+                return null;
+            }
         }
     }
 
