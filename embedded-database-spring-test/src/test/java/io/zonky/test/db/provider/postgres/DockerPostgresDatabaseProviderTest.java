@@ -16,25 +16,44 @@
 
 package io.zonky.test.db.provider.postgres;
 
+import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DockerPostgresDatabaseProviderTest {
+
+    @Mock
+    private ObjectProvider<List<PostgreSQLContainerCustomizer>> containerCustomizers;
+
+    @Before
+    public void setUp() {
+        when(containerCustomizers.getIfAvailable()).thenReturn(Collections.emptyList());
+    }
 
     @Test
     public void testGetDatabase() throws Exception {
-        DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(new MockEnvironment());
+        DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
 
         DatabasePreparer preparer1 = dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
@@ -71,6 +90,41 @@ public class DockerPostgresDatabaseProviderTest {
     }
 
     @Test
+    public void testContainerCustomizers() throws SQLException {
+        when(containerCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(container -> container.withPassword("test")));
+
+        DatabasePreparer preparer = dataSource -> {};
+        DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
+        DataSource dataSource = provider.createDatabase(preparer);
+
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("test");
+    }
+
+    @Test
+    public void providersWithSameCustomizersShouldEquals() {
+        when(containerCustomizers.getIfAvailable()).thenReturn(
+                Collections.singletonList(postgresContainerCustomizer(61)),
+                Collections.singletonList(postgresContainerCustomizer(61)));
+
+        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
+        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
+
+        assertThat(provider1).isEqualTo(provider2);
+    }
+
+    @Test
+    public void providersWithDifferentCustomizersShouldNotEquals() {
+        when(containerCustomizers.getIfAvailable()).thenReturn(
+                Collections.singletonList(postgresContainerCustomizer(60)),
+                Collections.singletonList(postgresContainerCustomizer(61)));
+
+        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
+        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
+
+        assertThat(provider1).isNotEqualTo(provider2);
+    }
+
+    @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:9.6.11-alpine");
@@ -80,7 +134,7 @@ public class DockerPostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
         DatabasePreparer preparer = dataSource -> {};
-        DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(environment);
+        DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
         assertThat(dataSource.unwrap(PGSimpleDataSource.class).getProperty("stringtype")).isEqualTo("unspecified");
@@ -104,8 +158,8 @@ public class DockerPostgresDatabaseProviderTest {
     public void providersWithDefaultConfigurationShouldEquals() {
         MockEnvironment environment = new MockEnvironment();
 
-        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment);
-        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment);
+        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
+        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
 
         assertThat(provider1).isEqualTo(provider2);
     }
@@ -120,8 +174,8 @@ public class DockerPostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.yyy", "yyy-value");
         environment.setProperty("zonky.test.database.postgres.client.properties.zzz", "zzz-value");
 
-        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment);
-        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment);
+        DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
+        DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
 
         assertThat(provider1).isEqualTo(provider2);
     }
@@ -155,8 +209,8 @@ public class DockerPostgresDatabaseProviderTest {
 
             environment2.setProperty(diffProperty.getKey(), diffProperty.getValue());
 
-            DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment1);
-            DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment2);
+            DockerPostgresDatabaseProvider provider1 = new DockerPostgresDatabaseProvider(environment1, containerCustomizers);
+            DockerPostgresDatabaseProvider provider2 = new DockerPostgresDatabaseProvider(environment2, containerCustomizers);
 
             assertThat(provider1).isNotEqualTo(provider2);
         }
@@ -164,5 +218,9 @@ public class DockerPostgresDatabaseProviderTest {
 
     private static int getPort(DataSource dataSource) throws SQLException {
         return dataSource.unwrap(PGSimpleDataSource.class).getPortNumber();
+    }
+
+    private static PostgreSQLContainerCustomizer postgresContainerCustomizer(long timeout) {
+        return container -> container.withStartupTimeout(Duration.ofSeconds(timeout));
     }
 }

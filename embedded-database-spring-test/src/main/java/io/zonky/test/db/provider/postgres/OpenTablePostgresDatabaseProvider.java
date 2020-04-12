@@ -72,6 +72,7 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
+
         List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
 
         this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers);
