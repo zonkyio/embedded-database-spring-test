@@ -23,7 +23,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
+import java.lang.reflect.InvocationTargetException;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
 import static org.springframework.test.util.ReflectionTestUtils.getField;
 import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
@@ -57,7 +60,10 @@ public class FlywayClassUtils {
             return false;
         }
         try {
-            if (flywayVersion >= 51) {
+            if (flywayVersion >= 60) {
+                Object flywayConfig = invokeStaticMethod(Flyway.class, "configure");
+                invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
+            } else if (flywayVersion >= 51) {
                 Object flywayConfig = getField(new Flyway(), "configuration");
                 invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
             } else {
@@ -66,6 +72,8 @@ public class FlywayClassUtils {
             return true;
         } catch (FlywayException e) {
             return false;
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
         }
     }
 

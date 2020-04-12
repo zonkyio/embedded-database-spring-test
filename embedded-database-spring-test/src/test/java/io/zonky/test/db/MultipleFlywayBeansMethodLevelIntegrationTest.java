@@ -16,7 +16,9 @@
 
 package io.zonky.test.db;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.MultiFlywayIntegrationTests;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
@@ -51,30 +53,30 @@ public class MultipleFlywayBeansMethodLevelIntegrationTest {
         @DependsOn("flyway2")
         @Bean(initMethod = "migrate")
         public Flyway flyway1(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/migration", "db/test_migration/dependent");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            wrapper.setLocations(ImmutableList.of("db/migration", "db/test_migration/dependent"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
         public Flyway flyway2(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("next");
-            flyway.setLocations("db/next_migration");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("next"));
+            wrapper.setLocations(ImmutableList.of("db/next_migration"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
         public Flyway flyway3(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            flyway.setLocations("db/test_migration/appendable");
-            flyway.setValidateOnMigrate(false);
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            wrapper.setLocations(ImmutableList.of("db/test_migration/appendable"));
+            wrapper.setValidateOnMigrate(false);
+            return wrapper.getFlyway();
         }
 
         @Bean

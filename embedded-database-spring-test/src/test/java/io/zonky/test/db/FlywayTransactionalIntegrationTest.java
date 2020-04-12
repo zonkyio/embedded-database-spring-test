@@ -1,7 +1,9 @@
 package io.zonky.test.db;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayIntegrationTests;
 import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -41,10 +43,10 @@ public class FlywayTransactionalIntegrationTest {
 
         @Bean(initMethod = "migrate")
         public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource);
-            flyway.setSchemas("test");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
     }
 

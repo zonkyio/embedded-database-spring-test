@@ -16,7 +16,9 @@
 
 package io.zonky.test.db;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.MultiFlywayIntegrationTests;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
@@ -56,26 +58,26 @@ public class MultipleDatabasesIntegrationTest {
 
         @Bean(initMethod = "migrate")
         public Flyway flyway1(DataSource dataSource1) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource1);
-            flyway.setSchemas("test");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource1);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
         public Flyway flyway2(DataSource dataSource2) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource2);
-            flyway.setSchemas("test");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource2);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
         public Flyway flyway3(DataSource dataSource3) {
-            Flyway flyway = new Flyway();
-            flyway.setDataSource(dataSource3);
-            flyway.setSchemas("test");
-            return flyway;
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource3);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean

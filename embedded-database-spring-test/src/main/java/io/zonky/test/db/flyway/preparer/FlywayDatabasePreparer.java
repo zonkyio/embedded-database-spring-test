@@ -40,13 +40,12 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
 
     @Override
     public void prepare(DataSource ds) {
-        Flyway flyway = new Flyway();
-        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
+        FlywayWrapper wrapper = FlywayWrapper.newInstance();
 
         descriptor.applyTo(wrapper);
         wrapper.setDataSource(ds);
 
-        doOperation(flyway);
+        doOperation(wrapper.getFlyway());
     }
 
     @Override

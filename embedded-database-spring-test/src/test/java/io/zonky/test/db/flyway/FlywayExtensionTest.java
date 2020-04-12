@@ -48,9 +48,9 @@ public class FlywayExtensionTest {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
         when(dataSource.getTargetSource()).thenReturn(dataSourceContext);
 
-        Flyway flyway = new Flyway();
-        flyway.setLocations("db/migration");
-        flyway.setDataSource((DataSource) dataSource);
+        FlywayWrapper wrapper = FlywayWrapper.newInstance();
+        wrapper.setLocations(ImmutableList.of("db/migration"));
+        wrapper.setDataSource((DataSource) dataSource);
 
         this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(flyway, "flyway");
         this.flywayWrapper = FlywayWrapper.of(flyway);

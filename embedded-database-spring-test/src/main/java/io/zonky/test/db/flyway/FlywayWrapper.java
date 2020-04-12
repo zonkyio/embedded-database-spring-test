@@ -59,6 +59,19 @@ public class FlywayWrapper {
     private final Flyway flyway;
     private final Object config;
 
+    public static FlywayWrapper newInstance() {
+        try {
+            if (flywayVersion >= 60) {
+                Object config = invokeStaticMethod(Flyway.class, "configure");
+                return new FlywayWrapper(invokeMethod(config, "load"));
+            } else {
+                return new FlywayWrapper(new Flyway());
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static FlywayWrapper of(Flyway flyway) {
         return new FlywayWrapper(flyway);
     }
@@ -71,6 +84,10 @@ public class FlywayWrapper {
         } else {
             config = this.flyway;
         }
+    }
+
+    public Flyway getFlyway() {
+        return flyway;
     }
 
     public Collection<ResolvedMigration> getMigrations() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -87,7 +104,24 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        if (flywayVersion >= 52) {
+        if (flywayVersion >= 60) {
+            Object configuration = getField(flyway, "configuration");
+
+            Class<?> jdbcConnectionFactoryType = ClassUtils.forName("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", classLoader);
+            Object jdbcConnectionFactory = jdbcConnectionFactoryType.getConstructors()[0].newInstance(
+                    invokeMethod(configuration, "getDataSource"), 0);
+
+            Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, configuration);
+            Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
+
+            Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
+            Object scanner = scannerType.getConstructors()[0].newInstance(
+                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                    invokeMethod(configuration, "getClassLoader"),
+                    invokeMethod(configuration, "getEncoding"));
+
+            return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
+        } else if (flywayVersion >= 52) {
             Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
             Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
             Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
@@ -255,6 +289,27 @@ public class FlywayWrapper {
         }
     }
 
+    public List<Object> getJavaMigrations() {
+        if (flywayVersion >= 60) {
+            return ImmutableList.copyOf(getArray(config, "getJavaMigrations"));
+        } else {
+            return ImmutableList.of();
+        }
+    }
+
+    public void setJavaMigrations(List<Object> javaMigrations) {
+        try {
+            if (flywayVersion >= 60) {
+                Class<?> migrationType = ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader);
+                setValue(config, "setJavaMigrations", javaMigrations.toArray(((Object[]) Array.newInstance(migrationType, 0))));
+            } else if (!Objects.equals(javaMigrations, getJavaMigrations())) {
+                throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e); // TODO: improve error handling
+        }
+    }
+
     public String getUndoSqlMigrationPrefix() {
         if (flywayVersion >= 50 && isFlywayPro) {
             return getValue(config, "getUndoSqlMigrationPrefix");
@@ -357,6 +412,22 @@ public class FlywayWrapper {
 
     public void setTable(String table) {
         setValue(config, "setTable", table);
+    }
+
+    public String getTablespace() {
+        if (flywayVersion >= 60) {
+            return getValue(config, "getTablespace");
+        } else {
+            return null;
+        }
+    }
+
+    public void setTablespace(String tablespace) {
+        if (flywayVersion >= 60) {
+            setValue(config, "setTablespace", tablespace);
+        } else if (!Objects.equals(tablespace, getTablespace())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
     }
 
     public List<String> getSchemas() {
@@ -600,7 +671,7 @@ public class FlywayWrapper {
     }
 
     public List<Object> getErrorHandlers() {
-        if (flywayVersion >= 50 && isFlywayPro) {
+        if (flywayVersion >= 50 && flywayVersion < 60 && isFlywayPro) {
             return ImmutableList.copyOf(getArray(config, "getErrorHandlers"));
         } else {
             return ImmutableList.of();
@@ -609,7 +680,7 @@ public class FlywayWrapper {
 
     public void setErrorHandlers(List<Object> errorHandlers) {
         try {
-            if (flywayVersion >= 50 && isFlywayPro) {
+            if (flywayVersion >= 50 && flywayVersion < 60 && isFlywayPro) {
                 Class<?> handlerType = ClassUtils.forName("org.flywaydb.core.api.errorhandler.ErrorHandler", classLoader);
                 setValue(config, "setErrorHandlers", errorHandlers.toArray(((Object[]) Array.newInstance(handlerType, 0))));
             } else if (!Objects.equals(errorHandlers, getErrorHandlers())) {
@@ -630,7 +701,7 @@ public class FlywayWrapper {
 
     public void setErrorOverrides(List<String> errorOverrides) {
         if (flywayVersion >= 51 && isFlywayPro) {
-            setValue(config, "setErrorOverrides", errorOverrides);
+            setValue(config, "setErrorOverrides", errorOverrides.toArray(new String[0]));
         } else if (!Objects.equals(errorOverrides, getErrorOverrides())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
@@ -697,6 +768,22 @@ public class FlywayWrapper {
         if (flywayVersion >= 51 && isFlywayPro) {
             setValue(config, "setOracleSqlplus", oracleSqlPlus);
         } else if (!Objects.equals(oracleSqlPlus, isOracleSqlPlus())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public boolean isOracleSqlplusWarn() {
+        if (flywayVersion >= 60 && isFlywayPro) {
+            return getValue(config, "isOracleSqlplusWarn");
+        } else {
+            return false;
+        }
+    }
+
+    public void setOracleSqlplusWarn(boolean oracleSqlplusWarn) {
+        if (flywayVersion >= 60 && isFlywayPro) {
+            setValue(config, "setOracleSqlplusWarn", oracleSqlplusWarn);
+        } else if (!Objects.equals(oracleSqlplusWarn, isOracleSqlplusWarn())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }
