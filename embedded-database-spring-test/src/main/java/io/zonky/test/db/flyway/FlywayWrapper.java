@@ -30,14 +30,11 @@ import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.test.util.AopTestUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,9 +43,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
-import static org.springframework.test.util.ReflectionTestUtils.getField;
-import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 
 public class FlywayWrapper {
 
@@ -61,15 +59,11 @@ public class FlywayWrapper {
     private final Object config;
 
     public static FlywayWrapper newInstance() {
-        try {
-            if (flywayVersion >= 60) {
-                Object config = invokeStaticMethod(Flyway.class, "configure");
-                return new FlywayWrapper(invokeMethod(config, "load"));
-            } else {
-                return new FlywayWrapper(new Flyway());
-            }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
+        if (flywayVersion >= 60) {
+            Object config = invokeStaticMethod(Flyway.class, "configure");
+            return new FlywayWrapper(invokeMethod(config, "load"));
+        } else {
+            return new FlywayWrapper(new Flyway());
         }
     }
 
@@ -91,59 +85,54 @@ public class FlywayWrapper {
         return flyway;
     }
 
-    public Collection<ResolvedMigration> getMigrations() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        MigrationResolver resolver = createMigrationResolver(flyway);
+    public Collection<ResolvedMigration> getMigrations() {
+        try {
+            MigrationResolver resolver = createMigrationResolver(flyway);
 
-        if (flywayVersion >= 52) {
-            Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
-            Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
-                    "getConfiguration".equals(invocation.getMethod().getName()) ? config : invocation.proceed());
-            return invokeMethod(resolver, "resolveMigrations", contextInstance);
-        } else {
-            return resolver.resolveMigrations();
+            if (flywayVersion >= 52) {
+                Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
+                Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
+                        "getConfiguration".equals(invocation.getMethod().getName()) ? config : invocation.proceed());
+                return invokeMethod(resolver, "resolveMigrations", contextInstance);
+            } else {
+                return resolver.resolveMigrations();
+            }
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Class not found: " + e.getMessage());
         }
     }
 
-    private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
         if (flywayVersion >= 60) {
-            Object configuration = getField(flyway, "configuration");
-
-            Class<?> jdbcConnectionFactoryType = ClassUtils.forName("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", classLoader);
-            Object jdbcConnectionFactory = jdbcConnectionFactoryType.getConstructors()[0].newInstance(
-                    invokeMethod(configuration, "getDataSource"), 0);
-
-            Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, configuration);
+            Object jdbcConnectionFactory = invokeConstructor("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", invokeMethod(config, "getDataSource"), 0);
+            Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, config);
             Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
-
-            Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
-            Constructor<?> scannerConstructor = scannerType.getConstructors()[0];
             Object scanner;
 
-            if (scannerConstructor.getParameterCount() == 4) {
-                scanner = scannerConstructor.newInstance(
+            try {
+                scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                         ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                        invokeMethod(configuration, "getClassLoader"),
-                        invokeMethod(configuration, "getEncoding"));
-            } else {
-                scanner = scannerConstructor.newInstance(
-                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                        invokeMethod(configuration, "getClassLoader"),
-                        invokeMethod(configuration, "getEncoding"));
+                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                        invokeMethod(config, "getClassLoader"),
+                        invokeMethod(config, "getEncoding"));
+            } catch (RuntimeException ex) {
+                scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                        invokeMethod(config, "getClassLoader"),
+                        invokeMethod(config, "getEncoding"));
             }
 
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
         } else if (flywayVersion >= 52) {
             Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
             Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
-            Class<?> scannerType = ClassUtils.forName("org.flywaydb.core.internal.scanner.Scanner", classLoader);
-            Object scanner = scannerType.getConstructors()[0].newInstance(
-                    Arrays.asList(getArray(config, "getLocations")),
+            Object scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
                     invokeMethod(config, "getClassLoader"),
                     invokeMethod(config, "getEncoding"));
             return invokeMethod(flyway, "createMigrationResolver", database, scanner, scanner, factory);
         } else if (flywayVersion >= 51) {
-            Object scanner = Scanner.class.getConstructors()[0].newInstance(config);
+            Object scanner = invokeConstructor(Scanner.class, config);
             Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
             return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
         } else if (flywayVersion >= 40) {
@@ -263,7 +252,7 @@ public class FlywayWrapper {
                 setValue(config, "setCallbacks", callbacks.toArray(((Object[]) Array.newInstance(callbackType, 0))));
             }
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e); // TODO: improve error handling
+            throw new IllegalStateException("Class not found: " + e.getMessage());
         }
     }
 
@@ -318,7 +307,7 @@ public class FlywayWrapper {
                 throw new UnsupportedOperationException("This method is not supported in current Flyway version");
             }
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e); // TODO: improve error handling
+            throw new IllegalStateException("Class not found: " + e.getMessage());
         }
     }
 
@@ -699,7 +688,7 @@ public class FlywayWrapper {
                 throw new UnsupportedOperationException("This method is not supported in current Flyway version");
             }
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e); // TODO: improve error handling
+            throw new IllegalStateException("Class not found: " + e.getMessage());
         }
     }
 
@@ -817,18 +806,18 @@ public class FlywayWrapper {
     }
 
     private static <T> T getValue(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     private static <E> E[] getArray(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     private static <K, V> Map<K, V> getMap(Object target, String method) {
-        return ReflectionTestUtils.invokeMethod(target, method);
+        return invokeMethod(target, method);
     }
 
     private static void setValue(Object target, String method, Object value) {
-        ReflectionTestUtils.invokeMethod(target, method, value);
+        invokeMethod(target, method, value);
     }
 }

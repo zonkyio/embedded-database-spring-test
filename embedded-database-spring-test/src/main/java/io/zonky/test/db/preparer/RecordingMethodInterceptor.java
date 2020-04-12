@@ -25,7 +25,6 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.io.IOUtils;
 import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
@@ -61,6 +60,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static org.springframework.beans.BeanUtils.isSimpleValueType;
 
 public class RecordingMethodInterceptor implements MethodInterceptor {
@@ -285,7 +285,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
             for (Record record : recordData) {
                 Object target = context.get(record.thisId);
                 Object[] arguments = record.arguments.stream().map(arg -> mapArgument(arg, context)).toArray();
-                Object result = ReflectionTestUtils.invokeMethod(target, record.methodName, arguments);
+                Object result = invokeMethod(target, record.methodName, arguments);
                 if (record.resultId != null) {
                     checkState(result != null, "The result does not match the recorded data");
                     context.put(record.resultId, result);

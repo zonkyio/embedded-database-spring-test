@@ -23,12 +23,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
-import java.lang.reflect.InvocationTargetException;
-
+import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeStaticMethod;
-import static org.springframework.test.util.ReflectionTestUtils.getField;
-import static org.springframework.test.util.ReflectionTestUtils.invokeMethod;
 
 public class FlywayClassUtils {
 
@@ -41,7 +39,7 @@ public class FlywayClassUtils {
         try {
             ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayClassUtils.class.getClassLoader());
             if (versionResource.exists()) {
-                return Integer.valueOf(IOUtils.readLines(versionResource.getInputStream(), UTF_8).get(0).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
+                return Integer.parseInt(IOUtils.readLines(versionResource.getInputStream(), UTF_8).get(0).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
             } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
                 return 32;
             } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {
@@ -72,8 +70,6 @@ public class FlywayClassUtils {
             return true;
         } catch (FlywayException e) {
             return false;
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
         }
     }
 

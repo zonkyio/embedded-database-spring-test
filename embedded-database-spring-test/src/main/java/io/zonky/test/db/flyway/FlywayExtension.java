@@ -40,7 +40,6 @@ import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -324,8 +323,6 @@ public class FlywayExtension implements BeanPostProcessor {
         try {
             flyway.setLocations(locations);
             return flyway.getMigrations();
-        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) { // TODO: #70 fixes it
-            throw new RuntimeException(e);
         } finally {
             flyway.setLocations(oldLocations);
         }
