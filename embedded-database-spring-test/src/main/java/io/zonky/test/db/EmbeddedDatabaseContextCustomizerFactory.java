@@ -23,12 +23,15 @@ import io.zonky.test.db.context.DefaultDataSourceContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.EnvironmentAware;
@@ -42,6 +45,7 @@ import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
@@ -100,6 +104,11 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
 
+            if (ClassUtils.isPresent("org.springframework.boot.autoconfigure.flyway.FlywayProperties", null)) {
+                RootBeanDefinition processorDefinition = new RootBeanDefinition(FlywayPropertiesPostProcessor.class);
+                registry.registerBeanDefinition("flywayPropertiesPostProcessor", processorDefinition);
+            }
+
             RootBeanDefinition configDefinition = new RootBeanDefinition(EmbeddedDatabaseConfiguration.class);
             registry.registerBeanDefinition("embeddedDatabaseConfiguration", configDefinition);
 
@@ -127,8 +136,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
-        private static final NullPlaceholder NULL = new NullPlaceholder();
-
         private final ConfigurableEnvironment environment;
 
         public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
@@ -139,31 +146,31 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
             environment.getPropertySources().addFirst(new MapPropertySource(
                     EmbeddedDatabaseContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of(
-                            "spring.test.database.replace", "NONE",
-                            "spring.flyway.url", NULL,
-                            "spring.flyway.user", NULL,
-                            "flyway.url", NULL,
-                            "flyway.user", NULL
-                    )));
+                    ImmutableMap.of("spring.test.database.replace", "NONE")));
         }
 
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
         }
+    }
 
-        protected static class NullPlaceholder {
+    protected static class FlywayPropertiesPostProcessor implements BeanPostProcessor {
 
-            // this method is required to hook up org.springframework.core.convert.support.FallbackObjectToStringConverter
-            public static NullPlaceholder valueOf(String value) {
-                throw new IllegalStateException("This method should never be called!");
+        @Override
+        public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+            return bean;
+        }
+
+        @Override
+        public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+            if (bean instanceof FlywayProperties) {
+                FlywayProperties properties = (FlywayProperties) bean;
+                properties.setUrl(null);
+                properties.setUser(null);
+                properties.setPassword(null);
             }
-
-            @Override
-            public String toString() {
-                return null;
-            }
+            return bean;
         }
     }
 
