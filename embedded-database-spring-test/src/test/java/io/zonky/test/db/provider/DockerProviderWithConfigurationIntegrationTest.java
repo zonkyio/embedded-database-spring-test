@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package io.zonky.test.db.provider;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
+import io.zonky.test.db.provider.postgres.PostgreSQLContainerCustomizer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;

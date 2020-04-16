@@ -27,7 +27,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecutionListener {
+public class EmbeddedDatabaseReportingTestExecutionListener extends AbstractTestExecutionListener {
 
     @Override
     public void beforeTestClass(TestContext testContext) {

@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.config;
+package io.zonky.test.db.provider.postgres;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Lazy;
+import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+/**
+ * Callback interface that can be implemented by beans wishing to customize
+ * the postgres container before it is used by a {@code DockerPostgresDatabaseProvider}.
+ */
+@FunctionalInterface
+public interface PostgreSQLContainerCustomizer {
 
-@Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.TYPE, ElementType.ANNOTATION_TYPE })
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-@Lazy
-@Qualifier
-public @interface Provider {
-
-    String type();
-
-    String database();
+    /**
+     * Customize the given {@link PostgreSQLContainer}.
+     * @param container the container to customize
+     */
+    void customize(PostgreSQLContainer container);
 
 }

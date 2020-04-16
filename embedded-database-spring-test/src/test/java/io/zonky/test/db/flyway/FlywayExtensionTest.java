@@ -52,7 +52,7 @@ public class FlywayExtensionTest {
         wrapper.setLocations(ImmutableList.of("db/migration"));
         wrapper.setDataSource((DataSource) dataSource);
 
-        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(flyway, "flyway");
+        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(wrapper.getFlyway(), "flyway");
         this.flywayWrapper = FlywayWrapper.of(flyway);
     }
 

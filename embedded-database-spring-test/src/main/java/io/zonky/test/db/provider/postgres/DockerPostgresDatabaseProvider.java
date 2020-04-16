@@ -24,7 +24,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
