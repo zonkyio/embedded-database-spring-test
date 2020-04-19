@@ -7,7 +7,7 @@ The primary goal of this project is to make it easier to write Spring-powered in
 ## Features
 
 * Supports both `Spring` and `Spring Boot` frameworks
-    * Supported versions are Spring 4.3.0+ and Spring Boot 1.4.0+
+    * Supported versions are Spring 4.3.8+ and Spring Boot 1.4.6+
 * Automatic integration with Spring TestContext framework
     * Context caching is fully supported
 * Seamless integration with Flyway database migration tool

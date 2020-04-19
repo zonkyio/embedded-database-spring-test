@@ -1,7 +1,7 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayIntegrationTests;
+import io.zonky.test.category.FlywayTests;
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
@@ -13,7 +13,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.mock.mockito.MockReset;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
@@ -33,9 +33,9 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
+@Category(FlywayTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-@JdbcTest
+@DataJpaTest
 public class FlywayTransactionalIntegrationTest {
 
     @Configuration
@@ -47,6 +47,11 @@ public class FlywayTransactionalIntegrationTest {
             wrapper.setDataSource(dataSource);
             wrapper.setSchemas(ImmutableList.of("test"));
             return wrapper.getFlyway();
+        }
+
+        @Bean
+        public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+            return new JdbcTemplate(dataSource);
         }
     }
 

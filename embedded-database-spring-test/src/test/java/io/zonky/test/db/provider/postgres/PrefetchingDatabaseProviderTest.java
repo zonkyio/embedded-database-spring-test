@@ -60,7 +60,7 @@ public class PrefetchingDatabaseProviderTest {
     public void testPrefetching() {
         DatabasePreparer preparer = mock(DatabasePreparer.class);
         List<EmbeddedDatabase> dataSources = Stream.generate(() -> mock(EmbeddedDatabase.class))
-                .limit(6).collect(Collectors.toList());
+                .limit(5).collect(Collectors.toList());
 
         BlockingQueue<EmbeddedDatabase> providerReturns = new LinkedBlockingQueue<>(dataSources);
         doAnswer(i -> providerReturns.poll()).when(databaseProvider).createDatabase(same(preparer));
@@ -71,7 +71,7 @@ public class PrefetchingDatabaseProviderTest {
         }
         assertThat(results).hasSize(3).isSubsetOf(dataSources);
 
-        verify(databaseProvider, timeout(100).times(6)).createDatabase(same(preparer));
+        verify(databaseProvider, timeout(100).times(5)).createDatabase(same(preparer));
     }
 
     @Test
@@ -86,8 +86,11 @@ public class PrefetchingDatabaseProviderTest {
 
         assertThat(prefetchingProvider.createDatabase(preparer1)).is(mockWithName("mockDataSource1"));
         assertThat(prefetchingProvider.createDatabase(preparer2)).is(mockWithName("mockDataSource2"));
+        assertThat(prefetchingProvider.createDatabase(preparer2)).is(mockWithName("mockDataSource2"));
+        assertThat(prefetchingProvider.createDatabase(preparer3)).is(mockWithName("mockDataSource3"));
+        assertThat(prefetchingProvider.createDatabase(preparer3)).is(mockWithName("mockDataSource3"));
         assertThat(prefetchingProvider.createDatabase(preparer3)).is(mockWithName("mockDataSource3"));
 
-        verify(databaseProvider, timeout(100).times(12)).createDatabase(any(DatabasePreparer.class));
+        verify(databaseProvider, timeout(100).times(9)).createDatabase(any(DatabasePreparer.class));
     }
 }

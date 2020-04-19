@@ -22,6 +22,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -64,7 +65,7 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
             DatabaseTemplate existingTemplate = templates.getIfPresent(new TemplateKey(provider, templateKey));
             if (existingTemplate != null) {
                 CompositeDatabasePreparer complementaryPreparer = new CompositeDatabasePreparer(preparers.subList(i, preparers.size()));
-                if (i == preparers.size() || isInitialized()) {
+                if (i == preparers.size() || (isInitialized() && !hasCleanOperation(complementaryPreparer))) {
                     return provider.createDatabase(DatabaseRequest.of(complementaryPreparer, existingTemplate));
                 } else {
                     DatabaseTemplate specificTemplate = createTemplate(compositePreparer, DatabaseRequest.of(complementaryPreparer, existingTemplate));
@@ -88,6 +89,10 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
 
     private boolean isInitialized() {
         return contexts.stream().noneMatch(context -> context.getState() == INITIALIZING);
+    }
+
+    private boolean hasCleanOperation(CompositeDatabasePreparer preparer) {
+        return preparer.getPreparers().stream().anyMatch(p -> p instanceof CleanFlywayDatabasePreparer);
     }
 
     protected static class TemplateKey {

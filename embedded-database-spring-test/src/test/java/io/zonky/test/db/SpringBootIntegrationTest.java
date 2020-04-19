@@ -16,16 +16,20 @@
 
 package io.zonky.test.db;
 
+import io.zonky.test.category.FlywayTests;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
@@ -33,15 +37,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 @RunWith(SpringRunner.class)
+@Category(FlywayTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-@TestPropertySource(properties = "flyway.schemas=test")
-@JdbcTest
+@TestPropertySource(properties = {"flyway.schemas=test", "spring.flyway.schemas=test"})
+@DataJpaTest
 public class SpringBootIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
     @Configuration
-    static class Config {}
+    static class Config {
+
+        @Bean
+        public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+            return new JdbcTemplate(dataSource);
+        }
+    }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

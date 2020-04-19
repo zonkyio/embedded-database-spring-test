@@ -1,7 +1,7 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayIntegrationTests;
+import io.zonky.test.category.FlywayTests;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
@@ -21,7 +21,7 @@ import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
+@Category(FlywayTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
 public class EarlyInitializationIntegrationTest {

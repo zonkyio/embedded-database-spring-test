@@ -17,7 +17,7 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.MultiFlywayIntegrationTests;
+import io.zonky.test.category.MultiFlywayTests;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@Category(MultiFlywayIntegrationTests.class)
+@Category(MultiFlywayTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @ContextConfiguration
 public class MultipleFlywayBeansMethodLevelIntegrationTest {

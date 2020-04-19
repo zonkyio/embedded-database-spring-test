@@ -1,7 +1,9 @@
 package io.zonky.test.db.preparer;
 
+import io.zonky.test.category.StaticTests;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -42,6 +44,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Category(StaticTests.class)
 public class RecordingDataSourceTest {
 
     @Test

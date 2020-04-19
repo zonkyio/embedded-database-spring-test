@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db;
+package io.zonky.test.db.config;
 
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.FlywayExtension;
+import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
-import io.zonky.test.db.provider.config.DatabaseProviders;
-import io.zonky.test.db.provider.config.MissingProviderDependencyException;
-import io.zonky.test.db.provider.config.Provider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider;
@@ -36,6 +35,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,11 +68,6 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = (AutowireCapableBeanFactory) beanFactory;
-    }
-
-    @Bean
-    public FlywayExtension flywayContextExtension() {
-        return new FlywayExtension();
     }
 
     @Bean
@@ -122,6 +117,18 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Scope("prototype")
     public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
         return new PrefetchingDatabaseProvider(provider, environment);
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
+    public FlywayExtension flywayContextExtension() {
+        return new FlywayExtension();
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
+    public FlywayPropertiesPostProcessor flywayPropertiesPostProcessor() {
+        return new FlywayPropertiesPostProcessor();
     }
 
     private void checkDependency(String groupId, String artifactId, String className) {
