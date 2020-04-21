@@ -1,7 +1,8 @@
-package io.zonky.test.db.provider.config;
+package io.zonky.test.db.config;
 
 import io.zonky.test.db.context.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.DatabaseProviders;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

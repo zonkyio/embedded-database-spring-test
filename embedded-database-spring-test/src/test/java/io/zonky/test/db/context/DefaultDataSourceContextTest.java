@@ -1,13 +1,11 @@
 package io.zonky.test.db.context;
 
-import io.zonky.test.db.context.DatabaseDescriptor;
-import io.zonky.test.db.context.DefaultDataSourceContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.config.DatabaseProviders;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;

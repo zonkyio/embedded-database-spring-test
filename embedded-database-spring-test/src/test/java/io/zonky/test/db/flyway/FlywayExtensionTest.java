@@ -1,5 +1,6 @@
 package io.zonky.test.db.flyway;
 
+import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
@@ -9,6 +10,7 @@ import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
+@Category(StaticTests.class)
 public class FlywayExtensionTest {
 
     @Mock
@@ -52,7 +55,7 @@ public class FlywayExtensionTest {
         wrapper.setLocations(ImmutableList.of("db/migration"));
         wrapper.setDataSource((DataSource) dataSource);
 
-        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(flyway, "flyway");
+        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(wrapper.getFlyway(), "flyway");
         this.flywayWrapper = FlywayWrapper.of(flyway);
     }
 

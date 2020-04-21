@@ -89,12 +89,11 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         prepareDatabase(key, result == null ? HIGHEST_PRECEDENCE : LOWEST_PRECEDENCE);
 
         long invocationCount = pipeline.requests.incrementAndGet();
-        if (invocationCount == 1) {
-            for (int i = 1; i <= pipelineCacheSize; i++) {
-                int priority = -1 * (int) (invocationCount / pipelineCacheSize * i);
-                prepareDatabase(key, priority);
+        if (invocationCount > 1) {
+            if (invocationCount - 1 <= pipelineCacheSize) {
+                prepareDatabase(key, -1);
             }
-        } else {
+
             synchronized (pipeline.tasks) {
                 List<PrefetchingTask> cancelledTasks = pipeline.tasks.stream()
                         .filter(t -> t.priority > HIGHEST_PRECEDENCE)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ package io.zonky.test.assertj;
 import org.assertj.core.api.Condition;
 import org.mockito.internal.util.MockUtil;
 
+import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 import static org.assertj.core.api.Assertions.allOf;
 
 public class MockitoAssertions {
@@ -26,18 +29,24 @@ public class MockitoAssertions {
     private MockitoAssertions() {}
 
     public static <T> Condition<T> mockWithName(String name) {
-        MockUtil mockUtil = new MockUtil();
-
         Condition<T> isMock = new Condition<T>("target object should be a mock") {
             @Override
             public boolean matches(T object) {
-                return mockUtil.isMock(object);
+                try {
+                    return invokeMethod(invokeConstructor(MockUtil.class), "isMock", object);
+                } catch (Exception e) {
+                    return invokeStaticMethod(MockUtil.class, "isMock", object);
+                }
             }
         };
         Condition<T> hasName = new Condition<T>("mock should have a specified name") {
             @Override
             public boolean matches(T object) {
-                return name.equals(mockUtil.getMockName(object).toString());
+                try {
+                    return name.equals(invokeMethod(invokeConstructor(MockUtil.class), "getMockName", object).toString());
+                } catch (Exception e) {
+                    return name.equals(invokeStaticMethod(MockUtil.class, "getMockName", object).toString());
+                }
             }
         };
 

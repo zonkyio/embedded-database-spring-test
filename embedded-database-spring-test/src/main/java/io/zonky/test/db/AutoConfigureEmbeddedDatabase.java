@@ -77,6 +77,9 @@ public @interface AutoConfigureEmbeddedDatabase {
     // TODO: update javadoc
     String providerName() default "";
 
+    // TODO: update javadoc
+    RefreshMode refreshMode() default RefreshMode.NEVER;
+
     /**
      * What the test database can replace.
      */
@@ -136,6 +139,20 @@ public @interface AutoConfigureEmbeddedDatabase {
          * Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded).
          */
         YANDEX,
+
+    }
+
+    enum RefreshMode {
+
+        NEVER,
+
+        BEFORE_CLASS,
+
+        BEFORE_EACH_TEST_METHOD,
+
+        AFTER_EACH_TEST_METHOD,
+
+        AFTER_CLASS
 
     }
 }

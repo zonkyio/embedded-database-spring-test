@@ -4,5 +4,6 @@ org.springframework.test.context.ContextCustomizerFactory = \
 
 # TestExecutionListeners for the Spring TestContext Framework
 org.springframework.test.context.TestExecutionListener = \
-  io.zonky.test.db.logging.EmbeddedDatabaseTestExecutionListener,\
+  io.zonky.test.db.EmbeddedDatabaseTestExecutionListener,\
+  io.zonky.test.db.logging.EmbeddedDatabaseReportingTestExecutionListener,\
   io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener

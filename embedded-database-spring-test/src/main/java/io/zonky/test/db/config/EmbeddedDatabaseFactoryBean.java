@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db;
+package io.zonky.test.db.config;
 
 import io.zonky.test.db.context.DataSourceContext;
 import org.springframework.aop.framework.ProxyFactory;

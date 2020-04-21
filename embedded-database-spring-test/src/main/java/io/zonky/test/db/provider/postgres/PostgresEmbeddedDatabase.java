@@ -17,7 +17,6 @@
 package io.zonky.test.db.provider.postgres;
 
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.ProviderException;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.PrintWriter;
@@ -110,7 +109,8 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
         try {
             closeCallback.call();
         } catch (SQLException e) {
-            throw new ProviderException("Unexpected error occurred while releasing the database", e);
+            // TODO: investigate the issue and consider adding a configuration property for enabling/disabling the exception
+//            throw new ProviderException("Unexpected error occurred while releasing the database", e);
         }
     }
 

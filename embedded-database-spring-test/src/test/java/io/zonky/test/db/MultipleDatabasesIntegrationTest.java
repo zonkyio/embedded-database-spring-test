@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.MultiFlywayIntegrationTests;
+import io.zonky.test.category.MultiFlywayTests;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@Category(MultiFlywayIntegrationTests.class)
+@Category(MultiFlywayTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource1", provider = ZONKY)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource2", provider = DOCKER)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = ZONKY)

@@ -1,19 +1,3 @@
-/*
- * Copyright 2020 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
@@ -44,11 +28,9 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
@@ -57,13 +39,14 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
 @Category(FlywayTests.class)
 @TestExecutionListeners(
         mergeMode = MERGE_WITH_DEFAULTS,
-        listeners = FlywayMigrationIntegrationTest.class
+        listeners = FlywayRefreshIntegrationTest.class
 )
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase(refreshMode = AFTER_EACH_TEST_METHOD)
 @ContextConfiguration
-public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListener {
+public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
+    private static final String SQL_INSERT_PERSON = "insert into test.person (id, first_name, last_name) values (?, ?, ?);";
 
     @Configuration
     static class Config {
@@ -89,9 +72,6 @@ public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListene
     private DatabaseProvider databaseProvider;
 
     @Autowired
-    private DataSource dataSource;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Override
@@ -101,65 +81,34 @@ public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListene
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
         verify(dataSourceContext, times(4)).reset();
-        verify(dataSourceContext, times(6)).apply(any());
-        verify(databaseProvider, atMost(5)).createDatabase(any());
+        verify(dataSourceContext, times(1)).apply(any());
+        verify(databaseProvider, times(3)).createDatabase(any());
 
         Mockito.reset(dataSourceContext, databaseProvider);
     }
 
     @Test
+    public void isolatedTest1() {
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        assertThat(persons).isNotNull().hasSize(1);
+
+        jdbcTemplate.update(SQL_INSERT_PERSON, 2, "Tom", "Hanks");
+    }
+
+    @Test
     @FlywayTest
-    public void loadDefaultMigrations() {
-        assertThat(dataSource).isNotNull();
-
+    public void isolatedTest2() {
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
         assertThat(persons).isNotNull().hasSize(1);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Dave"),
-                entry("last_name", "Syer"));
+        jdbcTemplate.update(SQL_INSERT_PERSON, 2, "Will", "Smith");
     }
 
     @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
-    public void loadAppendableTestMigrations() {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
-
-        assertThat(persons).extracting("id", "first_name", "last_name").containsExactlyInAnyOrder(
-                tuple(1L, "Dave", "Syer"),
-                tuple(2L, "Tom", "Hanks"));
-    }
-
-    @Test
-    @FlywayTest(locationsForMigrate = "db/test_migration/dependent")
-    public void loadDependentTestMigrations() {
-        assertThat(dataSource).isNotNull();
-
-        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
-        assertThat(persons).isNotNull().hasSize(2);
-
-        assertThat(persons).extracting("id", "first_name", "last_name", "full_name").containsExactlyInAnyOrder(
-                tuple(1L, "Dave", "Syer", "Dave Syer"),
-                tuple(3L, "Will", "Smith", "Will Smith"));
-    }
-
-    @Test
-    @FlywayTest(overrideLocations = true, locationsForMigrate = "db/test_migration/separated")
-    public void loadIndependentTestMigrations() {
-        assertThat(dataSource).isNotNull();
-
+    public void isolatedTest3() {
         List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
         assertThat(persons).isNotNull().hasSize(1);
 
-        Map<String, Object> person = persons.get(0);
-        assertThat(person).containsExactly(
-                entry("id", 1L),
-                entry("first_name", "Tom"),
-                entry("last_name", "Hanks"));
+        jdbcTemplate.update(SQL_INSERT_PERSON, 2, "Eddie", "Murphy");
     }
 }

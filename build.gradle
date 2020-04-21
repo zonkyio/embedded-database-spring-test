@@ -9,32 +9,28 @@ ext {
     ossrhUsername = project.findProperty('ossrh.username')
     ossrhPassword = project.findProperty('ossrh.password')
 
-    flywayVersions = [
-            [core: '3.0',   test: '3.0.1'],
-            [core: '3.1',   test: '3.1'],
-            [core: '3.2.1', test: '3.2.1.1'],
-            [core: '4.0.3', test: '4.0.1'],
-            [core: '4.1.2', test: '4.1.0'],
-            [core: '4.2.0', test: '4.2.0.2'],
-
-            [core: '3.0',   test: '5.0.0'],
-            [core: '3.1',   test: '5.0.0'],
-            [core: '3.2.1', test: '5.0.0'],
-            [core: '4.0.3', test: '5.0.0'],
-            [core: '4.1.2', test: '5.0.0'],
-            [core: '4.2.0', test: '5.0.0'],
-            
-            [core: '5.1.4', test: '5.1.0'],
-//            [core: '5.2.4', test: '5.2.4'], // TODO: improve flyway test execution listener
-//            [core: '6.0.2', test: '6.0.0'], // TODO: improve flyway test execution listener
-//            [core: '6.0.7', test: '6.0.0'], // TODO: improve flyway test execution listener
-
-            [core: '5.0.7', test: '5.0.0'] // default version
+    versions = [
+            [name: 'flyway-3-0',   flyway: '3.0',   'flyway-test': '3.0.1',   spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-3-1',   flyway: '3.1',   'flyway-test': '3.1',     spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-3-2-1', flyway: '3.2.1', 'flyway-test': '3.2.1.1', spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-4-0-3', flyway: '4.0.3', 'flyway-test': '4.0.1',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-4-1-2', flyway: '4.1.2', 'flyway-test': '4.1.0',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-4-2-0', flyway: '4.2.0', 'flyway-test': '4.2.0.2', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-5-1-4', flyway: '5.1.4', 'flyway-test': '5.1.0',   spring: '5.0.13.RELEASE', 'spring-boot': '2.0.9.RELEASE'],
+            [name: 'flyway-5-2-4', flyway: '5.2.4', 'flyway-test': '5.2.4',   spring: '5.1.14.RELEASE', 'spring-boot': '2.1.13.RELEASE'],
+            [name: 'flyway-6-0-2', flyway: '6.0.2', 'flyway-test': '6.0.0',   spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
+            [name: 'flyway-6-0-7', flyway: '6.0.7', 'flyway-test': '6.0.0',   spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
+            [name: 'flyway-none',  flyway: 'none',  'flyway-test': 'none',    spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'default',      flyway: '5.0.7', 'flyway-test': '5.0.0',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'] // default versions
     ]
-    embeddedPostgresVersions = ['9.4.25', '9.5.20', '9.6.16', '10.11.0', '11.6.0', '12.1.0']
 
-    flywayCoreVersion = flywayVersions.last().core
-    flywayTestVersion = flywayVersions.last().test
+    postgresVersions = ['9.4.25', '9.5.20', '9.6.16', '10.11.0', '11.6.0', '12.1.0']
+    defaultVersions = versions.find { it.name == 'default' }
+
+    flywayCoreVersion = defaultVersions['flyway']
+    flywayTestVersion = defaultVersions['flyway-test']
+    springVersion = defaultVersions['spring']
+    springBootVersion = defaultVersions['spring-boot']
 }
 
 allprojects {
@@ -152,16 +148,17 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'io.zonky.test:embedded-postgres:1.2.6'
-        compile 'org.testcontainers:postgresql:1.12.1', optional
+        compile 'org.testcontainers:postgresql:1.12.1'
+        compile 'io.zonky.test:embedded-postgres:1.2.6', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
-        compile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE', optional
-        
-        compile 'org.springframework:spring-context:4.3.25.RELEASE'
-        compile 'org.springframework:spring-test:4.3.25.RELEASE'
-        compile "org.flywaydb:flyway-core:$flywayCoreVersion"
-        compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion"
+
+        compile "org.flywaydb:flyway-core:$flywayCoreVersion", optional
+        compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion", optional
+        compile "org.springframework.boot:spring-boot-starter-test:$springBootVersion", optional
+
+        compile "org.springframework:spring-context:$springVersion"
+        compile "org.springframework:spring-test:$springVersion"
         compile 'com.google.guava:guava:23.0'
         compile 'org.tukaani:xz:1.8'
 
@@ -169,33 +166,55 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.apache.logging.log4j'
         }
 
+        testCompile "org.springframework:spring-jdbc:$springVersion"
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
         testCompile("org.assertj:assertj-core:3.14.0")
     }
 
     configurations {
-        flywayVersions.init().each { version ->
-            def versionName = "core-${version.core}_test-${version.test}".replaceAll('\\.', '-')
-            "testRuntimeWithFlyway_$versionName" {
+        versions.init().each { version ->
+            "testRuntime_${version.name}" {
                 extendsFrom testRuntime
                 resolutionStrategy {
-                    eachDependency { details ->
-                        if (details.requested.name == 'flyway-core') {
-                            details.useVersion "${version.core}"
+
+                    if (version.flyway == 'none') {
+                        exclude group: 'org.flywaydb', module: 'flyway-core'
+                    } else {
+                        eachDependency { details ->
+                            if (details.requested.name == 'flyway-core') {
+                                details.useVersion "${version.flyway}"
+                            }
                         }
                     }
+
+                    if (version['flyway-test'] == 'none') {
+                        exclude group: 'org.flywaydb.flyway-test-extensions', module: 'flyway-spring-test'
+                    } else {
+                        eachDependency { details ->
+                            if (details.requested.group == 'org.flywaydb.flyway-test-extensions') {
+                                details.useVersion "${version['flyway-test']}"
+                            }
+                        }
+                    }
+
                     eachDependency { details ->
-                        if (details.requested.group == 'org.flywaydb.flyway-test-extensions') {
-                            details.useVersion "${version.test}"
+                        if (details.requested.group == 'org.springframework') {
+                            details.useVersion "${version.spring}"
+                        }
+                    }
+
+                    eachDependency { details ->
+                        if (details.requested.group == 'org.springframework.boot') {
+                            details.useVersion "${version['spring-boot']}"
                         }
                     }
                 }
             }
         }
 
-        embeddedPostgresVersions.each { version ->
+        postgresVersions.each { version ->
             def versionName = version.replaceAll('\\.', '-')
-            "testRuntimeWithEmbeddedPostgres_$versionName" {
+            "testRuntime_postgres-$versionName" {
                 extendsFrom testRuntime
                 resolutionStrategy {
                     eachDependency { details ->
@@ -208,34 +227,41 @@ project(':embedded-database-spring-test') {
         }
     }
 
-    flywayVersions.init().each { version ->
-        def versionName = "core-${version.core}_test-${version.test}".replaceAll('\\.', '-')
-        task "testWithFlyway_$versionName"(type: Test) {
+    versions.init().each { version ->
+        task "test_${version.name}"(type: Test, group: 'verification') {
             dependsOn jar
 
             classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithFlyway_$versionName"
+            classpath += configurations."testRuntime_${version.name}"
 
             useJUnit {
-                includeCategories 'io.zonky.test.category.FlywayIntegrationTests'
+                excludeCategories 'io.zonky.test.category.StaticTests'
 
-                if (VersionNumber.withPatchNumber().parse(version.test) >= VersionNumber.withPatchNumber().parse("4.2.0.1")) {
-                    includeCategories 'io.zonky.test.category.MultiFlywayIntegrationTests'
+                if (version.flyway == 'none') {
+                    excludeCategories 'io.zonky.test.category.FlywayTests'
+                    excludeCategories 'io.zonky.test.category.MultiFlywayTests'
+                }
+
+                if (version['flyway-test'] == 'none') {
+                    excludeCategories 'io.zonky.test.category.FlywayTests'
+                    excludeCategories 'io.zonky.test.category.MultiFlywayTests'
+                } else if (VersionNumber.withPatchNumber().parse(version.test) < VersionNumber.withPatchNumber().parse("4.2.0.1")) {
+                    excludeCategories 'io.zonky.test.category.MultiFlywayTests'
                 }
             }
         }
-        check.dependsOn("testWithFlyway_$versionName")
+        check.dependsOn("test_${version.name}")
     }
 
-    embeddedPostgresVersions.each { version ->
+    postgresVersions.each { version ->
         def versionName = version.replaceAll('\\.', '-')
-        task "testWithEmbeddedPostgres_$versionName"(type: Test) {
+        task "test_postgres-$versionName"(type: Test, group: 'verification') {
             dependsOn jar
 
             classpath -= configurations.testRuntime
-            classpath += configurations."testRuntimeWithEmbeddedPostgres_$versionName"
+            classpath += configurations."testRuntime_postgres-$versionName"
         }
-        check.dependsOn("testWithEmbeddedPostgres_$versionName")
+        check.dependsOn("test_postgres-$versionName")
     }
 
     tasks.withType(Test) {

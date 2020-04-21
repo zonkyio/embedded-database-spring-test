@@ -50,7 +50,7 @@ import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 
 public class FlywayWrapper {
 
-    private static final ClassLoader classLoader = FlywayExtension.class.getClassLoader();
+    private static final ClassLoader classLoader = FlywayWrapper.class.getClassLoader();
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
     private static final boolean isFlywayPro = FlywayClassUtils.isFlywayPro();

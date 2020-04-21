@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.config;
+package io.zonky.test.db.provider;
 
 import com.google.common.collect.ImmutableMap;
+import io.zonky.test.db.config.MissingDatabaseProviderException;
+import io.zonky.test.db.config.Provider;
 import io.zonky.test.db.context.DatabaseDescriptor;
-import io.zonky.test.db.provider.DatabaseProvider;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;

@@ -61,8 +61,6 @@ public class FlywayExtension implements BeanPostProcessor {
     protected final Multimap<DataSourceContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
 
-    protected boolean optimizedTestExecutionListenerActive = false;
-
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
         if (bean instanceof AopInfrastructureBean) {
@@ -165,15 +163,17 @@ public class FlywayExtension implements BeanPostProcessor {
                     .anyMatch(e -> e.getClassName().endsWith("OptimizedFlywayTestExecutionListener"));
             boolean standardListenerProcessing = listenerProcessing && !optimizedListenerProcessing;
 
+            if (standardListenerProcessing) {
+                throw new IllegalStateException(
+                        "Using org.flywaydb.test.FlywayTestExecutionListener and " +
+                                "org.flywaydb.test.junit.FlywayTestExecutionListener is forbidden, " +
+                                "use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
+            }
+
             FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
             FlywayDatabasePreparer preparer = creator.apply(descriptor);
 
-            if (standardListenerProcessing && optimizedTestExecutionListenerActive) {
-                return preparer instanceof MigrateFlywayDatabasePreparer ? 0 : null;
-            }
-
             if (optimizedListenerProcessing) {
-                optimizedTestExecutionListenerActive = true;
                 pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
             } else {
                 DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();

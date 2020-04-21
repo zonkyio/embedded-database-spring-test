@@ -22,8 +22,8 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.config.DatabaseProviders;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -77,7 +77,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
         if (initialized && !dirty) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             boolean excludedCaller = Arrays.stream(stackTrace)
-                    .anyMatch(e -> e.getClassName().equals("io.zonky.test.db.logging.EmbeddedDatabaseTestExecutionListener"));
+                    .anyMatch(e -> e.getClassName().equals("io.zonky.test.db.logging.EmbeddedDatabaseReportingTestExecutionListener"));
             if (!excludedCaller) {
                 dirty = true;
             }
