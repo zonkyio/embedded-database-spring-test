@@ -16,9 +16,8 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayTests;
-import io.zonky.test.db.flyway.FlywayWrapper;
-import org.flywaydb.core.Flyway;
+import io.zonky.test.category.LiquibaseTests;
+import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -33,37 +32,34 @@ import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(LiquibaseTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
 @TestPropertySource(properties = {
-        "liquibase.enabled=false",
-        "spring.liquibase.enabled=false",
+        "flyway.enabled=false",
+        "spring.flyway.enabled=false",
 
-        "flyway.url=jdbc:postgresql://localhost:5432/test",
-        "flyway.user=flyway",
-        "flyway.password=password",
-        "flyway.schemas=test",
+        "liquibase.url=jdbc:postgresql://localhost:5432/test",
+        "liquibase.user=flyway",
+        "liquibase.password=password",
 
-        "spring.flyway.url=jdbc:postgresql://localhost:5432/test",
-        "spring.flyway.user=flyway",
-        "spring.flyway.password=password",
-        "spring.flyway.schemas=test"
+        "spring.liquibase.url=jdbc:postgresql://localhost:5432/test",
+        "spring.liquibase.user=flyway",
+        "spring.liquibase.password=password",
 })
 @DataJpaTest
-public class SpringBootFlywayPropertiesIntegrationTest {
+public class SpringBootLiquibasePropertiesIntegrationTest {
 
     @Configuration
     static class Config {}
 
     @Autowired
-    private Flyway flyway;
+    private SpringLiquibase liquibase;
 
     @Autowired
     private DataSource dataSource;
 
     @Test
     public void test() {
-        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
-        assertThat(wrapper.getDataSource()).isSameAs(dataSource);
+        assertThat(liquibase.getDataSource()).isSameAs(dataSource);
     }
 }

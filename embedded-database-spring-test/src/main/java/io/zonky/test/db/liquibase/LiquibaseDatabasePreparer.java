@@ -14,45 +14,42 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.flyway.preparer;
+package io.zonky.test.db.liquibase;
 
-import io.zonky.test.db.flyway.FlywayDescriptor;
-import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import org.flywaydb.core.Flyway;
+import liquibase.exception.LiquibaseException;
+import liquibase.integration.spring.SpringLiquibase;
 
 import javax.sql.DataSource;
 import java.util.Objects;
 
-public abstract class FlywayDatabasePreparer implements DatabasePreparer {
+public class LiquibaseDatabasePreparer implements DatabasePreparer {
 
-    private final FlywayDescriptor descriptor;
+    private final LiquibaseDescriptor descriptor;
 
-    public FlywayDatabasePreparer(FlywayDescriptor descriptor) {
+    public LiquibaseDatabasePreparer(LiquibaseDescriptor descriptor) {
         this.descriptor = descriptor;
     }
 
-    public FlywayDescriptor getFlywayDescriptor() {
-        return descriptor;
-    }
-
-    protected abstract void doOperation(Flyway flyway);
-
     @Override
     public void prepare(DataSource dataSource) {
-        FlywayWrapper wrapper = FlywayWrapper.newInstance();
+        SpringLiquibase liquibase = new SpringLiquibase();
 
-        descriptor.applyTo(wrapper);
-        wrapper.setDataSource(dataSource);
+        descriptor.applyTo(liquibase);
+        liquibase.setDataSource(dataSource);
 
-        doOperation(wrapper.getFlyway());
+        try {
+            liquibase.afterPropertiesSet();
+        } catch (LiquibaseException e) {
+            throw new IllegalStateException("Unexpected error occurred while running Liquibase", e);
+        }
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        FlywayDatabasePreparer that = (FlywayDatabasePreparer) o;
+        LiquibaseDatabasePreparer that = (LiquibaseDatabasePreparer) o;
         return Objects.equals(descriptor, that.descriptor);
     }
 

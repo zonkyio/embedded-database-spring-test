@@ -17,20 +17,24 @@
 package io.zonky.test.db;
 
 import io.zonky.test.category.FlywayTests;
-import io.zonky.test.db.flyway.FlywayWrapper;
-import org.flywaydb.core.Flyway;
+import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
@@ -39,31 +43,38 @@ import static org.assertj.core.api.Assertions.assertThat;
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false",
 
-        "flyway.url=jdbc:postgresql://localhost:5432/test",
-        "flyway.user=flyway",
-        "flyway.password=password",
         "flyway.schemas=test",
-
-        "spring.flyway.url=jdbc:postgresql://localhost:5432/test",
-        "spring.flyway.user=flyway",
-        "spring.flyway.password=password",
         "spring.flyway.schemas=test"
 })
 @DataJpaTest
-public class SpringBootFlywayPropertiesIntegrationTest {
+public class SpringBootFlywayIntegrationTest {
+
+    private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
     @Configuration
-    static class Config {}
+    static class Config {
+
+        @Bean
+        public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+            return new JdbcTemplate(dataSource);
+        }
+    }
 
     @Autowired
-    private Flyway flyway;
-
-    @Autowired
-    private DataSource dataSource;
+    private JdbcTemplate jdbcTemplate;
 
     @Test
-    public void test() {
-        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
-        assertThat(wrapper.getDataSource()).isSameAs(dataSource);
+    @FlywayTest
+    public void testJdbcTemplate() {
+        assertThat(jdbcTemplate).isNotNull();
+
+        List<Map<String, Object>> persons = jdbcTemplate.queryForList(SQL_SELECT_PERSONS);
+        assertThat(persons).isNotNull().hasSize(1);
+
+        Map<String, Object> person = persons.get(0);
+        assertThat(person).containsExactly(
+                entry("id", 1L),
+                entry("first_name", "Dave"),
+                entry("last_name", "Syer"));
     }
 }
