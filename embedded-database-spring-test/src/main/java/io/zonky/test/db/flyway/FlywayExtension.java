@@ -125,17 +125,17 @@ public class FlywayExtension implements BeanPostProcessor {
     }
 
     protected Advisor createAdvisor(FlywayWrapper wrapper) {
-        Advice advice = new FlywayContextExtensionInterceptor(wrapper);
+        Advice advice = new FlywayExtensionInterceptor(wrapper);
         NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor(advice);
         advisor.setMappedNames("clean", "baseline", "migrate");
         return advisor;
     }
 
-    protected class FlywayContextExtensionInterceptor implements MethodInterceptor {
+    protected class FlywayExtensionInterceptor implements MethodInterceptor {
 
         protected final FlywayWrapper flywayWrapper;
 
-        protected FlywayContextExtensionInterceptor(FlywayWrapper flywayWrapper) {
+        protected FlywayExtensionInterceptor(FlywayWrapper flywayWrapper) {
             this.flywayWrapper = flywayWrapper;
         }
 

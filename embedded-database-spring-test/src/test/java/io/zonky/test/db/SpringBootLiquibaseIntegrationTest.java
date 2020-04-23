@@ -16,8 +16,7 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayTests;
-import org.flywaydb.test.annotation.FlywayTest;
+import io.zonky.test.category.LiquibaseTests;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -37,11 +36,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(LiquibaseTests.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource")
-@TestPropertySource(properties = {"flyway.schemas=test", "spring.flyway.schemas=test"})
+@TestPropertySource(properties = {
+        "flyway.enabled=false",
+        "spring.flyway.enabled=false",
+})
 @DataJpaTest
-public class SpringBootIntegrationTest {
+public class SpringBootLiquibaseIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
@@ -58,7 +60,6 @@ public class SpringBootIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @FlywayTest
     public void testJdbcTemplate() {
         assertThat(jdbcTemplate).isNotNull();
 

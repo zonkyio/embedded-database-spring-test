@@ -10,18 +10,18 @@ ext {
     ossrhPassword = project.findProperty('ossrh.password')
 
     versions = [
-            [name: 'flyway-3-0',   flyway: '3.0',   'flyway-test': '3.0.1',   spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
-            [name: 'flyway-3-1',   flyway: '3.1',   'flyway-test': '3.1',     spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
-            [name: 'flyway-3-2-1', flyway: '3.2.1', 'flyway-test': '3.2.1.1', spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
-            [name: 'flyway-4-0-3', flyway: '4.0.3', 'flyway-test': '4.0.1',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
-            [name: 'flyway-4-1-2', flyway: '4.1.2', 'flyway-test': '4.1.0',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
-            [name: 'flyway-4-2-0', flyway: '4.2.0', 'flyway-test': '4.2.0.2', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
-            [name: 'flyway-5-1-4', flyway: '5.1.4', 'flyway-test': '5.1.0',   spring: '5.0.13.RELEASE', 'spring-boot': '2.0.9.RELEASE'],
-            [name: 'flyway-5-2-4', flyway: '5.2.4', 'flyway-test': '5.2.4',   spring: '5.1.14.RELEASE', 'spring-boot': '2.1.13.RELEASE'],
-            [name: 'flyway-6-0-2', flyway: '6.0.2', 'flyway-test': '6.0.0',   spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
-            [name: 'flyway-6-0-7', flyway: '6.0.7', 'flyway-test': '6.0.0',   spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
-            [name: 'flyway-none',  flyway: 'none',  'flyway-test': 'none',    spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
-            [name: 'default',      flyway: '5.0.7', 'flyway-test': '5.0.0',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'] // default versions
+            [name: 'flyway-3-0',   flyway: '3.0',   'flyway-test': '3.0.1',   liquibase: '3.5.3', spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-3-1',   flyway: '3.1',   'flyway-test': '3.1',     liquibase: '3.5.3', spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-3-2-1', flyway: '3.2.1', 'flyway-test': '3.2.1.1', liquibase: '3.5.3', spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
+            [name: 'flyway-4-0-3', flyway: '4.0.3', 'flyway-test': '4.0.1',   liquibase: '3.5.5', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-4-1-2', flyway: '4.1.2', 'flyway-test': '4.1.0',   liquibase: '3.5.5', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-4-2-0', flyway: '4.2.0', 'flyway-test': '4.2.0.2', liquibase: '3.5.5', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'flyway-5-1-4', flyway: '5.1.4', 'flyway-test': '5.1.0',   liquibase: '3.5.5', spring: '5.0.13.RELEASE', 'spring-boot': '2.0.9.RELEASE'],
+            [name: 'flyway-5-2-4', flyway: '5.2.4', 'flyway-test': '5.2.4',   liquibase: '3.6.3', spring: '5.1.14.RELEASE', 'spring-boot': '2.1.13.RELEASE'],
+            [name: 'flyway-6-0-2', flyway: '6.0.2', 'flyway-test': '6.0.0',   liquibase: '3.8.8', spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
+            [name: 'flyway-6-0-7', flyway: '6.0.7', 'flyway-test': '6.0.0',   liquibase: '3.8.8', spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
+            [name: 'flyway-none',  flyway: 'none',  'flyway-test': 'none',    liquibase: 'none' , spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
+            [name: 'default',      flyway: '5.0.7', 'flyway-test': '5.0.0',   liquibase: '3.5.5', spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'] // default versions
     ]
 
     postgresVersions = ['9.4.25', '9.5.20', '9.6.16', '10.11.0', '11.6.0', '12.1.0']
@@ -29,7 +29,8 @@ ext {
 
     flywayCoreVersion = defaultVersions['flyway']
     flywayTestVersion = defaultVersions['flyway-test']
-    springVersion = defaultVersions['spring']
+    liquibaseCoreVersion = defaultVersions['liquibase']
+    springCoreVersion = defaultVersions['spring']
     springBootVersion = defaultVersions['spring-boot']
 }
 
@@ -156,9 +157,10 @@ project(':embedded-database-spring-test') {
         compile "org.flywaydb:flyway-core:$flywayCoreVersion", optional
         compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion", optional
         compile "org.springframework.boot:spring-boot-starter-test:$springBootVersion", optional
+        compile "org.liquibase:liquibase-core:$liquibaseCoreVersion", optional
 
-        compile "org.springframework:spring-context:$springVersion"
-        compile "org.springframework:spring-test:$springVersion"
+        compile "org.springframework:spring-context:$springCoreVersion"
+        compile "org.springframework:spring-test:$springCoreVersion"
         compile 'com.google.guava:guava:23.0'
         compile 'org.tukaani:xz:1.8'
 
@@ -166,7 +168,7 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.apache.logging.log4j'
         }
 
-        testCompile "org.springframework:spring-jdbc:$springVersion"
+        testCompile "org.springframework:spring-jdbc:$springCoreVersion"
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
         testCompile("org.assertj:assertj-core:3.14.0")
     }
@@ -193,6 +195,16 @@ project(':embedded-database-spring-test') {
                         eachDependency { details ->
                             if (details.requested.group == 'org.flywaydb.flyway-test-extensions') {
                                 details.useVersion "${version['flyway-test']}"
+                            }
+                        }
+                    }
+
+                    if (version.liquibase == 'none') {
+                        exclude group: 'org.liquibase', module: 'liquibase-core'
+                    } else {
+                        eachDependency { details ->
+                            if (details.requested.name == 'liquibase-core') {
+                                details.useVersion "${version.liquibase}"
                             }
                         }
                     }
@@ -248,6 +260,10 @@ project(':embedded-database-spring-test') {
                 } else if (VersionNumber.withPatchNumber().parse(version.test) < VersionNumber.withPatchNumber().parse("4.2.0.1")) {
                     excludeCategories 'io.zonky.test.category.MultiFlywayTests'
                 }
+
+                if (version.liquibase == 'none') {
+                    excludeCategories 'io.zonky.test.category.LiquibaseTests'
+                }
             }
         }
         check.dependsOn("test_${version.name}")
@@ -267,6 +283,7 @@ project(':embedded-database-spring-test') {
     tasks.withType(Test) {
         testLogging {
             showStandardStreams = true
+            showStackTraces = true
             exceptionFormat = 'full'
         }
     }

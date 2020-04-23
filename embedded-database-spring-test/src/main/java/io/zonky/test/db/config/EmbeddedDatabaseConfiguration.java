@@ -19,6 +19,8 @@ package io.zonky.test.db.config;
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.FlywayExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
+import io.zonky.test.db.liquibase.LiquibaseExtension;
+import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
@@ -121,7 +123,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
-    public FlywayExtension flywayContextExtension() {
+    public FlywayExtension flywayExtension() {
         return new FlywayExtension();
     }
 
@@ -129,6 +131,18 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
     public FlywayPropertiesPostProcessor flywayPropertiesPostProcessor() {
         return new FlywayPropertiesPostProcessor();
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
+    public LiquibaseExtension liquibaseExtension() {
+        return new LiquibaseExtension();
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties")
+    public LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
+        return new LiquibasePropertiesPostProcessor();
     }
 
     private void checkDependency(String groupId, String artifactId, String className) {
