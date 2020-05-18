@@ -32,6 +32,7 @@ import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -50,8 +51,6 @@ import java.util.function.Consumer;
 import static java.util.Collections.emptyList;
 
 public class OpenTablePostgresDatabaseProvider implements DatabaseProvider {
-
-    private static final int MAX_DATABASE_CONNECTIONS = 300;
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
@@ -122,7 +121,12 @@ public class OpenTablePostgresDatabaseProvider implements DatabaseProvider {
             config.applyTo(builder);
 
             postgres = builder.start();
-            semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
+
+            DataSource dataSource = postgres.getDatabase("postgres", "postgres");
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            Integer maxConnections = jdbcTemplate.queryForObject("show max_connections", Integer.class);
+
+            semaphore = new Semaphore(maxConnections);
         }
 
         public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {
@@ -204,11 +208,11 @@ public class OpenTablePostgresDatabaseProvider implements DatabaseProvider {
         }
 
         public final void applyTo(EmbeddedPostgres.Builder builder) {
+            builder.setServerConfig("max_connections", "300");
             builder.setPGStartupWait(Duration.ofSeconds(20L));
             initdbProperties.forEach(builder::setLocaleConfig);
             configProperties.forEach(builder::setServerConfig);
             customizers.forEach(c -> c.accept(builder));
-            builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
         }
 
         @Override
