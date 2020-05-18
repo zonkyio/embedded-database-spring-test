@@ -257,6 +257,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             if (flywayVersion >= 60) {
                 Object configuration = getField(flyway, "configuration");
                 Object jdbcConnectionFactory = invokeConstructor("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", invokeMethod(configuration, "getDataSource"), 0);
+                closeConnection(invokeMethod(jdbcConnectionFactory, "openConnection")); // closes an internal unused connection
                 Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, configuration);
                 Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
                 Object scanner;
@@ -278,6 +279,7 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
             } else if (flywayVersion >= 52) {
                 Object configuration = getField(flyway, "configuration");
                 Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
+                closeConnection(invokeMethod(database, "getMainConnection")); // closes an internal unused connection
                 Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
                 Object scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                         Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
@@ -344,6 +346,16 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         } catch (BeansException e) {}
 
         return null;
+    }
+
+    protected static void closeConnection(AutoCloseable connection) {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (Exception e) {
+                // ignored
+            }
+        }
     }
 
     /**
