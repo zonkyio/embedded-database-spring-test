@@ -127,6 +127,9 @@
       "name": "zonky.test.database.postgres.docker.image",
       "values": [
         {
+          "value": "postgres:12-alpine"
+        },
+        {
           "value": "postgres:11-alpine"
         },
         {
@@ -140,6 +143,9 @@
         },
         {
           "value": "postgres:9.4-alpine"
+        },
+        {
+          "value": "postgres:12"
         },
         {
           "value": "postgres:11"
