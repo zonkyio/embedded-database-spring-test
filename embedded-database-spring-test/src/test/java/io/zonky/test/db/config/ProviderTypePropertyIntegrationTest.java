@@ -30,7 +30,7 @@ import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @TestPropertySource(properties = "zonky.test.database.provider=docker")
 @ContextConfiguration
 public class ProviderTypePropertyIntegrationTest {

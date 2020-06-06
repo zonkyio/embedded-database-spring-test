@@ -33,7 +33,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.YA
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = YANDEX)
+@AutoConfigureEmbeddedDatabase(provider = YANDEX)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.yandex-provider.postgres-version=9.6.11-1"
 })

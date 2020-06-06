@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Ignore // TODO: bring the async initialization feature back
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @ContextConfiguration
 public class AsyncFlywayInitializationIntegrationTest {
 

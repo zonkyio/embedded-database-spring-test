@@ -31,7 +31,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.OP
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = OPENTABLE)
+@AutoConfigureEmbeddedDatabase(provider = OPENTABLE)
 @ContextConfiguration
 public class OpenTableProviderIntegrationTest {
 

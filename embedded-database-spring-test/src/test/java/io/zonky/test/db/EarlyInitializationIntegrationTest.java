@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @ContextConfiguration
 public class EarlyInitializationIntegrationTest {
 

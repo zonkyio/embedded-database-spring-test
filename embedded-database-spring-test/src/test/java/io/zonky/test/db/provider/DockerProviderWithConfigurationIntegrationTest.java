@@ -36,7 +36,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DO
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(provider = DOCKER)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",
         "zonky.test.database.postgres.docker.tmpfs.enabled=true"

@@ -4,7 +4,7 @@ databaseChangeLog:
       author: tomix26
       changes:
         - sql:
-            sql: create schema if not exists test
+            sql: create schema test
   - changeSet:
       id: 2
       author: tomix26

@@ -110,7 +110,7 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
             closeCallback.call();
         } catch (SQLException e) {
             // TODO: investigate the issue and consider adding a configuration property for enabling/disabling the exception
-//            throw new ProviderException("Unexpected error occurred while releasing the database", e);
+//            throw new ProviderException("Unexpected error when releasing the database", e);
         }
     }
 

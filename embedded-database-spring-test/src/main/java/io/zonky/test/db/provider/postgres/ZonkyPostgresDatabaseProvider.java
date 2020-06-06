@@ -86,7 +86,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             BaseDataSource dataSource = result.unwrap(BaseDataSource.class);
             return new DatabaseTemplate(dataSource.getDatabaseName());
         } catch (SQLException e) {
-            throw new ProviderException("Unexpected error occurred while creating a database", e);
+            throw new ProviderException("Unexpected error when creating a database template", e);
         }
     }
 
@@ -97,9 +97,9 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             return instance.createDatabase(clientConfig, request);
         } catch (ExecutionException | UncheckedExecutionException e) {
             Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
-            throw new ProviderException("Unexpected error occurred while preparing a database cluster", e.getCause());
+            throw new ProviderException("Unexpected error when preparing a database cluster", e.getCause());
         } catch (SQLException e) {
-            throw new ProviderException("Unexpected error occurred while creating a database", e);
+            throw new ProviderException("Unexpected error when creating a database", e);
         }
     }
 

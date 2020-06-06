@@ -45,7 +45,7 @@ import static org.assertj.core.api.Assertions.tuple;
 @FlywayTest(flywayName = "flyway1")
 @FlywayTest(flywayName = "flyway2")
 @FlywayTest(flywayName = "flyway3", invokeCleanDB = false)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @ContextConfiguration
 public class MultipleFlywayBeansClassLevelIntegrationTest {
 

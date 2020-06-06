@@ -59,7 +59,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         mergeMode = MERGE_WITH_DEFAULTS,
         listeners = FlywayMigrationIntegrationTest.class
 )
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @ContextConfiguration
 public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListener {
 
