@@ -17,7 +17,6 @@
 package io.zonky.test.db.logging;
 
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,13 +28,7 @@ public class EmbeddedDatabaseReporter {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedDatabaseReporter.class);
 
     public static void reportDataSource(String beanName, EmbeddedDatabase database, AnnotatedElement element) {
-        String connectionString = database.getUrl() + String.format("?user=%s", database.getUsername());
-
-        if (StringUtils.isNotBlank(database.getPassword())) {
-            connectionString += String.format("&password=%s", database.getPassword());
-        }
-
-        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, connectionString, getElementName(element));
+        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, database.getUrl(), getElementName(element));
     }
 
     private static String getElementName(AnnotatedElement element) {

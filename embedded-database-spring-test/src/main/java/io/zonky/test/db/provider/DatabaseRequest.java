@@ -18,8 +18,6 @@ package io.zonky.test.db.provider;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
 
-import java.util.Objects;
-
 public class DatabaseRequest {
 
     private final DatabasePreparer preparer;
@@ -44,19 +42,5 @@ public class DatabaseRequest {
 
     public DatabaseTemplate getTemplate() {
         return template;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DatabaseRequest that = (DatabaseRequest) o;
-        return Objects.equals(preparer, that.preparer) &&
-                Objects.equals(template, that.template);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(preparer, template);
     }
 }

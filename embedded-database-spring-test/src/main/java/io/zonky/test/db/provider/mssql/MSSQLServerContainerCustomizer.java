@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.mssql;
 
-public interface DatabaseTemplate {
+import org.testcontainers.containers.MSSQLServerContainer;
 
-    String getTemplateName();
+/**
+ * Callback interface that can be implemented by beans wishing to customize
+ * the mssql server container before it is used by a {@code DockerMSSQLDatabaseProvider}.
+ */
+@FunctionalInterface
+public interface MSSQLServerContainerCustomizer {
 
-    void close();
+    /**
+     * Customize the given {@link MSSQLServerContainer}.
+     * @param container the container to customize
+     */
+    void customize(MSSQLServerContainer container);
 
 }

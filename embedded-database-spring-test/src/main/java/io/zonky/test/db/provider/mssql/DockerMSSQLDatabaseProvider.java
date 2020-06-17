@@ -14,36 +14,39 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider.mssql;
 
+import com.cedarsoftware.util.DeepEquals;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.opentable.db.postgres.embedded.EmbeddedPostgres;
+import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.postgresql.ds.PGSimpleDataSource;
-import org.postgresql.ds.common.BaseDataSource;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,17 +54,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
-import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
+import static org.testcontainers.containers.MSSQLServerContainer.MS_SQL_SERVER_PORT;
 
-public class OpenTablePostgresDatabaseProvider implements TemplatableDatabaseProvider {
-
-    private static final int MAX_DATABASE_CONNECTIONS = 300;
+public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider {
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
-                public DatabaseInstance load(DatabaseConfig config) throws IOException {
+                public DatabaseInstance load(DatabaseConfig config) {
                     return new DatabaseInstance(config);
                 }
             });
@@ -69,23 +70,23 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
     private final DatabaseConfig databaseConfig;
     private final ClientConfig clientConfig;
 
-    public OpenTablePostgresDatabaseProvider(Environment environment, ObjectProvider<List<Consumer<EmbeddedPostgres.Builder>>> databaseCustomizers) {
-        Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
-        Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");
-        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.client.properties");
+    public DockerMSSQLDatabaseProvider(Environment environment, ObjectProvider<List<MSSQLServerContainerCustomizer>> containerCustomizers) {
+        String dockerImage = environment.getProperty("zonky.test.database.mssql.docker.image", "mcr.microsoft.com/mssql/server:2017-latest");
+        Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.mssql.client.properties");
+        List<MSSQLServerContainerCustomizer> customizers = Optional.ofNullable(containerCustomizers.getIfAvailable()).orElse(emptyList());
 
-        List<Consumer<EmbeddedPostgres.Builder>> customizers = Optional.ofNullable(databaseCustomizers.getIfAvailable()).orElse(emptyList());
-
-        this.databaseConfig = new DatabaseConfig(initdbProperties, configProperties, customizers);
+        this.databaseConfig = new DatabaseConfig(dockerImage, customizers);
         this.clientConfig = new ClientConfig(connectProperties);
     }
 
     @Override
     public DatabaseTemplate createTemplate(DatabaseRequest request) throws ProviderException {
         try {
-            EmbeddedDatabase result = createDatabase(request);
-            BaseDataSource dataSource = result.unwrap(BaseDataSource.class);
-            return new PostgresDatabaseTemplate(dataSource.getDatabaseName(), result::close);
+            DatabaseInstance instance = databases.get(databaseConfig);
+            return instance.createTemplate(clientConfig, request);
+        } catch (ExecutionException | UncheckedExecutionException e) {
+            Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
+            throw new ProviderException("Unexpected error when preparing a database cluster", e.getCause());
         } catch (SQLException e) {
             throw new ProviderException("Unexpected error when creating a database template", e);
         }
@@ -108,7 +109,7 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        OpenTablePostgresDatabaseProvider that = (OpenTablePostgresDatabaseProvider) o;
+        DockerMSSQLDatabaseProvider that = (DockerMSSQLDatabaseProvider) o;
         return Objects.equals(databaseConfig, that.databaseConfig) &&
                 Objects.equals(clientConfig, that.clientConfig);
     }
@@ -120,15 +121,17 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
 
     protected static class DatabaseInstance {
 
-        private final EmbeddedPostgres postgres;
+        private final MSSQLServerContainer container;
         private final Semaphore semaphore;
 
-        private DatabaseInstance(DatabaseConfig config) throws IOException {
-            EmbeddedPostgres.Builder builder = EmbeddedPostgres.builder();
-            config.applyTo(builder);
+        private DatabaseInstance(DatabaseConfig config) {
+            container = new MSSQLServerContainer(config.dockerImage);
+            config.customizers.forEach(c -> c.customize(container));
 
-            postgres = builder.start();
-            semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
+            container.start();
+            container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerMSSQLDatabaseProvider.class)));
+
+            semaphore = new Semaphore(32767);
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
@@ -138,9 +141,10 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
             String databaseName = RandomStringUtils.randomAlphabetic(12).toLowerCase(Locale.ENGLISH);
 
             if (template != null) {
-                executeStatement(config, String.format("CREATE DATABASE %s TEMPLATE %s OWNER %s ENCODING 'utf8'", databaseName, template.getTemplateName(), "postgres"));
+                executeStatement(config, String.format("RESTORE DATABASE %s FROM DISK = N'/var/opt/mssql/template/%s.bak' WITH MOVE '%s' TO N'/var/opt/mssql/data/%s.mdf', MOVE '%s_log' TO N'/var/opt/mssql/data/%s_log.ldf'",
+                        databaseName, template.getTemplateName(), template.getTemplateName(), databaseName, template.getTemplateName(), databaseName));
             } else {
-                executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
+                executeStatement(config, String.format("CREATE DATABASE %s", databaseName));
             }
 
             EmbeddedDatabase database = getDatabase(config, databaseName);
@@ -152,44 +156,65 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
             return database;
         }
 
+        public DatabaseTemplate createTemplate(ClientConfig config, DatabaseRequest request) throws SQLException {
+            EmbeddedDatabase database = createDatabase(config, request);
+            try {
+                ISQLServerDataSource dataSource = database.unwrap(ISQLServerDataSource.class);
+                String templateName = dataSource.getDatabaseName();
+
+                executeStatement(config, String.format("BACKUP DATABASE %s TO DISK = N'/var/opt/mssql/template/%s.bak'", templateName, templateName));
+                return new MsSQLDatabaseTemplate(templateName, () -> dropTemplate(templateName));
+            } finally {
+                database.close();
+            }
+        }
+
         private void dropDatabase(ClientConfig config, String dbName) throws SQLException {
             executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
         }
 
+        private void dropTemplate(String templateName) {
+            try {
+                container.execInContainer("rm", String.format("/var/opt/mssql/template/%s.bak", templateName));
+            } catch (IOException | InterruptedException e) {
+                throw new ProviderException("Unexpected error when releasing the database template", e);
+            }
+        }
+
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {
-            DataSource dataSource = getDatabase(config, "postgres");
+            DataSource dataSource = getDatabase(config, "master");
             try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(ddlStatement)) {
                 stmt.execute();
             }
         }
 
         private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
-            PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
-            return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+            SQLServerDataSource dataSource = new SQLServerDataSource();
+
+            dataSource.setServerName(container.getContainerIpAddress());
+            dataSource.setPortNumber(container.getMappedPort(MS_SQL_SERVER_PORT));
+            dataSource.setDatabaseName(dbName);
+
+            dataSource.setUser(container.getUsername());
+            dataSource.setPassword(container.getPassword());
+
+            BeanWrapper dataSourceWrapper = new BeanWrapperImpl(dataSource);
+            for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
+                dataSourceWrapper.setPropertyValue(entry.getKey(), entry.getValue());
+            }
+
+            return new BlockingDatabaseWrapper(new MsSQLEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
         }
     }
 
     private static class DatabaseConfig {
 
-        private final Map<String, String> initdbProperties;
-        private final Map<String, String> configProperties;
-        private final List<Consumer<EmbeddedPostgres.Builder>> customizers;
-        private final EmbeddedPostgres.Builder builder;
+        private final String dockerImage;
+        private final List<MSSQLServerContainerCustomizer> customizers;
 
-        private DatabaseConfig(Map<String, String> initdbProperties, Map<String, String> configProperties, List<Consumer<EmbeddedPostgres.Builder>> customizers) {
-            this.initdbProperties = ImmutableMap.copyOf(initdbProperties);
-            this.configProperties = ImmutableMap.copyOf(configProperties);
-            this.customizers = ImmutableList.copyOf(customizers);
-            this.builder = EmbeddedPostgres.builder();
-            applyTo(this.builder);
-        }
-
-        public final void applyTo(EmbeddedPostgres.Builder builder) {
-            builder.setPGStartupWait(Duration.ofSeconds(20L));
-            initdbProperties.forEach(builder::setLocaleConfig);
-            configProperties.forEach(builder::setServerConfig);
-            customizers.forEach(c -> c.accept(builder));
-            builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
+        private DatabaseConfig(String dockerImage, List<MSSQLServerContainerCustomizer> customizers) {
+            this.dockerImage = dockerImage;
+            this.customizers = customizers;
         }
 
         @Override
@@ -197,12 +222,15 @@ public class OpenTablePostgresDatabaseProvider implements TemplatableDatabasePro
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DatabaseConfig that = (DatabaseConfig) o;
-            return Objects.equals(builder, that.builder);
+            return Objects.equals(dockerImage, that.dockerImage) &&
+                    DeepEquals.deepEquals(customizers, that.customizers);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(builder);
+            int result = Objects.hash(dockerImage);
+            result = 31 * result + DeepEquals.deepHashCode(customizers);
+            return result;
         }
     }
 

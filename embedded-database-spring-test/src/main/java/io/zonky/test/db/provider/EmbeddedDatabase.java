@@ -23,10 +23,6 @@ public interface EmbeddedDatabase extends DataSource {
 
     String getUrl();
 
-    String getUsername();
-
-    String getPassword();
-
     Map<String, String> getAliases();
 
     void close();

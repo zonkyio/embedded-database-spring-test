@@ -14,25 +14,28 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider.mssql;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.apache.commons.lang3.StringUtils;
-import org.postgresql.ds.PGSimpleDataSource;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 
-    private final PGSimpleDataSource dataSource;
+public class MsSQLEmbeddedDatabase implements EmbeddedDatabase {
+
+    private final SQLServerDataSource dataSource;
     private final CloseCallback closeCallback;
 
-    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, CloseCallback closeCallback) {
+    public MsSQLEmbeddedDatabase(SQLServerDataSource dataSource, CloseCallback closeCallback) {
         this.dataSource = dataSource;
         this.closeCallback = closeCallback;
     }
@@ -84,17 +87,22 @@ public class PostgresEmbeddedDatabase implements EmbeddedDatabase {
     }
     
     @Override
-    public Logger getParentLogger() {
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
         return dataSource.getParentLogger();
     }
 
     @Override
     public String getUrl() {
-        String url = dataSource.getUrl() + String.format("?user=%s", dataSource.getUser());
-        if (StringUtils.isNotBlank(dataSource.getPassword())) {
-            url += String.format("&password=%s", dataSource.getPassword());
+        String url = String.format("jdbc:sqlserver://%s:%s;databaseName=%s;user=%s",
+                dataSource.getServerName(), dataSource.getPortNumber(), dataSource.getDatabaseName(), dataSource.getUser());
+        if (StringUtils.isNotBlank(getPassword())) {
+            url += String.format(";password=%s", getPassword());
         }
         return url;
+    }
+
+    private String getPassword() {
+        return invokeMethod(dataSource, "getPassword");
     }
 
     @Override

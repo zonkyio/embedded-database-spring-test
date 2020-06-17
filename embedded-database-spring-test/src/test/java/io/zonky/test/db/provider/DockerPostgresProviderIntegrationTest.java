@@ -17,16 +17,11 @@
 package io.zonky.test.db.provider;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import io.zonky.test.db.provider.postgres.PostgreSQLContainerCustomizer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
@@ -37,31 +32,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(provider = DOCKER)
-@TestPropertySource(properties = {
-        "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",
-        "zonky.test.database.postgres.docker.tmpfs.enabled=true"
-})
 @ContextConfiguration
-public class DockerProviderWithConfigurationIntegrationTest {
-
-    @Configuration
-    static class Config {
-
-        @Bean
-        public PostgreSQLContainerCustomizer postgresContainerCustomizer() {
-            return container -> container.withPassword("docker-postgres");
-        }
-    }
+public class DockerPostgresProviderIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker-postgres");
-
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        String version = jdbcTemplate.queryForObject("show server_version", String.class);
-        assertThat(version).startsWith("9.6.");
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker");
     }
 }

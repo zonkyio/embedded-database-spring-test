@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import de.flapdoodle.embed.process.distribution.GenericVersion;
 import de.flapdoodle.embed.process.distribution.IVersion;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
@@ -88,7 +89,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
         try {
             EmbeddedDatabase result = createDatabase(request);
             BaseDataSource dataSource = result.unwrap(BaseDataSource.class);
-            return new DatabaseTemplate(dataSource.getDatabaseName());
+            return new PostgresDatabaseTemplate(dataSource.getDatabaseName(), result::close);
         } catch (SQLException e) {
             throw new ProviderException("Unexpected error when creating a database template", e);
         }

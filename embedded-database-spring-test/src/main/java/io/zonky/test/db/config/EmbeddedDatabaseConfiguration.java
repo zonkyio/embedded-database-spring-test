@@ -24,6 +24,7 @@ import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider;
@@ -36,11 +37,12 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Role;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
@@ -81,6 +83,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Provider(type = "docker", database = "postgres")
     public DatabaseProvider dockerPostgresDatabaseProvider() {
         checkDependency("org.testcontainers", "postgresql", "org.testcontainers.containers.PostgreSQLContainer");
+        checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(DockerPostgresDatabaseProvider.class);
         return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
     }
@@ -89,6 +92,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Provider(type = "zonky", database = "postgres")
     public DatabaseProvider zonkyPostgresDatabaseProvider() {
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
+        checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(ZonkyPostgresDatabaseProvider.class);
         return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
     }
@@ -97,6 +101,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Provider(type = "opentable", database = "postgres")
     public DatabaseProvider openTablePostgresDatabaseProvider() {
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
+        checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(OpenTablePostgresDatabaseProvider.class);
         return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
     }
@@ -105,41 +110,57 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Provider(type = "yandex", database = "postgres")
     public DatabaseProvider yandexPostgresDatabaseProvider() {
         checkDependency("ru.yandex.qatools.embed", "postgresql-embedded", "ru.yandex.qatools.embed.postgresql.EmbeddedPostgres");
+        checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(YandexPostgresDatabaseProvider.class);
         return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
     }
 
     @Bean
+    @Provider(type = "docker", database = "mssql")
+    public DatabaseProvider dockerMsSqlDatabaseProvider() {
+        checkDependency("org.testcontainers", "mssqlserver", "org.testcontainers.containers.MSSQLServerContainer");
+        checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
+        DockerMSSQLDatabaseProvider provider = beanFactory.createBean(DockerMSSQLDatabaseProvider.class);
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Scope("prototype")
     public OptimizingDatabaseProvider optimizingDatabaseProvider(TemplatableDatabaseProvider provider) {
         return new OptimizingDatabaseProvider(provider, contexts);
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Scope("prototype")
     public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
         return new PrefetchingDatabaseProvider(provider, environment);
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
     public FlywayExtension flywayExtension() {
         return new FlywayExtension();
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
     public FlywayPropertiesPostProcessor flywayPropertiesPostProcessor() {
         return new FlywayPropertiesPostProcessor();
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
     public LiquibaseExtension liquibaseExtension() {
         return new LiquibaseExtension();
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties")
     public LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
