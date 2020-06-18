@@ -210,7 +210,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
                 return result;
             }
             Throwables.throwIfInstanceOf(error, ProviderException.class);
-            throw new ProviderException("Unexpected error occurred while prefetching a database", error);
+            throw new ProviderException("Unexpected error when prefetching a database", error);
         }
     }
 

@@ -150,7 +150,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
             try {
                 preparer.prepare(dataSource);
             } catch (SQLException e) {
-                throw new IllegalStateException("Unknown error occurred while applying the preparer", e);
+                throw new IllegalStateException("Unknown error when applying the preparer", e);
             }
         }
     }

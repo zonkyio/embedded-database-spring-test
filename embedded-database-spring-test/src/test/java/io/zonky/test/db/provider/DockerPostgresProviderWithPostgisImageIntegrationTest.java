@@ -36,20 +36,19 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DO
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(provider = DOCKER)
 @TestPropertySource(properties = {
-        "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",
-        "zonky.test.database.postgres.docker.tmpfs.enabled=true"
+        "zonky.test.database.postgres.docker.image=mdillon/postgis:9.6-alpine"
 })
 @ContextConfiguration
-public class DockerProviderWithConfigurationIntegrationTest {
+public class DockerPostgresProviderWithPostgisImageIntegrationTest {
 
     @Configuration
     static class Config {
 
         @Bean
         public PostgreSQLContainerCustomizer postgresContainerCustomizer() {
-            return container -> container.withPassword("docker-postgres");
+            return container -> container.withPassword("docker-postgis");
         }
     }
 
@@ -58,10 +57,15 @@ public class DockerProviderWithConfigurationIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker-postgres");
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class).getPassword()).isEqualTo("docker-postgis");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        String version = jdbcTemplate.queryForObject("show server_version", String.class);
-        assertThat(version).startsWith("9.6.");
+
+        String postgresVersion = jdbcTemplate.queryForObject("show server_version", String.class);
+        assertThat(postgresVersion).startsWith("9.6.");
+
+        jdbcTemplate.update("create extension postgis");
+        String postgisVersion = jdbcTemplate.queryForObject("select postgis_version()", String.class);
+        assertThat(postgisVersion).startsWith("2.5");
     }
 }

@@ -41,7 +41,7 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
         try {
             liquibase.afterPropertiesSet();
         } catch (LiquibaseException e) {
-            throw new IllegalStateException("Unexpected error occurred while running Liquibase", e);
+            throw new IllegalStateException("Unexpected error when running Liquibase", e);
         }
     }
 

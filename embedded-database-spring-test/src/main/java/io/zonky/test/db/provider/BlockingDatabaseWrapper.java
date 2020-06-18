@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
-
-import io.zonky.test.db.provider.EmbeddedDatabase;
+package io.zonky.test.db.provider;
 
 import java.io.PrintWriter;
 import java.sql.Array;
@@ -96,30 +94,23 @@ public class BlockingDatabaseWrapper implements EmbeddedDatabase {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (EmbeddedDatabase.class.isAssignableFrom(iface) || BlockingDatabaseWrapper.class.isAssignableFrom(iface)) {
-            return (T) this;
+        if (iface.isAssignableFrom(getClass())) {
+            return iface.cast(this);
         }
         return delegate.unwrap(iface);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        if (iface.isAssignableFrom(getClass())) {
+            return true;
+        }
         return delegate.isWrapperFor(iface);
     }
 
     @Override
     public String getUrl() {
         return delegate.getUrl();
-    }
-
-    @Override
-    public String getUsername() {
-        return delegate.getUsername();
-    }
-
-    @Override
-    public String getPassword() {
-        return delegate.getPassword();
     }
 
     @Override

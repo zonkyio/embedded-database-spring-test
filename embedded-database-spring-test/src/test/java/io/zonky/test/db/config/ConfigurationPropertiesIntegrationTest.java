@@ -31,7 +31,7 @@ import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.client.properties.stringtype=unspecified",
         "zonky.test.database.postgres.initdb.properties.lc-collate=cs_CZ.UTF-8",

@@ -51,6 +51,6 @@ public class ReplacingDefaultDataSourceIntegrationTest {
 
     @Test
     public void primaryDataSourceShouldBeReplaced() throws Exception {
-        assertThat(dataSource.unwrap(DataSource.class)).isExactlyInstanceOf(PGSimpleDataSource.class);
+        assertThat(dataSource.unwrap(PGSimpleDataSource.class)).isExactlyInstanceOf(PGSimpleDataSource.class);
     }
 }

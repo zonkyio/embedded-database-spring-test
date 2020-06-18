@@ -31,7 +31,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.YA
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = YANDEX)
+@AutoConfigureEmbeddedDatabase(provider = YANDEX)
 @ContextConfiguration
 public class YandexProviderIntegrationTest {
 

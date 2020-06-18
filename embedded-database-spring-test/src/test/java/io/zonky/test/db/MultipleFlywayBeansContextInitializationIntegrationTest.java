@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @ContextConfiguration
 public class MultipleFlywayBeansContextInitializationIntegrationTest {
 

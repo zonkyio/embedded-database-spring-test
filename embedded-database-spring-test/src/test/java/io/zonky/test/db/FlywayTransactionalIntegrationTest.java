@@ -51,7 +51,7 @@ import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false"

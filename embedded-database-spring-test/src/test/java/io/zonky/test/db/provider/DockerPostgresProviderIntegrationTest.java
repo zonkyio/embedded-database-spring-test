@@ -31,9 +31,9 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DO
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(provider = DOCKER)
 @ContextConfiguration
-public class DockerProviderIntegrationTest {
+public class DockerPostgresProviderIntegrationTest {
 
     @Autowired
     private DataSource dataSource;

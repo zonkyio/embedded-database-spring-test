@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 public class EmptyDatabaseIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";

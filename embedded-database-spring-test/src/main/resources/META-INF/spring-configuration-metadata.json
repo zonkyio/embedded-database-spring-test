@@ -19,6 +19,14 @@
     {
       "name": "zonky.test.database.postgres.yandex-provider",
       "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
+    },
+    {
+      "name": "zonky.test.database.mssql",
+      "description": "Configuration properties to configure embedded MSSQL database."
+    },
+    {
+      "name": "zonky.test.database.mssql.docker",
+      "description": "Additional configuration properties for MSSQL database running in a Docker container. Only available if database provider is set to Docker."
     }
   ],
   "properties": [
@@ -84,6 +92,17 @@
       "type": "java.lang.String",
       "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
       "defaultValue": "10.11-1"
+    },
+    {
+      "name": "zonky.test.database.mssql.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional properties used to configure the test data source."
+    },
+    {
+      "name": "zonky.test.database.mssql.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing MSSQL database.",
+      "defaultValue": "mcr.microsoft.com/mssql/server:2017-latest"
     }
   ],
   "hints": [
@@ -175,6 +194,22 @@
         },
         {
           "value": "mdillon/postgis:9.4"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "zonky.test.database.mssql.docker.image",
+      "values": [
+        {
+          "value": "mcr.microsoft.com/mssql/server:2019-latest"
+        },
+        {
+          "value": "mcr.microsoft.com/mssql/server:2017-latest"
         }
       ],
       "providers": [

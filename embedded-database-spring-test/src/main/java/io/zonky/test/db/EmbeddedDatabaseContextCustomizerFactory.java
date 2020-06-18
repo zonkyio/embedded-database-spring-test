@@ -62,7 +62,7 @@ import static java.util.stream.Collectors.toCollection;
 
 /**
  * Implementation of the {@link org.springframework.test.context.ContextCustomizerFactory} interface,
- * which is responsible for initialization of the embedded postgres database and its registration to the application context.
+ * which is responsible for initialization of the embedded database and its registration to the application context.
  * The applied initialization strategy is driven by the {@link AutoConfigureEmbeddedDatabase} annotation.
  *
  * @see AutoConfigureEmbeddedDatabase
@@ -78,7 +78,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
         Set<DatabaseDefinition> databaseDefinitions = databaseAnnotations.stream()
                 .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
-                .filter(annotation -> annotation.type() == DatabaseType.POSTGRES)
                 .filter(annotation -> annotation.replace() != Replace.NONE)
                 .map(this::createDatabaseDefinition)
                 .collect(toCollection(LinkedHashSet::new));
