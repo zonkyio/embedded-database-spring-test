@@ -108,7 +108,10 @@ public @interface AutoConfigureEmbeddedDatabase {
         POSTGRES,
 
         // TODO: update javadoc
-        MSSQL
+        MSSQL,
+
+        // TODO: update javadoc
+        MYSQL
 
     }
 

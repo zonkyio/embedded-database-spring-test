@@ -1,11 +1,13 @@
 package io.zonky.test.db.provider.mssql;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -24,6 +26,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@Category(StaticTests.class)
 @RunWith(MockitoJUnitRunner.class)
 public class DockerMSSQLDatabaseProviderTest {
 

@@ -25,6 +25,7 @@ import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
+import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider;
@@ -122,6 +123,14 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
         DockerMSSQLDatabaseProvider provider = beanFactory.createBean(DockerMSSQLDatabaseProvider.class);
         return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+    }
+
+    @Bean
+    @Provider(type = "docker", database = "mysql")
+    public DatabaseProvider dockerMySqlDatabaseProvider() {
+        checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
+        checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
+        return beanFactory.createBean(DockerMySQLDatabaseProvider.class); // TODO: implement a special optimizing provider
     }
 
     @Bean

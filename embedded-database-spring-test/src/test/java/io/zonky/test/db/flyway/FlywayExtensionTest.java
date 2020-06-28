@@ -50,8 +50,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-@RunWith(MockitoJUnitRunner.class)
 @Category(StaticTests.class)
+@RunWith(MockitoJUnitRunner.class)
 public class FlywayExtensionTest {
 
     @Mock
