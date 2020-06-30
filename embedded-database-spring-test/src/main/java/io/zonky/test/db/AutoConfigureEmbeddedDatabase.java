@@ -111,7 +111,10 @@ public @interface AutoConfigureEmbeddedDatabase {
         MSSQL,
 
         // TODO: update javadoc
-        MYSQL
+        MYSQL,
+
+        // TODO: update javadoc
+        MARIADB
 
     }
 

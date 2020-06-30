@@ -24,6 +24,7 @@ import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
@@ -131,6 +132,14 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
         checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
         return beanFactory.createBean(DockerMySQLDatabaseProvider.class); // TODO: implement a special optimizing provider
+    }
+
+    @Bean
+    @Provider(type = "docker", database = "mariadb")
+    public DatabaseProvider dockerMariaDbDatabaseProvider() {
+        checkDependency("org.testcontainers", "mariadb", "org.testcontainers.containers.MariaDBContainer");
+        checkDependency("org.mariadb.jdbc", "mariadb-java-client", "org.mariadb.jdbc.MariaDbDataSource");
+        return beanFactory.createBean(DockerMariaDBDatabaseProvider.class); // TODO: implement a special optimizing provider
     }
 
     @Bean
