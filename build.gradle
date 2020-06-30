@@ -151,10 +151,12 @@ project(':embedded-database-spring-test') {
 
         compile 'org.testcontainers:postgresql:1.14.1'
         compile "org.testcontainers:mssqlserver:1.14.1"
+        compile 'org.testcontainers:mysql:1.14.1'
         compile 'io.zonky.test:embedded-postgres:1.2.6', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
         compile 'com.microsoft.sqlserver:mssql-jdbc:8.2.2.jre8', optional
+        compile 'mysql:mysql-connector-java:8.0.15', optional
 
         compile "org.flywaydb:flyway-core:$flywayCoreVersion", optional
         compile "org.flywaydb.flyway-test-extensions:flyway-spring-test:$flywayTestVersion", optional

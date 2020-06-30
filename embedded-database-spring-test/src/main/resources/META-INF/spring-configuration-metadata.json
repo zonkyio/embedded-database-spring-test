@@ -27,6 +27,14 @@
     {
       "name": "zonky.test.database.mssql.docker",
       "description": "Additional configuration properties for MSSQL database running in a Docker container. Only available if database provider is set to Docker."
+    },
+    {
+      "name": "zonky.test.database.mysql",
+      "description": "Configuration properties to configure embedded MySQL database."
+    },
+    {
+      "name": "zonky.test.database.mysql.docker",
+      "description": "Additional configuration properties for MySQL database running in a Docker container. Only available if database provider is set to Docker."
     }
   ],
   "properties": [
@@ -103,6 +111,29 @@
       "type": "java.lang.String",
       "description": "Docker image containing MSSQL database.",
       "defaultValue": "mcr.microsoft.com/mssql/server:2017-latest"
+    },
+    {
+      "name": "zonky.test.database.mysql.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional properties used to configure the test data source."
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing MySQL database.",
+      "defaultValue": "mysql:5.7"
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.tmpfs.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to mount postgres data directory as tmpfs.",
+      "defaultValue": false
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.tmpfs.options",
+      "type": "java.lang.String",
+      "description": "Mount options used to configure the tmpfs filesystem.",
+      "defaultValue": "rw,noexec,nosuid"
     }
   ],
   "hints": [
@@ -210,6 +241,25 @@
         },
         {
           "value": "mcr.microsoft.com/mssql/server:2017-latest"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.image",
+      "values": [
+        {
+          "value": "mysql:8.0"
+        },
+        {
+          "value": "mysql:5.7"
+        },
+        {
+          "value": "mysql:5.6"
         }
       ],
       "providers": [
