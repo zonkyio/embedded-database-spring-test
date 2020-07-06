@@ -26,6 +26,7 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
@@ -39,7 +40,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         mergeMode = MERGE_WITH_DEFAULTS,
         listeners = DatabaseRefreshIntegrationTest.class
 )
-@AutoConfigureEmbeddedDatabase(refreshMode = AFTER_EACH_TEST_METHOD)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, refreshMode = AFTER_EACH_TEST_METHOD)
 @ContextConfiguration
 public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListener {
 

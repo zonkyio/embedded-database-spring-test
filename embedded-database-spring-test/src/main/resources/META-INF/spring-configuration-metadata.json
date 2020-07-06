@@ -47,10 +47,22 @@
   ],
   "properties": [
     {
+      "name": "zonky.test.database.type",
+      "type": "java.lang.String",
+      "description": "TODO",
+      "defaultValue": "auto"
+    },
+    {
       "name": "zonky.test.database.provider",
       "type": "java.lang.String",
       "description": "Provider used to create the underlying embedded database, see the documentation for the comparision matrix.",
-      "defaultValue": "zonky"
+      "defaultValue": "docker"
+    },
+    {
+      "name": "zonky.test.database.replace",
+      "type": "java.lang.String",
+      "description": "Type of existing DataSource to replace.",
+      "defaultValue": "any"
     },
     {
       "name": "zonky.test.database.prefetching.thread-name-prefix",

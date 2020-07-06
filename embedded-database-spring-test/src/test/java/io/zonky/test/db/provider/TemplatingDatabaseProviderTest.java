@@ -1,15 +1,10 @@
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseTemplate;
-import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -18,12 +13,14 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.List;
 import java.util.Objects;
 
 import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
 import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
-import static io.zonky.test.db.provider.postgres.TemplatingDatabaseProvider.EMPTY_PREPARER;
+import static io.zonky.test.db.provider.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Matchers.any;
@@ -42,13 +39,16 @@ public class TemplatingDatabaseProviderTest {
     @Mock
     private DataSourceContext mockContext;
     @Mock
+    private ObjectProvider<List<DataSourceContext>> mockContexts;
+    @Mock
     private TemplatableDatabaseProvider mockProvider;
 
     private TemplatingDatabaseProvider optimizingProvider;
 
     @Before
     public void setUp() {
-        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, ImmutableList.of(mockContext), TemplatingDatabaseProvider.Config.builder().build());
+        when(mockContexts.getObject()).thenReturn(ImmutableList.of(mockContext));
+        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, mockContexts, TemplatingDatabaseProvider.Config.builder().build());
     }
 
     @Test

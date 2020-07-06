@@ -26,14 +26,16 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.provider.SimpleDatabaseTemplate;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
@@ -43,7 +45,6 @@ import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -52,6 +53,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 
@@ -59,6 +61,8 @@ import static java.util.Collections.emptyList;
 import static org.testcontainers.containers.MSSQLServerContainer.MS_SQL_SERVER_PORT;
 
 public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider {
+
+    private static final Logger logger = LoggerFactory.getLogger(DockerMSSQLDatabaseProvider.class);
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
@@ -147,38 +151,47 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
                 executeStatement(config, String.format("CREATE DATABASE %s", databaseName));
             }
 
-            EmbeddedDatabase database = getDatabase(config, databaseName);
-
-            if (preparer != null) {
-                preparer.prepare(database);
+            try {
+                EmbeddedDatabase database = getDatabase(config, databaseName);
+                if (preparer != null) {
+                    preparer.prepare(database);
+                }
+                return database;
+            } catch (Exception e) {
+                dropDatabase(config, databaseName);
+                throw e;
             }
-
-            return database;
         }
 
         public DatabaseTemplate createTemplate(ClientConfig config, DatabaseRequest request) throws SQLException {
-            EmbeddedDatabase database = createDatabase(config, request);
-            try {
+            try (EmbeddedDatabase database = createDatabase(config, request)) {
                 ISQLServerDataSource dataSource = database.unwrap(ISQLServerDataSource.class);
                 String templateName = dataSource.getDatabaseName();
 
                 executeStatement(config, String.format("BACKUP DATABASE %s TO DISK = N'/var/opt/mssql/template/%s.bak'", templateName, templateName));
-                return new MsSQLDatabaseTemplate(templateName, () -> dropTemplate(templateName));
-            } finally {
-                database.close();
+                return new SimpleDatabaseTemplate(templateName, () -> dropTemplate(templateName));
             }
         }
 
-        private void dropDatabase(ClientConfig config, String dbName) throws SQLException {
-            executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+        private void dropDatabase(ClientConfig config, String dbName) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+                } catch (Exception e) {
+                    // TODO: change to warning and moderate the error message
+                    logger.error("Unexpected error when releasing '{}' database", dbName, e);
+                }
+            });
         }
 
         private void dropTemplate(String templateName) {
-            try {
-                container.execInContainer("rm", String.format("/var/opt/mssql/template/%s.bak", templateName));
-            } catch (IOException | InterruptedException e) {
-                throw new ProviderException("Unexpected error when releasing the database template", e);
-            }
+            CompletableFuture.runAsync(() -> {
+                try {
+                    container.execInContainer("rm", String.format("/var/opt/mssql/template/%s.bak", templateName));
+                } catch (Exception e) {
+                    logger.error("Unexpected error when releasing '{}' database template", templateName, e);
+                }
+            });
         }
 
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {

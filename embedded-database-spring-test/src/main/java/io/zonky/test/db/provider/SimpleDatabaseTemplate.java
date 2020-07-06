@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
-import io.zonky.test.db.provider.DatabaseTemplate;
-import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.postgres.PostgresEmbeddedDatabase.CloseCallback;
-
-import java.sql.SQLException;
-
-public class PostgresDatabaseTemplate implements DatabaseTemplate {
+public class SimpleDatabaseTemplate implements DatabaseTemplate {
 
     private final String templateName;
-    private final CloseCallback closeCallback;
+    private final Runnable closeCallback;
 
-    public PostgresDatabaseTemplate(String templateName, CloseCallback closeCallback) {
+    public SimpleDatabaseTemplate(String templateName, Runnable closeCallback) {
         this.templateName = templateName;
         this.closeCallback = closeCallback;
     }
@@ -39,10 +33,6 @@ public class PostgresDatabaseTemplate implements DatabaseTemplate {
 
     @Override
     public synchronized void close() {
-        try {
-            closeCallback.call();
-        } catch (SQLException e) {
-            throw new ProviderException("Unexpected error when releasing the database template", e);
-        }
+        closeCallback.run();
     }
 }

@@ -37,12 +37,13 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
 @Category(MultiFlywayTests.class)
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class MultipleFlywayBeansMethodLevelIntegrationTest {
 

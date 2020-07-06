@@ -37,6 +37,7 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -45,7 +46,7 @@ import static org.assertj.core.api.Assertions.tuple;
 @FlywayTest(flywayName = "flyway1")
 @FlywayTest(flywayName = "flyway2")
 @FlywayTest(flywayName = "flyway3", invokeCleanDB = false)
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class MultipleFlywayBeansClassLevelIntegrationTest {
 

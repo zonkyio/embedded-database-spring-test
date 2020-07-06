@@ -33,10 +33,11 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = DOCKER)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",
         "zonky.test.database.postgres.docker.tmpfs.enabled=true"

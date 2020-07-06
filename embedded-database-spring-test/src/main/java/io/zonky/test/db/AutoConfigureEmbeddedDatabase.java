@@ -62,7 +62,7 @@ public @interface AutoConfigureEmbeddedDatabase {
      *
      * @return the type of an embedded database
      */
-    DatabaseType type() default DatabaseType.POSTGRES;
+    DatabaseType type() default DatabaseType.AUTO;
 
     /**
      * Provider used to create the underlying embedded database,
@@ -73,9 +73,6 @@ public @interface AutoConfigureEmbeddedDatabase {
      * @return the provider to create the embedded database
      */
     DatabaseProvider provider() default DatabaseProvider.DEFAULT;
-
-    // TODO: update javadoc
-    String providerName() default "";
 
     // TODO: update javadoc
     RefreshMode refreshMode() default RefreshMode.NEVER;
@@ -101,6 +98,9 @@ public @interface AutoConfigureEmbeddedDatabase {
      * The supported types of embedded databases.
      */
     enum DatabaseType {
+
+        // TODO: update javadoc
+        AUTO,
 
         /**
          * PostgreSQL Database

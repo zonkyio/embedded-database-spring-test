@@ -4,7 +4,6 @@ import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +32,7 @@ import static org.mockito.Mockito.when;
 public class DefaultDataSourceContextTest {
 
     @Mock
-    private DatabaseProviders databaseProviders;
+    private DatabaseProvider databaseProvider;
 
     @Spy
     @InjectMocks
@@ -50,19 +49,7 @@ public class DefaultDataSourceContextTest {
     }
 
     @Test
-    public void databaseDescriptorMustBeSet() {
-        assertThatCode(() -> dataSourceContext.apply(dataSource -> {}))
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessage("Database descriptor must be set");
-    }
-
-    @Test
     public void dataSourceContextMustBeInitialized() {
-        DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
-        when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
-
-        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
-
         assertThatCode(() -> dataSourceContext.reset())
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessage("Data source context must be initialized");
@@ -70,10 +57,6 @@ public class DefaultDataSourceContextTest {
 
     @Test
     public void testPreparers() throws Exception {
-        DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
-        when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
-        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
-
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
         DatabasePreparer preparer2 = mock(DatabasePreparer.class);
         DatabasePreparer preparer3 = mock(DatabasePreparer.class);
@@ -95,7 +78,6 @@ public class DefaultDataSourceContextTest {
         dataSourceContext.getTarget();
 
         InOrder inOrder = inOrder(dataSourceContext, databaseProvider, preparer5);
-        inOrder.verify(dataSourceContext).setDescriptor(any());
         inOrder.verify(dataSourceContext).apply(preparer1);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1)));
         inOrder.verify(dataSourceContext).apply(preparer2);
@@ -115,10 +97,7 @@ public class DefaultDataSourceContextTest {
 
     @Test
     public void testRecording() {
-        DatabaseProvider databaseProvider = mock(DatabaseProvider.class);
-        when(databaseProviders.getProvider(any())).thenReturn(databaseProvider);
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class, RETURNS_MOCKS));
-        dataSourceContext.setDescriptor(DatabaseDescriptor.of("database", "provider"));
 
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
 
@@ -150,7 +129,6 @@ public class DefaultDataSourceContextTest {
         dataSourceContext.getTarget();
 
         InOrder inOrder = inOrder(dataSourceContext, databaseProvider);
-        inOrder.verify(dataSourceContext).setDescriptor(any());
         inOrder.verify(dataSourceContext).getTarget();
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of()));
         inOrder.verify(dataSourceContext).apply(preparer1);

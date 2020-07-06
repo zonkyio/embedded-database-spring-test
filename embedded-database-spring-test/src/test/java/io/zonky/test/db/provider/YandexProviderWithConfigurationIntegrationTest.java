@@ -30,10 +30,11 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.YANDEX;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = YANDEX)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = YANDEX)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.yandex-provider.postgres-version=9.6.11-1"
 })

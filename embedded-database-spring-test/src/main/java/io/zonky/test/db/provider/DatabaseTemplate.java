@@ -16,7 +16,9 @@
 
 package io.zonky.test.db.provider;
 
-public interface DatabaseTemplate {
+import java.io.Closeable;
+
+public interface DatabaseTemplate extends Closeable {
 
     String getTemplateName();
 

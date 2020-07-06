@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

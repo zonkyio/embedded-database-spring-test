@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.ProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -47,7 +44,6 @@ import static java.util.stream.Collectors.toList;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 
-// TODO: move into another package
 public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(PrefetchingDatabaseProvider.class);

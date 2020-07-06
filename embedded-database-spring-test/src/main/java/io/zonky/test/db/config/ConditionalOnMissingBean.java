@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.config;
 
-import javax.sql.DataSource;
-import java.io.Closeable;
+import org.springframework.context.annotation.Conditional;
 
-public interface EmbeddedDatabase extends DataSource, Closeable {
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    String getUrl();
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Conditional(OnBeanCondition.class)
+@interface ConditionalOnMissingBean {
 
-    void close();
+    String[] name() default {};
 
 }

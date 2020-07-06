@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
@@ -24,12 +24,7 @@ import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseTemplate;
-import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -47,7 +42,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
 
-// TODO: move into another package
 public class TemplatingDatabaseProvider implements DatabaseProvider {
 
     public static final CompositeDatabasePreparer EMPTY_PREPARER = new CompositeDatabasePreparer(Collections.emptyList());
@@ -56,16 +50,16 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     private static final ConcurrentMap<TemplateKey, PreparerStats> stats = new ConcurrentHashMap<>();
 
     private final TemplatableDatabaseProvider provider;
-    private final List<DataSourceContext> contexts;
+    private final ObjectProvider<List<DataSourceContext>> contexts;
     private final Config config;
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, List<DataSourceContext> contexts) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DataSourceContext>> contexts) {
         this(provider, contexts, Config.builder().build());
     }
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, List<DataSourceContext> contexts, Config config) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DataSourceContext>> contexts, Config config) {
         this.provider = provider;
-        this.contexts = ImmutableList.copyOf(contexts);
+        this.contexts = contexts;
         this.config = config;
     }
 
@@ -100,7 +94,7 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     }
 
     private boolean isInitialized() {
-        return contexts.stream().noneMatch(context -> context.getState() == INITIALIZING);
+        return contexts.getObject().stream().noneMatch(context -> context.getState() == INITIALIZING);
     }
 
     private boolean hasCleanOperation(CompositeDatabasePreparer preparer) {

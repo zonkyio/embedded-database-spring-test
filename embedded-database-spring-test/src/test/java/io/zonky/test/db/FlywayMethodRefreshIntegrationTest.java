@@ -28,6 +28,7 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.BEFORE_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +42,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         listeners = FlywayMethodRefreshIntegrationTest.class
 )
 @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
-@AutoConfigureEmbeddedDatabase(refreshMode = BEFORE_EACH_TEST_METHOD) // TODO
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, refreshMode = BEFORE_EACH_TEST_METHOD) // TODO
 @ContextConfiguration
 public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionListener {
 

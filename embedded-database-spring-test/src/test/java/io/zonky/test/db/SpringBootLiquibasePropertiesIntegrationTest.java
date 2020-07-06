@@ -29,11 +29,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @Category(LiquibaseTests.class)
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "flyway.enabled=false",
         "spring.flyway.enabled=false",

@@ -21,8 +21,6 @@ import org.springframework.aop.TargetSource;
 
 public interface DataSourceContext extends TargetSource {
 
-    void setDescriptor(DatabaseDescriptor descriptor);
-
     State getState();
 
     void reset();

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider.postgres;
+package io.zonky.test.db.provider;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -24,9 +24,6 @@ import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.provider.ProviderException;
 
 import java.util.List;
 import java.util.Set;
@@ -34,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// TODO: move into another package
 public class OptimizingDatabaseProvider implements DatabaseProvider {
 
     private final DatabaseProvider provider;

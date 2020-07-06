@@ -17,6 +17,8 @@
 package io.zonky.test.db.config;
 
 import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseResolver;
+import io.zonky.test.db.context.DefaultDatabaseResolver;
 import io.zonky.test.db.flyway.FlywayExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseExtension;
@@ -29,15 +31,16 @@ import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
-import io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider;
-import io.zonky.test.db.provider.postgres.PrefetchingDatabaseProvider;
-import io.zonky.test.db.provider.postgres.TemplatingDatabaseProvider;
+import io.zonky.test.db.provider.OptimizingDatabaseProvider;
+import io.zonky.test.db.provider.PrefetchingDatabaseProvider;
+import io.zonky.test.db.provider.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.postgres.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.ZonkyPostgresDatabaseProvider;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -53,14 +56,14 @@ import org.springframework.util.ClassUtils;
 import java.util.List;
 
 @Configuration
-public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware {
+public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware {
 
     private Environment environment;
     private ClassLoader classLoader;
     private AutowireCapableBeanFactory beanFactory;
 
     @Autowired
-    private List<DataSourceContext> contexts;
+    private ObjectProvider<List<DataSourceContext>> contexts;
 
     @Override
     public void setEnvironment(Environment environment) {
@@ -78,12 +81,8 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     }
 
     @Bean
-    public DatabaseProviders databaseProviders(ConfigurableListableBeanFactory beanFactory) {
-        return new DatabaseProviders(beanFactory);
-    }
-
-    @Bean
     @Provider(type = "docker", database = "postgres")
+    @ConditionalOnMissingBean(name = "dockerPostgresDatabaseProvider")
     public DatabaseProvider dockerPostgresDatabaseProvider() {
         checkDependency("org.testcontainers", "postgresql", "org.testcontainers.containers.PostgreSQLContainer");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
@@ -93,6 +92,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "zonky", database = "postgres")
+    @ConditionalOnMissingBean(name = "zonkyPostgresDatabaseProvider")
     public DatabaseProvider zonkyPostgresDatabaseProvider() {
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
@@ -102,6 +102,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "opentable", database = "postgres")
+    @ConditionalOnMissingBean(name = "openTablePostgresDatabaseProvider")
     public DatabaseProvider openTablePostgresDatabaseProvider() {
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
@@ -111,6 +112,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "yandex", database = "postgres")
+    @ConditionalOnMissingBean(name = "yandexPostgresDatabaseProvider")
     public DatabaseProvider yandexPostgresDatabaseProvider() {
         checkDependency("ru.yandex.qatools.embed", "postgresql-embedded", "ru.yandex.qatools.embed.postgresql.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
@@ -120,6 +122,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "docker", database = "mssql")
+    @ConditionalOnMissingBean(name = "dockerMsSqlDatabaseProvider")
     public DatabaseProvider dockerMsSqlDatabaseProvider() {
         checkDependency("org.testcontainers", "mssqlserver", "org.testcontainers.containers.MSSQLServerContainer");
         checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
@@ -129,6 +132,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "docker", database = "mysql")
+    @ConditionalOnMissingBean(name = "dockerMySqlDatabaseProvider")
     public DatabaseProvider dockerMySqlDatabaseProvider() {
         checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
         checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
@@ -138,6 +142,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
 
     @Bean
     @Provider(type = "docker", database = "mariadb")
+    @ConditionalOnMissingBean(name = "dockerMariaDbDatabaseProvider")
     public DatabaseProvider dockerMariaDbDatabaseProvider() {
         checkDependency("org.testcontainers", "mariadb", "org.testcontainers.containers.MariaDBContainer");
         checkDependency("org.mariadb.jdbc", "mariadb-java-client", "org.mariadb.jdbc.MariaDbDataSource");
@@ -145,30 +150,49 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         return optimizingDatabaseProvider(provider);
     }
 
+    // TODO: consider using a factory bean instead (also consider using pipeline factories aimed for specific provider types)
     @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Scope("prototype")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "prefetchingDatabaseProvider")
     public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
         return new PrefetchingDatabaseProvider(provider, environment);
     }
 
     @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Scope("prototype")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "optimizingDatabaseProvider")
     public OptimizingDatabaseProvider optimizingDatabaseProvider(DatabaseProvider provider) {
         return new OptimizingDatabaseProvider(provider);
     }
 
     @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Scope("prototype")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "templatingDatabaseProvider")
     public TemplatingDatabaseProvider templatingDatabaseProvider(TemplatableDatabaseProvider provider) {
         return new TemplatingDatabaseProvider(provider, contexts);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "databaseProviders")
+    public DatabaseProviders databaseProviders(ConfigurableListableBeanFactory beanFactory) {
+        return new DatabaseProviders(beanFactory);
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "databaseResolver")
+    public DatabaseResolver databaseResolver(Environment environment) {
+        return new DefaultDatabaseResolver(environment);
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
+    @ConditionalOnMissingBean(name = "flywayExtension")
     public FlywayExtension flywayExtension() {
         return new FlywayExtension();
     }
@@ -176,6 +200,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
+    @ConditionalOnMissingBean(name = "flywayPropertiesPostProcessor")
     public FlywayPropertiesPostProcessor flywayPropertiesPostProcessor() {
         return new FlywayPropertiesPostProcessor();
     }
@@ -183,6 +208,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
+    @ConditionalOnMissingBean(name = "liquibaseExtension")
     public LiquibaseExtension liquibaseExtension() {
         return new LiquibaseExtension();
     }
@@ -190,6 +216,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties")
+    @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
     public LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
     }

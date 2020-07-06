@@ -42,6 +42,7 @@ import org.springframework.test.context.transaction.BeforeTransaction;
 
 import javax.sql.DataSource;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
 import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +52,7 @@ import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false"

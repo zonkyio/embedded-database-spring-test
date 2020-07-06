@@ -28,10 +28,11 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.YANDEX;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = YANDEX)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = YANDEX)
 @ContextConfiguration
 public class YandexProviderIntegrationTest {
 

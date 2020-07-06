@@ -22,7 +22,6 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.context.ApplicationListener;
@@ -44,18 +43,17 @@ import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
 
 public class DefaultDataSourceContext implements DataSourceContext, ApplicationListener<ContextRefreshedEvent> {
 
-    protected final DatabaseProviders databaseProviders;
+    protected final DatabaseProvider databaseProvider;
 
-    protected DatabaseDescriptor databaseDescriptor;
-    protected List<DatabasePreparer> corePreparers = new LinkedList<>();
-    protected List<DatabasePreparer> testPreparers = new LinkedList<>();
+    protected final List<DatabasePreparer> corePreparers = new LinkedList<>();
+    protected final List<DatabasePreparer> testPreparers = new LinkedList<>();
 
     protected EmbeddedDatabase dataSource;
     protected boolean initialized = false;
     protected boolean dirty = false; // TODO: improve the detection of non-tracked changes
 
-    public DefaultDataSourceContext(DatabaseProviders databaseProviders) {
-        this.databaseProviders = databaseProviders;
+    public DefaultDataSourceContext(DatabaseProvider databaseProvider) {
+        this.databaseProvider = databaseProvider;
     }
 
     @Override
@@ -100,15 +98,6 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
     public synchronized void onApplicationEvent(ContextRefreshedEvent event) {
         stopRecording();
         initialized = true;
-    }
-
-    @Override
-    public synchronized void setDescriptor(DatabaseDescriptor descriptor) {
-        checkState(getState() != DIRTY, "Data source context must not be dirty");
-        stopRecording();
-
-        this.databaseDescriptor = descriptor;
-        cleanDatabase();
     }
 
     @Override
@@ -176,10 +165,7 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
                 .addAll(corePreparers)
                 .addAll(testPreparers)
                 .build();
-
-        checkState(databaseDescriptor != null, "Database descriptor must be set");
-        DatabaseProvider provider = databaseProviders.getProvider(databaseDescriptor);
-        dataSource = provider.createDatabase(new CompositeDatabasePreparer(preparers));
+        dataSource = databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers));
     }
 
     private synchronized void cleanDatabase() {

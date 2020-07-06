@@ -33,10 +33,11 @@ import java.sql.SQLException;
 import java.util.function.Consumer;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.OPENTABLE;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = OPENTABLE)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = OPENTABLE)
 @ContextConfiguration
 public class OpenTableProviderWithConfigurationIntegrationTest {
 

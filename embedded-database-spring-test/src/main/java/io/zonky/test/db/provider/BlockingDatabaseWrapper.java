@@ -114,11 +114,6 @@ public class BlockingDatabaseWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public Map<String, String> getAliases() {
-        return delegate.getAliases();
-    }
-
-    @Override
     public void close() {
         delegate.close();
     }
