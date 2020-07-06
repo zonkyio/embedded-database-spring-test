@@ -31,6 +31,7 @@ import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider;
 import io.zonky.test.db.provider.postgres.PrefetchingDatabaseProvider;
+import io.zonky.test.db.provider.postgres.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.postgres.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.ZonkyPostgresDatabaseProvider;
 import org.springframework.beans.BeansException;
@@ -87,7 +88,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("org.testcontainers", "postgresql", "org.testcontainers.containers.PostgreSQLContainer");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(DockerPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -96,7 +97,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(ZonkyPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -105,7 +106,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(OpenTablePostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -114,7 +115,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("ru.yandex.qatools.embed", "postgresql-embedded", "ru.yandex.qatools.embed.postgresql.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(YandexPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -123,7 +124,7 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
         checkDependency("org.testcontainers", "mssqlserver", "org.testcontainers.containers.MSSQLServerContainer");
         checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
         DockerMSSQLDatabaseProvider provider = beanFactory.createBean(DockerMSSQLDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(provider));
+        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -131,7 +132,8 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     public DatabaseProvider dockerMySqlDatabaseProvider() {
         checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
         checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
-        return beanFactory.createBean(DockerMySQLDatabaseProvider.class); // TODO: implement a special optimizing provider
+        DockerMySQLDatabaseProvider provider = beanFactory.createBean(DockerMySQLDatabaseProvider.class);
+        return optimizingDatabaseProvider(provider);
     }
 
     @Bean
@@ -139,14 +141,8 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     public DatabaseProvider dockerMariaDbDatabaseProvider() {
         checkDependency("org.testcontainers", "mariadb", "org.testcontainers.containers.MariaDBContainer");
         checkDependency("org.mariadb.jdbc", "mariadb-java-client", "org.mariadb.jdbc.MariaDbDataSource");
-        return beanFactory.createBean(DockerMariaDBDatabaseProvider.class); // TODO: implement a special optimizing provider
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @Scope("prototype")
-    public OptimizingDatabaseProvider optimizingDatabaseProvider(TemplatableDatabaseProvider provider) {
-        return new OptimizingDatabaseProvider(provider, contexts);
+        DockerMariaDBDatabaseProvider provider = beanFactory.createBean(DockerMariaDBDatabaseProvider.class);
+        return optimizingDatabaseProvider(provider);
     }
 
     @Bean
@@ -154,6 +150,20 @@ public class EmbeddedDatabaseConfiguration implements EnvironmentAware, BeanClas
     @Scope("prototype")
     public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
         return new PrefetchingDatabaseProvider(provider, environment);
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Scope("prototype")
+    public OptimizingDatabaseProvider optimizingDatabaseProvider(DatabaseProvider provider) {
+        return new OptimizingDatabaseProvider(provider);
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Scope("prototype")
+    public TemplatingDatabaseProvider templatingDatabaseProvider(TemplatableDatabaseProvider provider) {
+        return new TemplatingDatabaseProvider(provider, contexts);
     }
 
     @Bean

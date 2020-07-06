@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -102,10 +104,10 @@ public class FlywayExtension implements BeanPostProcessor {
             DataSourceContext dataSourceContext = entry.getKey();
             List<FlywayOperation> flywayOperations = entry.getValue();
 
-            Function<FlywayOperation, Set<String>> schemasExtractor = op ->
+            Function<FlywayOperation, Set<String>> schemaExtractor = op ->
                     ImmutableSet.copyOf(op.getFlywayWrapper().getSchemas());
 
-            if (flywayBeans.get(dataSourceContext).size() == 1 && flywayOperations.stream().map(schemasExtractor).distinct().count() == 1) {
+            if (flywayBeans.get(dataSourceContext).size() == 1 && flywayOperations.stream().map(schemaExtractor).distinct().count() == 1) {
                 flywayOperations = squashOperations(flywayOperations);
 
                 if (flywayOperations.size() == 2 && flywayOperations.get(0).isClean() && flywayOperations.get(1).isMigrate()) {
@@ -289,9 +291,13 @@ public class FlywayExtension implements BeanPostProcessor {
             return true;
         }
 
-        MigrationVersion coreLastVersion = findLastVersion(flyway, defaultLocations);
+        MigrationVersion coreLastVersion = coreLastVersionCache.computeIfAbsent(defaultLocations, l -> findLastVersion(flyway, l));
+//        MigrationVersion coreLastVersion = findLastVersion(flyway, defaultLocations);
         return coreLastVersion.compareTo(testFirstVersion) < 0;
     }
+
+    // TODO: keys must be more robust, locations are not good enough
+    private static final ConcurrentMap<List<String>, MigrationVersion> coreLastVersionCache = new ConcurrentHashMap<>();
 
     protected List<String> resolveTestLocations(FlywayWrapper flyway, List<String> locations) {
         List<String> defaultLocations = flyway.getLocations();

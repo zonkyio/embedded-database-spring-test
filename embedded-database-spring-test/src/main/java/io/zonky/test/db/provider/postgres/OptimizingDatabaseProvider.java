@@ -16,349 +16,81 @@
 
 package io.zonky.test.db.provider.postgres;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.zonky.test.db.context.DataSourceContext;
+import com.google.common.collect.Lists;
+import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
+import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseRequest;
-import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
-
+// TODO: move into another package
 public class OptimizingDatabaseProvider implements DatabaseProvider {
 
-    public static final CompositeDatabasePreparer EMPTY_PREPARER = new CompositeDatabasePreparer(Collections.emptyList());
+    private final DatabaseProvider provider;
 
-    private static final ConcurrentMap<TemplateKey, TemplateWrapper> templates = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<TemplateKey, PreparerStats> stats = new ConcurrentHashMap<>();
-
-    private final TemplatableDatabaseProvider provider;
-    private final List<DataSourceContext> contexts;
-    private final Config config;
-
-    public OptimizingDatabaseProvider(TemplatableDatabaseProvider provider, List<DataSourceContext> contexts) {
-        this(provider, contexts, Config.builder().build());
-    }
-
-    public OptimizingDatabaseProvider(TemplatableDatabaseProvider provider, List<DataSourceContext> contexts, Config config) {
+    public OptimizingDatabaseProvider(DatabaseProvider provider) {
         this.provider = provider;
-        this.contexts = ImmutableList.copyOf(contexts);
-        this.config = config;
     }
 
     @Override
     public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
-        CompositeDatabasePreparer compositePreparer = preparer instanceof CompositeDatabasePreparer ?
-                (CompositeDatabasePreparer) preparer : new CompositeDatabasePreparer(ImmutableList.of(preparer));
-        List<DatabasePreparer> preparers = compositePreparer.getPreparers();
+        if (preparer instanceof CompositeDatabasePreparer) {
+            List<DatabasePreparer> preparers = ((CompositeDatabasePreparer) preparer).getPreparers();
 
-        PreparerStats preparerStats = stats.computeIfAbsent(new TemplateKey(provider, compositePreparer), key -> new PreparerStats());
-        Stopwatch stopwatch = Stopwatch.createStarted();
+            long flywayPreparersCount = preparers.stream()
+                    .filter(this::isFlywayPreparer)
+                    .map(FlywayDatabasePreparer.class::cast)
+                    .map(schemaExtractor()).distinct().count();
 
-        try {
-            for (int i = preparers.size(); i > 0; i--) {
-                CompositeDatabasePreparer templatePreparer = new CompositeDatabasePreparer(preparers.subList(0, i));
-                TemplateWrapper existingTemplate = templates.get(new TemplateKey(provider, templatePreparer));
-
-                if (existingTemplate != null) {
-                    CompositeDatabasePreparer complementaryPreparer = new CompositeDatabasePreparer(preparers.subList(i, preparers.size()));
-                    if (i == preparers.size() || (isInitialized() && !hasCleanOperation(complementaryPreparer))) {
-                        return createDatabase(complementaryPreparer, existingTemplate, false);
-                    } else {
-                        return createDatabase(complementaryPreparer, existingTemplate, true);
-                    }
-                }
-            }
-
-            return createDatabase(compositePreparer, null, true);
-        } finally {
-            preparerStats.onLoad(stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    private boolean isInitialized() {
-        return contexts.stream().noneMatch(context -> context.getState() == INITIALIZING);
-    }
-
-    private boolean hasCleanOperation(CompositeDatabasePreparer preparer) {
-        return preparer.getPreparers().stream().anyMatch(p -> p instanceof CleanFlywayDatabasePreparer);
-    }
-
-    private EmbeddedDatabase createDatabase(CompositeDatabasePreparer preparer, TemplateWrapper template, boolean createNewTemplate) {
-        if (createNewTemplate) {
-            TemplateWrapper newTemplate = createTemplateIfPossible(preparer, template);
-            if (newTemplate != null && isTemplateReady(newTemplate)) {
-                return newTemplate.createDatabase(EMPTY_PREPARER);
+            // TODO: consider whether the optimization is always applicable
+            if (flywayPreparersCount == 1) {
+                return provider.createDatabase(new CompositeDatabasePreparer(squashPreparers(preparers)));
             }
         }
 
-        if (template != null && isTemplateReady(template)) {
-            return template.createDatabase(preparer);
-        } else {
-            return provider.createDatabase(DatabaseRequest.of(mergedPreparer(preparer, template)));
-        }
+        return provider.createDatabase(preparer);
     }
 
-    private boolean isTemplateReady(TemplateWrapper template) {
-        return config.getDurationThreshold() == 0 || template.isLoaded();
+    protected Function<FlywayDatabasePreparer, Set<String>> schemaExtractor() {
+        return preparer -> ImmutableSet.copyOf(preparer.getFlywayDescriptor().getSchemas());
     }
 
-    private DatabaseTemplate createTemplate(CompositeDatabasePreparer preparer, TemplateWrapper template) {
-        if (template != null) {
-            return template.createTemplate(preparer);
-        } else {
-            return provider.createTemplate(DatabaseRequest.of(preparer));
+    protected List<DatabasePreparer> squashPreparers(List<DatabasePreparer> preparers) {
+        if (preparers.stream().anyMatch(this::isBaselinePreparer)) {
+            return preparers;
         }
+
+        int reverseIndex = Iterables.indexOf(Lists.reverse(preparers), this::isCleanPreparer);
+        if (reverseIndex == -1) {
+            return preparers;
+        }
+
+        Stream<DatabasePreparer> beforeClean = preparers.subList(0, preparers.size() - 1 - reverseIndex).stream().filter(p -> !isFlywayPreparer(p));
+        Stream<DatabasePreparer> afterClean = preparers.subList(preparers.size() - 1 - reverseIndex, preparers.size()).stream();
+
+        return Stream.concat(beforeClean, afterClean).collect(Collectors.toList());
     }
 
-    private TemplateWrapper createTemplateIfPossible(CompositeDatabasePreparer preparer, TemplateWrapper template) {
-        CompositeDatabasePreparer templatePreparer = mergedPreparer(preparer, template);
-        TemplateKey templateKey = new TemplateKey(provider, templatePreparer);
-
-        PreparerStats preparerStats = stats.get(templateKey);
-        if (preparerStats.getTotalLoadTime() < config.getDurationThreshold()) {
-            return null;
-        }
-
-        TemplateWrapper oldTemplate = null;
-        TemplateWrapper newTemplate;
-
-        synchronized (templates) {
-            TemplateWrapper existingTemplate = templates.get(templateKey);
-            if (existingTemplate != null) {
-                return existingTemplate;
-            }
-
-            if (templateCount() >= config.getMaxTemplateCount()) {
-                TemplateKey templateToRemove = findTemplateToRemove();
-                PreparerStats templateToRemoveStats = stats.get(templateToRemove);
-                if (templateToRemove == null || preparerStats.getTotalLoadTime() < templateToRemoveStats.getTotalLoadTime() + config.getDurationThreshold()) {
-                    return null;
-                }
-                oldTemplate = templates.remove(templateToRemove);
-            }
-
-            newTemplate = new TemplateWrapper(provider, templatePreparer);
-            templates.put(templateKey, newTemplate);
-        }
-
-        if (oldTemplate != null) {
-            oldTemplate.close();
-        }
-
-        newTemplate.setTemplate(createTemplate(preparer, template));
-        return newTemplate;
+    protected boolean isFlywayPreparer(DatabasePreparer preparer) {
+        return preparer instanceof FlywayDatabasePreparer;
     }
 
-    private long templateCount() {
-        return templates.keySet().stream()
-                .filter(key -> key.provider.equals(provider))
-                .count();
+    protected boolean isBaselinePreparer(DatabasePreparer preparer) {
+        return preparer instanceof BaselineFlywayDatabasePreparer;
     }
 
-    private TemplateKey findTemplateToRemove() {
-        return templates.entrySet().stream()
-                .filter(entry -> entry.getValue().isLoaded())
-                .map(Map.Entry::getKey)
-                .filter(key -> key.provider.equals(provider))
-                .min(Comparator.comparing(key -> stats.get(key).getTotalLoadTime()))
-                .orElse(null);
-    }
-
-    private static CompositeDatabasePreparer mergedPreparer(CompositeDatabasePreparer preparer, TemplateWrapper template) {
-        if (template == null) {
-            return preparer;
-        }
-        CompositeDatabasePreparer templatePreparer = template.getPreparer();
-        Iterable<DatabasePreparer> combinedPreparers = Iterables.concat(templatePreparer.getPreparers(), preparer.getPreparers());
-        return new CompositeDatabasePreparer(ImmutableList.copyOf(combinedPreparers));
-    }
-
-    protected static class TemplateKey {
-
-        private final TemplatableDatabaseProvider provider;
-        private final CompositeDatabasePreparer preparer;
-
-        private TemplateKey(TemplatableDatabaseProvider provider, CompositeDatabasePreparer preparer) {
-            this.provider = provider;
-            this.preparer = preparer;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TemplateKey that = (TemplateKey) o;
-            return Objects.equals(provider, that.provider) &&
-                    Objects.equals(preparer, that.preparer);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(provider, preparer);
-        }
-    }
-
-    private static class TemplateWrapper {
-
-        private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        private final CompletableFuture<DatabaseTemplate> future = new CompletableFuture<>();
-
-        private final TemplatableDatabaseProvider provider;
-        private final CompositeDatabasePreparer preparer;
-
-        private boolean closed = false;
-
-        private TemplateWrapper(TemplatableDatabaseProvider provider, CompositeDatabasePreparer preparer) {
-            this.provider = provider;
-            this.preparer = preparer;
-        }
-
-        public CompositeDatabasePreparer getPreparer() {
-            return preparer;
-        }
-
-        public boolean isLoaded() {
-            return future.isDone();
-        }
-
-        public EmbeddedDatabase createDatabase(CompositeDatabasePreparer preparer) {
-            lock.readLock().lock();
-            try {
-                if (!closed) {
-                    return provider.createDatabase(DatabaseRequest.of(preparer, getTemplate()));
-                }
-            } finally {
-                lock.readLock().unlock();
-            }
-            CompositeDatabasePreparer mergedPreparer = mergedPreparer(preparer, this);
-            return provider.createDatabase(DatabaseRequest.of(mergedPreparer));
-        }
-
-        public DatabaseTemplate createTemplate(CompositeDatabasePreparer preparer) {
-            lock.readLock().lock();
-            try {
-                if (!closed) {
-                    return provider.createTemplate(DatabaseRequest.of(preparer, getTemplate()));
-                }
-            } finally {
-                lock.readLock().unlock();
-            }
-            CompositeDatabasePreparer mergedPreparer = mergedPreparer(preparer, this);
-            return provider.createTemplate(DatabaseRequest.of(mergedPreparer));
-        }
-
-        public void close() {
-            lock.writeLock().lock();
-            try {
-                closed = true;
-                getTemplate().close();
-            } finally {
-                lock.writeLock().unlock();
-            }
-        }
-
-        private DatabaseTemplate getTemplate() {
-            try {
-                return future.get();
-            } catch (ExecutionException | InterruptedException e) {
-                Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
-                throw new ProviderException("Unexpected error when preparing a database template", e.getCause());
-            }
-        }
-
-        private void setTemplate(DatabaseTemplate template) {
-            future.complete(template);
-        }
-    }
-
-    private static class PreparerStats {
-
-        private final AtomicLong totalLoadTime = new AtomicLong(0);
-        private final AtomicInteger loadCount = new AtomicInteger(0);
-
-        public long getTotalLoadTime() {
-            return totalLoadTime.get();
-        }
-
-        public int getLoadCount() {
-            return loadCount.get();
-        }
-
-        public long getAvgLoadTime() {
-            return getTotalLoadTime() / getLoadCount();
-        }
-
-        public void onLoad(long loadTime) {
-            loadCount.incrementAndGet();
-            totalLoadTime.addAndGet(loadTime);
-        }
-    }
-
-    public static class Config {
-
-        private final long durationThreshold;
-        private final int maxTemplateCount;
-
-        private Config(long durationThreshold, int maxTemplateCount) {
-            this.durationThreshold = durationThreshold;
-            this.maxTemplateCount = maxTemplateCount;
-        }
-
-        public long getDurationThreshold() {
-            return durationThreshold;
-        }
-
-        public int getMaxTemplateCount() {
-            return maxTemplateCount;
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static class Builder {
-
-            private long durationThreshold = 0;
-            private int maxTemplateCount = 50;
-
-            private Builder() {}
-
-            public Builder setDurationThreshold(long durationThreshold) {
-                this.durationThreshold = durationThreshold;
-                return this;
-            }
-
-            public Builder setMaxTemplateCount(int maxTemplateCount) {
-                this.maxTemplateCount = maxTemplateCount;
-                return this;
-            }
-
-            public Config build() {
-                return new Config(durationThreshold, maxTemplateCount);
-            }
-        }
+    protected boolean isCleanPreparer(DatabasePreparer preparer) {
+        return preparer instanceof CleanFlywayDatabasePreparer;
     }
 }

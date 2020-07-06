@@ -23,7 +23,7 @@ import java.util.Objects;
 
 import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
 import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
-import static io.zonky.test.db.provider.postgres.OptimizingDatabaseProvider.EMPTY_PREPARER;
+import static io.zonky.test.db.provider.postgres.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Matchers.any;
@@ -37,18 +37,18 @@ import static org.mockito.Mockito.when;
 
 @Category(StaticTests.class)
 @RunWith(MockitoJUnitRunner.class)
-public class OptimizingDatabaseProviderTest {
+public class TemplatingDatabaseProviderTest {
 
     @Mock
     private DataSourceContext mockContext;
     @Mock
     private TemplatableDatabaseProvider mockProvider;
 
-    private OptimizingDatabaseProvider optimizingProvider;
+    private TemplatingDatabaseProvider optimizingProvider;
 
     @Before
     public void setUp() {
-        optimizingProvider = new OptimizingDatabaseProvider(mockProvider, ImmutableList.of(mockContext), OptimizingDatabaseProvider.Config.builder().build());
+        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, ImmutableList.of(mockContext), TemplatingDatabaseProvider.Config.builder().build());
     }
 
     @Test

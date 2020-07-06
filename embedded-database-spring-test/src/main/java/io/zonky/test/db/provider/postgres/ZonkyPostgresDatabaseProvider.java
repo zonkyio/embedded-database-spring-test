@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
@@ -152,8 +154,19 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             return database;
         }
 
+        private static final Executor closeExecutor = Executors.newFixedThreadPool(16);
+
         private void dropDatabase(ClientConfig config, String dbName) throws SQLException {
-            executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+            // TODO:
+            closeExecutor.execute(() -> {
+                try {
+                    executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+//            executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
         }
 
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {

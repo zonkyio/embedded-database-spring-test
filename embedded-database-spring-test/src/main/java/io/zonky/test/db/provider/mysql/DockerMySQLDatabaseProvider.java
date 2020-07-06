@@ -129,10 +129,14 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
                 instance = new DatabaseInstance(databaseConfig);
             }
 
-            EmbeddedDatabase database = instance.createDatabase(config, preparer);
-            database.unwrap(MySQLEmbeddedDatabase.class).registerCloseCallback(releaseDatabase(instance));
-
-            return database;
+            try {
+                EmbeddedDatabase database = instance.createDatabase(config, preparer);
+                database.unwrap(MySQLEmbeddedDatabase.class).registerCloseCallback(releaseDatabase(instance));
+                return database;
+            } catch (Exception e) {
+                databases.offer(instance); // TODO: implement it to other providers too
+                throw e;
+            }
         }
 
         private CloseCallback releaseDatabase(DatabaseInstance instance) {
@@ -167,15 +171,17 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabasePreparer preparer) throws SQLException {
             String databaseName = container.getDatabaseName();
-
             executeStatement(config, String.format("CREATE DATABASE IF NOT EXISTS %s", databaseName));
-            EmbeddedDatabase database = getDatabase(config, databaseName);
-
-            if (preparer != null) {
-                preparer.prepare(database);
+            try {
+                EmbeddedDatabase database = getDatabase(config, databaseName);
+                if (preparer != null) {
+                    preparer.prepare(database);
+                }
+                return database;
+            } catch (Exception e) {
+                dropDatabase(config, databaseName); // TODO: implement it to other providers too
+                throw e;
             }
-
-            return database;
         }
 
         private void dropDatabase(ClientConfig config, String dbName) {

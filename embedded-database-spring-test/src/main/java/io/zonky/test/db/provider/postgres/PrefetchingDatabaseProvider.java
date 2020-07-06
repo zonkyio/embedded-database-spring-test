@@ -47,6 +47,7 @@ import static java.util.stream.Collectors.toList;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 
+// TODO: move into another package
 public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(PrefetchingDatabaseProvider.class);
