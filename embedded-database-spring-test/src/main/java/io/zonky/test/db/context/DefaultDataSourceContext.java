@@ -76,9 +76,9 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
 
         if (initialized && !dirty) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            boolean excludedCaller = Arrays.stream(stackTrace)
+            boolean includedCaller = Arrays.stream(stackTrace)
                     .anyMatch(e -> e.getClassName().equals("io.zonky.test.db.logging.EmbeddedDatabaseReportingTestExecutionListener"));
-            if (!excludedCaller) {
+            if (includedCaller) {
                 dirty = true;
             }
         }

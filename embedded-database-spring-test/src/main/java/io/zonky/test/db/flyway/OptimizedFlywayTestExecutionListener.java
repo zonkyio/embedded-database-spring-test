@@ -17,6 +17,9 @@
 package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
+import io.zonky.test.db.AutoConfigureEmbeddedDatabases;
 import io.zonky.test.db.util.ReflectionUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -31,6 +34,7 @@ import org.springframework.asm.Opcodes;
 import org.springframework.asm.Type;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.TestExecutionListener;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
@@ -39,9 +43,16 @@ import org.springframework.util.ClassUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.BEFORE_EACH_TEST_METHOD;
+import static java.util.stream.Collectors.toCollection;
 import static org.springframework.asm.SpringAsmInfo.ASM_VERSION;
 import static org.springframework.util.ReflectionUtils.findMethod;
 
@@ -66,8 +77,27 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
         processPendingFlywayOperations(testContext);
     }
 
+    // TODO
+    protected static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
+
     @Override
     public void beforeTestMethod(TestContext testContext) throws Exception {
+        Set<AutoConfigureEmbeddedDatabase> annotations = AnnotatedElementUtils.getMergedRepeatableAnnotations(
+                testContext.getTestClass(), AutoConfigureEmbeddedDatabase.class, AutoConfigureEmbeddedDatabases.class);
+
+        annotations = annotations.stream()
+                .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
+                .filter(annotation -> annotation.replace() != Replace.NONE)
+                .collect(toCollection(LinkedHashSet::new));
+
+        // TODO: improve it for multiple annotations
+        if (annotations.size() == 1 && annotations.iterator().next().refreshMode() == BEFORE_EACH_TEST_METHOD) {
+            listener.beforeTestClass(testContext);
+        }
+
         listener.beforeTestMethod(testContext);
         processPendingFlywayOperations(testContext);
     }
@@ -86,6 +116,18 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
     @Override
     public void afterTestMethod(TestContext testContext) throws Exception {
+//        Set<AutoConfigureEmbeddedDatabase> annotations = AnnotatedElementUtils.getMergedRepeatableAnnotations(
+//                testContext.getTestClass(), AutoConfigureEmbeddedDatabase.class, AutoConfigureEmbeddedDatabases.class);
+//
+//        annotations = annotations.stream()
+//                .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
+//                .filter(annotation -> annotation.replace() != Replace.NONE)
+//                .collect(toCollection(LinkedHashSet::new));
+//
+//        if (annotations.size() == 1 && annotations.iterator().next().refreshMode() == AFTER_EACH_TEST_METHOD) {
+//            listener.beforeTestClass(testContext);
+//        }
+
         listener.afterTestMethod(testContext);
         processPendingFlywayOperations(testContext);
     }
@@ -101,7 +143,12 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
             return;
         }
 
-        ApplicationContext applicationContext = testContext.getApplicationContext();
+        ApplicationContext applicationContext;
+        try {
+            applicationContext = testContext.getApplicationContext();
+        } catch (IllegalStateException e) {
+            return;
+        }
 
         if (applicationContext.getBeanNamesForType(FlywayExtension.class, false, false).length > 0) {
             FlywayExtension flywayExtension = applicationContext.getBean(FlywayExtension.class);

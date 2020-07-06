@@ -158,7 +158,9 @@ public class FlywayExtension implements BeanPostProcessor {
         protected Object apply(Function<FlywayDescriptor, FlywayDatabasePreparer> creator) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
 
-            boolean listenerProcessing = Arrays.stream(stackTrace)
+            boolean contextLoading = Arrays.stream(stackTrace)
+                    .anyMatch(e -> e.getClassName().endsWith("TestContext") && e.getMethodName().equals("getApplicationContext"));
+            boolean listenerProcessing = !contextLoading && Arrays.stream(stackTrace)
                     .anyMatch(e -> e.getClassName().endsWith("FlywayTestExecutionListener")
                             && (e.getMethodName().equals("dbResetWithAnnotation") || e.getMethodName().equals("dbResetWithAnotation")));
             boolean optimizedListenerProcessing = listenerProcessing && Arrays.stream(stackTrace)

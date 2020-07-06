@@ -23,7 +23,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
 
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -39,8 +38,12 @@ public class EmbeddedDatabaseReportingTestExecutionListener extends AbstractTest
 
     @Override
     public void beforeTestMethod(TestContext testContext) throws Exception {
-        Method testMethod = testContext.getTestMethod();
-        ApplicationContext applicationContext = testContext.getApplicationContext();
+        ApplicationContext applicationContext;
+        try {
+            applicationContext = testContext.getApplicationContext();
+        } catch (IllegalStateException e) {
+            return;
+        }
 
         Map<String, DataSourceContext> dataSourceContexts = applicationContext
                 .getBeansOfType(DataSourceContext.class, false, false);
@@ -48,7 +51,7 @@ public class EmbeddedDatabaseReportingTestExecutionListener extends AbstractTest
         for (Entry<String, DataSourceContext> entry : dataSourceContexts.entrySet()) {
             String beanName = StringUtils.substringBeforeLast(entry.getKey(), "Context");
             EmbeddedDatabase database = (EmbeddedDatabase) entry.getValue().getTarget();
-            EmbeddedDatabaseReporter.reportDataSource(beanName, database, testMethod);
+            EmbeddedDatabaseReporter.reportDataSource(beanName, database, testContext.getTestMethod());
         }
     }
 
