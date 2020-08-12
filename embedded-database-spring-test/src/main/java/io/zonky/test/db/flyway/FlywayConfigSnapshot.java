@@ -31,11 +31,13 @@ public class FlywayConfigSnapshot {
     private final Object[] callbacks; // the callbacks are modified during the migration
 
     // included in equals and hashCode methods
-    // but it will work only for empty arrays (that is common use-case)
+    // but it will work only for empty arrays or null values (that is common use-case)
     // because of missing equals and hashCode methods
     // on classes implementing these interfaces
     private final List<MigrationResolver> resolvers;
     private final List<Object> errorHandlers;
+    private final Object resourceProvider;
+    private final Object javaMigrationClassProvider;
 
     // included in equals and hashCode methods
     private final MigrationVersion baselineVersion;
@@ -48,6 +50,7 @@ public class FlywayConfigSnapshot {
     private final Map<String, String> placeholders;
     private final String table;
     private final String tablespace;
+    private final String defaultSchemaName;
     private final String baselineDescription;
     private final String undoSqlMigrationPrefix;
     private final String repeatableSqlMigrationPrefix;
@@ -67,10 +70,12 @@ public class FlywayConfigSnapshot {
     private final boolean ignoreIgnoredMigrations;
     private final boolean ignorePendingMigrations;
     private final boolean ignoreFutureMigrations;
+    private final boolean validateMigrationNaming;
     private final boolean validateOnMigrate;
     private final boolean cleanOnValidationError;
     private final boolean cleanDisabled;
     private final boolean allowMixedMigrations;
+    private final boolean createSchemas;
     private final boolean mixed;
     private final boolean group;
     private final String installedBy;
@@ -79,6 +84,7 @@ public class FlywayConfigSnapshot {
     private final boolean batch;
     private final boolean oracleSqlPlus;
     private final boolean oracleSqlplusWarn;
+    private final boolean outputQueryResults;
     private final int connectRetries;
 
     public FlywayConfigSnapshot(Flyway flyway) {
@@ -226,8 +232,32 @@ public class FlywayConfigSnapshot {
 
         if (flywayVersion >= 60 && isFlywayPro) {
             this.oracleSqlplusWarn = getValue(config, "isOracleSqlplusWarn");
+            this.outputQueryResults = getValue(config, "outputQueryResults");
         } else {
             this.oracleSqlplusWarn = false;
+            this.outputQueryResults = true;
+        }
+
+        if (flywayVersion >= 61) {
+            this.defaultSchemaName = getValue(config, "getDefaultSchema");
+        } else {
+            this.defaultSchemaName = null;
+        }
+
+        if (flywayVersion >= 62) {
+            this.validateMigrationNaming = getValue(config, "isValidateMigrationNaming");
+        } else {
+            this.validateMigrationNaming = false;
+        }
+
+        if (flywayVersion >= 65) {
+            this.resourceProvider = getValue(config, "getResourceProvider");
+            this.javaMigrationClassProvider = getValue(config, "getJavaMigrationClassProvider");
+            this.createSchemas = getValue(config, "getCreateSchemas");
+        } else {
+            this.resourceProvider = null;
+            this.javaMigrationClassProvider = null;
+            this.createSchemas = true;
         }
     }
 
@@ -261,6 +291,14 @@ public class FlywayConfigSnapshot {
 
     public List<MigrationResolver> getResolvers() {
         return resolvers;
+    }
+
+    public Object getResourceProvider() {
+        return resourceProvider;
+    }
+
+    public Object getJavaMigrationClassProvider() {
+        return javaMigrationClassProvider;
     }
 
     public boolean isSkipDefaultResolvers() {
@@ -327,6 +365,10 @@ public class FlywayConfigSnapshot {
         return tablespace;
     }
 
+    public String getDefaultSchemaName() {
+        return defaultSchemaName;
+    }
+
     public List<String> getSchemas() {
         return schemas;
     }
@@ -371,6 +413,10 @@ public class FlywayConfigSnapshot {
         return ignoreFutureMigrations;
     }
 
+    public boolean isValidateMigrationNaming() {
+        return validateMigrationNaming;
+    }
+
     public boolean isValidateOnMigrate() {
         return validateOnMigrate;
     }
@@ -385,6 +431,10 @@ public class FlywayConfigSnapshot {
 
     public boolean isAllowMixedMigrations() {
         return allowMixedMigrations;
+    }
+
+    public boolean isCreateSchemas() {
+        return createSchemas;
     }
 
     public boolean isMixed() {
@@ -427,6 +477,10 @@ public class FlywayConfigSnapshot {
         return oracleSqlplusWarn;
     }
 
+    public boolean isOutputQueryResults() {
+        return outputQueryResults;
+    }
+
     public int getConnectRetries() {
         return connectRetries;
     }
@@ -445,10 +499,12 @@ public class FlywayConfigSnapshot {
                 ignoreIgnoredMigrations == that.ignoreIgnoredMigrations &&
                 ignorePendingMigrations == that.ignorePendingMigrations &&
                 ignoreFutureMigrations == that.ignoreFutureMigrations &&
+                validateMigrationNaming == that.validateMigrationNaming &&
                 validateOnMigrate == that.validateOnMigrate &&
                 cleanOnValidationError == that.cleanOnValidationError &&
                 cleanDisabled == that.cleanDisabled &&
                 allowMixedMigrations == that.allowMixedMigrations &&
+                createSchemas == that.createSchemas &&
                 mixed == that.mixed &&
                 group == that.group &&
                 dryRun == that.dryRun &&
@@ -456,9 +512,12 @@ public class FlywayConfigSnapshot {
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
                 oracleSqlplusWarn == that.oracleSqlplusWarn &&
+                outputQueryResults == that.outputQueryResults &&
                 connectRetries == that.connectRetries &&
                 Objects.equals(resolvers, that.resolvers) &&
                 Objects.equals(errorHandlers, that.errorHandlers) &&
+                Objects.equals(resourceProvider, that.resourceProvider) &&
+                Objects.equals(javaMigrationClassProvider, that.javaMigrationClassProvider) &&
                 Objects.equals(baselineVersion, that.baselineVersion) &&
                 Objects.equals(target, that.target) &&
                 Objects.equals(locations, that.locations) &&
@@ -469,6 +528,7 @@ public class FlywayConfigSnapshot {
                 Objects.equals(placeholders, that.placeholders) &&
                 Objects.equals(table, that.table) &&
                 Objects.equals(tablespace, that.tablespace) &&
+                Objects.equals(defaultSchemaName, that.defaultSchemaName) &&
                 Objects.equals(baselineDescription, that.baselineDescription) &&
                 Objects.equals(undoSqlMigrationPrefix, that.undoSqlMigrationPrefix) &&
                 Objects.equals(repeatableSqlMigrationPrefix, that.repeatableSqlMigrationPrefix) &&
@@ -485,16 +545,17 @@ public class FlywayConfigSnapshot {
     @Override
     public int hashCode() {
         return Objects.hash(
-                resolvers, errorHandlers,
+                resolvers, errorHandlers, resourceProvider, javaMigrationClassProvider,
                 baselineVersion, target, locations, schemas, sqlMigrationSuffixes,
-                javaMigrations, errorOverrides, placeholders, table, tablespace,
+                javaMigrations, errorOverrides, placeholders, table, tablespace, defaultSchemaName,
                 baselineDescription, undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, placeholderPrefix,
                 placeholderSuffix, encoding, initSql, licenseKey,
                 skipDefaultResolvers, skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate,
                 outOfOrder, ignoreMissingMigrations, ignoreIgnoredMigrations, ignorePendingMigrations,
-                ignoreFutureMigrations, validateOnMigrate, cleanOnValidationError, cleanDisabled,
-                allowMixedMigrations, mixed, group, installedBy, dryRun, stream, batch,
-                oracleSqlPlus, oracleSqlplusWarn, connectRetries);
+                ignoreFutureMigrations, validateMigrationNaming, validateOnMigrate,
+                cleanOnValidationError, cleanDisabled, allowMixedMigrations, createSchemas,
+                mixed, group, installedBy, dryRun, stream, batch,
+                oracleSqlPlus, oracleSqlplusWarn, outputQueryResults, connectRetries);
     }
 }
