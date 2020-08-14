@@ -25,7 +25,6 @@ import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.flywaydb.core.internal.database.DatabaseFactory;
 import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.flywaydb.test.junit.FlywayTestExecutionListener;
@@ -51,7 +50,6 @@ import java.util.Map;
 import static io.zonky.test.db.util.ReflectionUtils.getField;
 import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
-import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 
 /**
  * Optimized implementation of the {@link org.flywaydb.test.junit.FlywayTestExecutionListener}
@@ -254,41 +252,24 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         try {
             setFlywayLocations(flyway, locations);
 
-            if (flywayVersion >= 60) {
-                Object configuration = getField(flyway, "configuration");
-                Object jdbcConnectionFactory = invokeConstructor("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", invokeMethod(configuration, "getDataSource"), 0);
-                closeConnection(invokeMethod(jdbcConnectionFactory, "openConnection")); // closes an internal unused connection
-                Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, configuration);
-                Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
-                Object scanner;
-
-                try {
-                    scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                            ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                            Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                            invokeMethod(configuration, "getClassLoader"),
-                            invokeMethod(configuration, "getEncoding"));
-                } catch (RuntimeException ex) {
-                    scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                            Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                            invokeMethod(configuration, "getClassLoader"),
-                            invokeMethod(configuration, "getEncoding"));
-                }
-
+            if (flywayVersion >= 63) {
+                Object scanner = createScanner(flyway);
+                Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
+                Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
+                Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
+                return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
+            } else if (flywayVersion >= 60) {
+                Object scanner = createScanner(flyway);
+                Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
+                Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
                 return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
             } else if (flywayVersion >= 52) {
-                Object configuration = getField(flyway, "configuration");
-                Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
-                closeConnection(invokeMethod(database, "getMainConnection")); // closes an internal unused connection
-                Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
-                Object scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                        invokeMethod(configuration, "getClassLoader"),
-                        invokeMethod(configuration, "getEncoding"));
-                return invokeMethod(flyway, "createMigrationResolver", database, scanner, scanner, factory);
+                Object scanner = createScanner(flyway);
+                Object placeholderReplacer = createMock("org.flywaydb.core.internal.placeholder.PlaceholderReplacer");
+                Object factory = invokeConstructor("org.flywaydb.core.internal.database.postgresql.PostgreSQLSqlStatementBuilderFactory", placeholderReplacer);
+                return invokeMethod(flyway, "createMigrationResolver", null, scanner, scanner, factory);
             } else if (flywayVersion >= 51) {
-                Object configuration = getField(flyway, "configuration");
-                Object scanner = invokeConstructor(Scanner.class, configuration);
+                Object scanner = createScanner(flyway);
                 Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
                 return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
             } else if (flywayVersion >= 40) {
@@ -300,6 +281,64 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         } finally {
             setFlywayLocations(flyway, oldLocations);
         }
+    }
+
+    protected static Object createScanner(Flyway flyway) throws ClassNotFoundException {
+        Object configuration = getField(flyway, "configuration");
+
+        if (flywayVersion >= 63) {
+            try {
+                // this code is only for version 6.3.3 and above
+                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"),
+                        getField(flyway, "resourceNameCache"),
+                        getField(flyway, "locationScannerCache"));
+            } catch (RuntimeException ex) {
+                if (flywayVersion > 63) {
+                    throw ex;
+                }
+                // try next branch
+            }
+        }
+        if (flywayVersion >= 61) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                    invokeMethod(configuration, "getClassLoader"),
+                    invokeMethod(configuration, "getEncoding"),
+                    getField(flyway, "resourceNameCache"));
+        }
+        if (flywayVersion >= 60) {
+            try {
+                // this code is only for version 6.0.7 and above
+                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"));
+            } catch (RuntimeException ex) {
+                // try next branch
+            }
+        }
+        if (flywayVersion >= 52) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                    invokeMethod(configuration, "getClassLoader"),
+                    invokeMethod(configuration, "getEncoding"));
+        }
+        if (flywayVersion >= 51) {
+            return invokeConstructor(Scanner.class, configuration);
+        }
+
+        throw new IllegalStateException("Unsupported flyway version: " + flywayVersion);
+    }
+
+    protected static Object createMock(String className) throws ClassNotFoundException {
+        Class<?> proxyInterface = ClassUtils.forName(className, classLoader);
+        return ProxyFactory.getProxy(proxyInterface, (MethodInterceptor) invocation -> null);
     }
 
     protected Flyway getFlywayBean(ApplicationContext applicationContext, FlywayTest annotation) {
@@ -346,16 +385,6 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
         } catch (BeansException e) {}
 
         return null;
-    }
-
-    protected static void closeConnection(AutoCloseable connection) {
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (Exception e) {
-                // ignored
-            }
-        }
     }
 
     /**
