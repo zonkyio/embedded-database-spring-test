@@ -24,9 +24,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
-import static io.zonky.test.db.context.DataSourceContext.ContextState.DIRTY;
-import static io.zonky.test.db.context.DataSourceContext.ContextState.FRESH;
-import static io.zonky.test.db.context.DataSourceContext.ContextState.INITIALIZING;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.DIRTY;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Matchers.any;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultDataSourceContextTest {
+public class DefaultDatabaseContextTest {
 
     private static Method MOCK_TEST_METHOD;
 
@@ -48,103 +48,103 @@ public class DefaultDataSourceContextTest {
 
     @Spy
     @InjectMocks
-    private DefaultDataSourceContext dataSourceContext;
+    private DefaultDatabaseContext databaseContext;
 
     @BeforeClass
     public static void beforeClass() {
-        MOCK_TEST_METHOD = ReflectionUtils.findMethod(DefaultDataSourceContextTest.class, "beforeClass");
+        MOCK_TEST_METHOD = ReflectionUtils.findMethod(DefaultDatabaseContextTest.class, "beforeClass");
     }
 
     @Test
-    public void dataSourceContextMustBeInitializedBeforeReset() {
-        assertThatCode(() -> dataSourceContext.reset())
+    public void databaseContextMustBeInitializedBeforeReset() {
+        assertThatCode(() -> databaseContext.reset())
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessage("Data source context must be initialized");
     }
 
     @Test
-    public void dataSourceContextInInitializingStateShouldCreateDatabaseWhenNecessary() {
+    public void databaseContextInInitializingStateShouldCreateDatabaseWhenNecessary() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        assertThat(dataSourceContext.getState()).isEqualTo(INITIALIZING);
-        assertThat(dataSourceContext.getDatabase()).isNotNull();
+        assertThat(databaseContext.getState()).isEqualTo(INITIALIZING);
+        assertThat(databaseContext.getDatabase()).isNotNull();
 
         verify(databaseProvider).createDatabase(any());
     }
 
     @Test
-    public void dataSourceContextInTestPreparationStateShouldCreateDatabaseWhenInvokedFromMainThread() {
+    public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenInvokedFromMainThread() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        dataSourceContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(null);
 
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
-        assertThat(dataSourceContext.getDatabase()).isNotNull();
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getDatabase()).isNotNull();
 
         verify(databaseProvider).createDatabase(any());
     }
 
     @Test
-    public void dataSourceContextInTestPreparationStateShouldCreateDatabaseWhenPreviousDatabaseIsNotAvailableEvenWhenInvokedOutOfMainThread() throws InterruptedException {
+    public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenPreviousDatabaseIsNotAvailableEvenWhenInvokedOutOfMainThread() throws InterruptedException {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        runInDifferentThread(() -> dataSourceContext.handleContextRefreshed(null));
+        runInDifferentThread(() -> databaseContext.handleContextRefreshed(null));
 
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
-        assertThat(dataSourceContext.getDatabase()).isNotNull();
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getDatabase()).isNotNull();
 
         verify(databaseProvider).createDatabase(any());
     }
 
     @Test
-    public void dataSourceContextInTestExecutionStateShouldCreateDatabaseWhenTestExecutionStarted() {
+    public void databaseContextInTestExecutionStateShouldCreateDatabaseWhenTestExecutionStarted() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        dataSourceContext.handleContextRefreshed(null);
-        dataSourceContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
+        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
 
         verify(databaseProvider).createDatabase(any());
 
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
-        assertThat(dataSourceContext.getDatabase()).isNotNull();
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getDatabase()).isNotNull();
 
         verifyNoMoreInteractions(databaseProvider);
     }
 
     @Test
-    public void dataSourceContextInTestPreparationStateShouldCreateDatabaseWhenResetAndInvokedFromMainThread() {
+    public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenResetAndInvokedFromMainThread() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class), mock(EmbeddedDatabase.class));
 
-        dataSourceContext.handleContextRefreshed(null);
-        dataSourceContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
+        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
 
-        EmbeddedDatabase database = dataSourceContext.getDatabase();
-        dataSourceContext.handleTestFinished(new TestExecutionFinishedEvent(this, MOCK_TEST_METHOD));
-        assertThat(dataSourceContext.getState()).isEqualTo(DIRTY);
-        dataSourceContext.reset();
+        EmbeddedDatabase database = databaseContext.getDatabase();
+        databaseContext.handleTestFinished(new TestExecutionFinishedEvent(this, MOCK_TEST_METHOD));
+        assertThat(databaseContext.getState()).isEqualTo(DIRTY);
+        databaseContext.reset();
 
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
-        assertThat(dataSourceContext.getDatabase()).isNotSameAs(database);
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getDatabase()).isNotSameAs(database);
 
         verify(databaseProvider, times(2)).createDatabase(any());
     }
 
     @Test
-    public void dataSourceContextInTestPreparationStateShouldReturnPreviousDatabaseWhenResetAndInvokedOutOfMainThread() throws InterruptedException {
+    public void databaseContextInTestPreparationStateShouldReturnPreviousDatabaseWhenResetAndInvokedOutOfMainThread() throws InterruptedException {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class), mock(EmbeddedDatabase.class));
 
-        runInDifferentThread(() -> dataSourceContext.handleContextRefreshed(null));
+        runInDifferentThread(() -> databaseContext.handleContextRefreshed(null));
 
-        dataSourceContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
+        databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
         verify(databaseProvider).createDatabase(any());
 
-        EmbeddedDatabase database = dataSourceContext.getDatabase();
-        dataSourceContext.handleTestFinished(new TestExecutionFinishedEvent(this, MOCK_TEST_METHOD));
-        assertThat(dataSourceContext.getState()).isEqualTo(DIRTY);
-        dataSourceContext.reset();
+        EmbeddedDatabase database = databaseContext.getDatabase();
+        databaseContext.handleTestFinished(new TestExecutionFinishedEvent(this, MOCK_TEST_METHOD));
+        assertThat(databaseContext.getState()).isEqualTo(DIRTY);
+        databaseContext.reset();
 
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
-        assertThat(dataSourceContext.getDatabase()).isSameAs(database);
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getDatabase()).isSameAs(database);
 
         verifyNoMoreInteractions(databaseProvider);
     }
@@ -157,33 +157,33 @@ public class DefaultDataSourceContextTest {
         DatabasePreparer preparer4 = mock(DatabasePreparer.class);
         DatabasePreparer preparer5 = mock(DatabasePreparer.class);
 
-        dataSourceContext.apply(preparer1);
-        dataSourceContext.apply(preparer2);
+        databaseContext.apply(preparer1);
+        databaseContext.apply(preparer2);
 
-        dataSourceContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(null);
 
-        dataSourceContext.apply(preparer3);
-        dataSourceContext.apply(preparer4);
-        dataSourceContext.getDatabase();
+        databaseContext.apply(preparer3);
+        databaseContext.apply(preparer4);
+        databaseContext.getDatabase();
 
-        dataSourceContext.apply(preparer5);
+        databaseContext.apply(preparer5);
 
-        dataSourceContext.reset();
-        dataSourceContext.getDatabase();
+        databaseContext.reset();
+        databaseContext.getDatabase();
 
-        InOrder inOrder = inOrder(dataSourceContext, databaseProvider, preparer5);
-        inOrder.verify(dataSourceContext).apply(preparer1);
+        InOrder inOrder = inOrder(databaseContext, databaseProvider, preparer5);
+        inOrder.verify(databaseContext).apply(preparer1);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1)));
-        inOrder.verify(dataSourceContext).apply(preparer2);
+        inOrder.verify(databaseContext).apply(preparer2);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2)));
-        inOrder.verify(dataSourceContext).apply(preparer3);
-        inOrder.verify(dataSourceContext).apply(preparer4);
-        inOrder.verify(dataSourceContext).getDatabase();
+        inOrder.verify(databaseContext).apply(preparer3);
+        inOrder.verify(databaseContext).apply(preparer4);
+        inOrder.verify(databaseContext).getDatabase();
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2, preparer3, preparer4)));
-        inOrder.verify(dataSourceContext).apply(preparer5);
+        inOrder.verify(databaseContext).apply(preparer5);
         inOrder.verify(preparer5).prepare(any());
-        inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext).getDatabase();
+        inOrder.verify(databaseContext).reset();
+        inOrder.verify(databaseContext).getDatabase();
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2)));
 
         verifyNoMoreInteractions(databaseProvider);
@@ -209,29 +209,29 @@ public class DefaultDataSourceContextTest {
         manualOperations.accept(recordingDataSource);
         DatabasePreparer recordedPreparer = recordingDataSource.getPreparer();
 
-        manualOperations.accept(dataSourceContext.getDatabase());
+        manualOperations.accept(databaseContext.getDatabase());
 
-        dataSourceContext.apply(preparer1);
+        databaseContext.apply(preparer1);
 
-        manualOperations.accept(dataSourceContext.getDatabase());
+        manualOperations.accept(databaseContext.getDatabase());
 
-        dataSourceContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(null);
 
-        manualOperations.accept(dataSourceContext.getDatabase());
+        manualOperations.accept(databaseContext.getDatabase());
 
-        dataSourceContext.reset();
-        dataSourceContext.getDatabase();
+        databaseContext.reset();
+        databaseContext.getDatabase();
 
-        InOrder inOrder = inOrder(dataSourceContext, databaseProvider);
-        inOrder.verify(dataSourceContext).getDatabase();
+        InOrder inOrder = inOrder(databaseContext, databaseProvider);
+        inOrder.verify(databaseContext).getDatabase();
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of()));
-        inOrder.verify(dataSourceContext).apply(preparer1);
+        inOrder.verify(databaseContext).apply(preparer1);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1)));
-        inOrder.verify(dataSourceContext).getDatabase();
-        inOrder.verify(dataSourceContext).handleContextRefreshed(null);
-        inOrder.verify(dataSourceContext).getDatabase();
-        inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext).getDatabase();
+        inOrder.verify(databaseContext).getDatabase();
+        inOrder.verify(databaseContext).handleContextRefreshed(null);
+        inOrder.verify(databaseContext).getDatabase();
+        inOrder.verify(databaseContext).reset();
+        inOrder.verify(databaseContext).getDatabase();
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1, recordedPreparer)));
 
         verifyNoMoreInteractions(databaseProvider);

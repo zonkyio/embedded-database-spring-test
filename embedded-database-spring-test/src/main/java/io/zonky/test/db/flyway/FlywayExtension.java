@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
@@ -63,7 +63,7 @@ public class FlywayExtension implements BeanPostProcessor {
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
-    protected final Multimap<DataSourceContext, Flyway> flywayBeans = HashMultimap.create();
+    protected final Multimap<DatabaseContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
 
     @Override
@@ -75,7 +75,7 @@ public class FlywayExtension implements BeanPostProcessor {
         if (bean instanceof Flyway) {
             Flyway flyway = (Flyway) bean;
             FlywayWrapper wrapper = FlywayWrapper.of(flyway);
-            DataSourceContext context = AopProxyUtils.getDataSourceContext(wrapper.getDataSource());
+            DatabaseContext context = AopProxyUtils.getDatabaseContext(wrapper.getDataSource());
 
             if (context != null) {
                 flywayBeans.put(context, flyway);
@@ -104,23 +104,23 @@ public class FlywayExtension implements BeanPostProcessor {
         List<FlywayOperation> pendingOperations = new LinkedList<>();
         this.pendingOperations.drainTo(pendingOperations);
 
-        Map<DataSourceContext, List<FlywayOperation>> databaseOperations = pendingOperations.stream()
-                .collect(Collectors.groupingBy(operation -> getDataSourceContext(operation.getFlywayWrapper())));
+        Map<DatabaseContext, List<FlywayOperation>> databaseOperations = pendingOperations.stream()
+                .collect(Collectors.groupingBy(operation -> getDatabaseContext(operation.getFlywayWrapper())));
 
-        for (Map.Entry<DataSourceContext, List<FlywayOperation>> entry : databaseOperations.entrySet()) {
-            DataSourceContext dataSourceContext = entry.getKey();
+        for (Map.Entry<DatabaseContext, List<FlywayOperation>> entry : databaseOperations.entrySet()) {
+            DatabaseContext databaseContext = entry.getKey();
             List<FlywayOperation> flywayOperations = entry.getValue();
 
             Function<FlywayOperation, Set<String>> schemaExtractor = op ->
                     ImmutableSet.copyOf(op.getFlywayWrapper().getSchemas());
 
-            if (flywayBeans.get(dataSourceContext).size() == 1 && flywayOperations.stream().map(schemaExtractor).distinct().count() == 1) {
+            if (flywayBeans.get(databaseContext).size() == 1 && flywayOperations.stream().map(schemaExtractor).distinct().count() == 1) {
                 flywayOperations = squashOperations(flywayOperations);
 
                 if (flywayOperations.size() == 2 && flywayOperations.get(0).isClean() && flywayOperations.get(1).isMigrate()) {
                     FlywayOperation flywayOperation = flywayOperations.get(1);
 
-                    dataSourceContext.reset();
+                    databaseContext.reset();
 
                     if (isAppendable(flywayOperation)) {
                         applyTestMigrations(flywayOperation);
@@ -129,7 +129,7 @@ public class FlywayExtension implements BeanPostProcessor {
                 }
             }
 
-            flywayOperations.forEach(operation -> dataSourceContext.apply(operation.getPreparer()));
+            flywayOperations.forEach(operation -> databaseContext.apply(operation.getPreparer()));
         }
     }
 
@@ -187,8 +187,8 @@ public class FlywayExtension implements BeanPostProcessor {
             if (optimizedListenerProcessing) {
                 pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
             } else {
-                DataSourceContext dataSourceContext = getDataSourceContext(flywayWrapper);
-                dataSourceContext.apply(preparer);
+                DatabaseContext databaseContext = getDatabaseContext(flywayWrapper);
+                databaseContext.apply(preparer);
             }
 
             if (preparer instanceof MigrateFlywayDatabasePreparer) {
@@ -234,8 +234,8 @@ public class FlywayExtension implements BeanPostProcessor {
         }
     }
 
-    protected DataSourceContext getDataSourceContext(FlywayWrapper wrapper) {
-        DataSourceContext context = AopProxyUtils.getDataSourceContext(wrapper.getDataSource());
+    protected DatabaseContext getDatabaseContext(FlywayWrapper wrapper) {
+        DatabaseContext context = AopProxyUtils.getDatabaseContext(wrapper.getDataSource());
         checkState(context != null, "Data source context cannot be resolved");
         return context;
     }
@@ -255,7 +255,7 @@ public class FlywayExtension implements BeanPostProcessor {
 
     protected void applyTestMigrations(FlywayOperation operation) {
         FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
-        DataSourceContext dataSourceContext = getDataSourceContext(flywayWrapper);
+        DatabaseContext databaseContext = getDatabaseContext(flywayWrapper);
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
 
         List<String> preparerLocations = migratePreparer.getFlywayDescriptor().getLocations();
@@ -273,7 +273,7 @@ public class FlywayExtension implements BeanPostProcessor {
                             .addAll(defaultLocations).addAll(testLocations).build());
                 }
                 FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
-                dataSourceContext.apply(new MigrateFlywayDatabasePreparer(descriptor));
+                databaseContext.apply(new MigrateFlywayDatabasePreparer(descriptor));
             } finally {
                 flywayWrapper.setLocations(defaultLocations);
                 flywayWrapper.setIgnoreMissingMigrations(ignoreMissingMigrations);

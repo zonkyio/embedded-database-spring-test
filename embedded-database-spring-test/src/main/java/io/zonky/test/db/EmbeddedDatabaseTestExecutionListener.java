@@ -1,6 +1,6 @@
 package io.zonky.test.db;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -81,7 +81,7 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
         });
     }
 
-    private void forEachDatabase(TestContext testContext, RefreshMode[] refreshModes, BiConsumer<DataSourceContext, AutoConfigureEmbeddedDatabase> action) {
+    private void forEachDatabase(TestContext testContext, RefreshMode[] refreshModes, BiConsumer<DatabaseContext, AutoConfigureEmbeddedDatabase> action) {
         Set<AutoConfigureEmbeddedDatabase> annotations = AnnotationUtils.getDatabaseAnnotations(testContext.getTestClass());
 
         for (AutoConfigureEmbeddedDatabase annotation : annotations) {
@@ -96,17 +96,17 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
                 return;
             }
 
-            DataSourceContext dataSourceContext = getDataSourceContext(applicationContext, annotation.beanName());
-            action.accept(dataSourceContext, annotation);
+            DatabaseContext databaseContext = getDatabaseContext(applicationContext, annotation.beanName());
+            action.accept(databaseContext, annotation);
         }
     }
 
-    private DataSourceContext getDataSourceContext(ApplicationContext applicationContext, String beanName) {
+    private DatabaseContext getDatabaseContext(ApplicationContext applicationContext, String beanName) {
         if (StringUtils.isBlank(beanName)) {
-            return applicationContext.getBean(DataSourceContext.class);
+            return applicationContext.getBean(DatabaseContext.class);
         } else {
-            String dataSourceContextBeanName = beanName + "Context";
-            return applicationContext.getBean(dataSourceContextBeanName, DataSourceContext.class);
+            String databaseContextBeanName = beanName + "Context";
+            return applicationContext.getBean(databaseContextBeanName, DatabaseContext.class);
         }
     }
 

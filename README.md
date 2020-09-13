@@ -550,9 +550,9 @@ public class BootstrappingConfiguration {
     
     @Bean
     public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
-        DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
-        dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
-        return dataSourceContext;
+        DefaultFlywayDataSourceContext databaseContext = new DefaultFlywayDataSourceContext();
+        databaseContext.setBootstrapExecutor(bootstrapExecutor);
+        return databaseContext;
     }
 
     @Bean

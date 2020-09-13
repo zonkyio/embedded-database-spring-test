@@ -21,8 +21,7 @@ import io.zonky.test.db.provider.EmbeddedDatabase;
 
 import java.util.List;
 
-// TODO: rename to DatabaseContext
-public interface DataSourceContext {
+public interface DatabaseContext {
 
     List<DatabasePreparer> getCorePreparers();
 

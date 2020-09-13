@@ -2,7 +2,7 @@ package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTests;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import org.flywaydb.core.Flyway;
@@ -68,7 +68,7 @@ public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener 
     }
 
     @SpyBean(reset = MockReset.NONE)
-    private DataSourceContext dataSourceContext;
+    private DatabaseContext databaseContext;
 
     @SpyBean(reset = MockReset.NONE, name = "dockerPostgresDatabaseProvider")
     private DatabaseProvider databaseProvider;
@@ -84,14 +84,14 @@ public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener 
     @Override
     public void afterTestClass(TestContext testContext) {
         ApplicationContext applicationContext = testContext.getApplicationContext();
-        DataSourceContext dataSourceContext = applicationContext.getBean(DataSourceContext.class);
+        DatabaseContext databaseContext = applicationContext.getBean(DatabaseContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
-        verify(dataSourceContext, times(5)).reset();
-        verify(dataSourceContext, times(1)).apply(any());
+        verify(databaseContext, times(5)).reset();
+        verify(databaseContext, times(1)).apply(any());
         verify(databaseProvider, times(3)).createDatabase(any());
 
-        Mockito.reset(dataSourceContext, databaseProvider);
+        Mockito.reset(databaseContext, databaseProvider);
     }
 
     @Test

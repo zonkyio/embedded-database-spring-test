@@ -23,7 +23,7 @@ import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
 import io.zonky.test.db.aop.EmbeddedDatabaseFactoryBean;
 import io.zonky.test.db.context.DatabaseDescriptor;
 import io.zonky.test.db.context.DatabaseResolver;
-import io.zonky.test.db.context.DefaultDataSourceContext;
+import io.zonky.test.db.context.DefaultDatabaseContext;
 import io.zonky.test.db.provider.DatabaseProviders;
 import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -260,7 +260,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                         .addIndexedArgumentValue(0, databaseDefinition);
 
                 RootBeanDefinition contextDefinition = new RootBeanDefinition();
-                contextDefinition.setBeanClass(DefaultDataSourceContext.class);
+                contextDefinition.setBeanClass(DefaultDatabaseContext.class);
                 contextDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
                 contextDefinition.getConstructorArgumentValues()
                         .addIndexedArgumentValue(0, new RuntimeBeanReference(resolverBeanName));

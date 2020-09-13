@@ -40,14 +40,14 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.DIRTY;
-import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.FRESH;
-import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.RESET;
-import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.INITIALIZING;
-import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.TEST_EXECUTION;
-import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.TEST_PREPARATION;
+import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.DIRTY;
+import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.FRESH;
+import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.RESET;
+import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.INITIALIZING;
+import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.TEST_EXECUTION;
+import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.TEST_PREPARATION;
 
-public class DefaultDataSourceContext implements DataSourceContext, BeanNameAware, DisposableBean {
+public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, DisposableBean {
 
     protected final DatabaseProvider databaseProvider;
 
@@ -61,7 +61,7 @@ public class DefaultDataSourceContext implements DataSourceContext, BeanNameAwar
     protected DatabaseState databaseState = RESET;
     protected EmbeddedDatabase database;
 
-    public DefaultDataSourceContext(DatabaseProvider databaseProvider) {
+    public DefaultDatabaseContext(DatabaseProvider databaseProvider) {
         this.databaseProvider = databaseProvider;
     }
 

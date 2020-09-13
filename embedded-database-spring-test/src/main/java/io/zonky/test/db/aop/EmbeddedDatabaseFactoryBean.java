@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.aop;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -32,13 +32,13 @@ import javax.sql.DataSource;
 // TODO: replace by using factory method (java configuration)
 public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, BeanFactoryAware, Ordered {
 
-    private final String dataSourceContextName;
+    private final String databaseContextName;
 
     private BeanFactory beanFactory;
     private DataSource proxyInstance;
 
-    public EmbeddedDatabaseFactoryBean(String dataSourceContextName) {
-        this.dataSourceContextName = dataSourceContextName;
+    public EmbeddedDatabaseFactoryBean(String databaseContextName) {
+        this.databaseContextName = databaseContextName;
     }
 
     @Override
@@ -64,8 +64,8 @@ public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Bea
     @Override
     public DataSource getObject() {
         if (proxyInstance == null) {
-            DataSourceContext dataSourceContext = beanFactory.getBean(dataSourceContextName, DataSourceContext.class);
-            proxyInstance = ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(dataSourceContext));
+            DatabaseContext databaseContext = beanFactory.getBean(databaseContextName, DatabaseContext.class);
+            proxyInstance = ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(databaseContext));
         }
         return proxyInstance;
     }

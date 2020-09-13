@@ -1,19 +1,19 @@
 package io.zonky.test.db.aop;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import org.springframework.aop.TargetSource;
 
 import javax.sql.DataSource;
 
 public class DatabaseTargetSource implements TargetSource {
 
-    private final DataSourceContext context;
+    private final DatabaseContext context;
 
-    public DatabaseTargetSource(DataSourceContext context) {
+    public DatabaseTargetSource(DatabaseContext context) {
         this.context = context;
     }
 
-    public DataSourceContext getContext() {
+    public DatabaseContext getContext() {
         return context;
     }
 

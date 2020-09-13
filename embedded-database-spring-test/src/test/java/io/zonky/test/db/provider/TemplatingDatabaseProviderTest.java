@@ -2,7 +2,7 @@ package io.zonky.test.db.provider;
 
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.StaticTests;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import org.junit.Before;
@@ -18,8 +18,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Objects;
 
-import static io.zonky.test.db.context.DataSourceContext.ContextState.FRESH;
-import static io.zonky.test.db.context.DataSourceContext.ContextState.INITIALIZING;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
 import static io.zonky.test.db.provider.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -37,9 +37,9 @@ import static org.mockito.Mockito.when;
 public class TemplatingDatabaseProviderTest {
 
     @Mock
-    private DataSourceContext mockContext;
+    private DatabaseContext mockContext;
     @Mock
-    private ObjectProvider<List<DataSourceContext>> mockContexts;
+    private ObjectProvider<List<DatabaseContext>> mockContexts;
     @Mock
     private TemplatableDatabaseProvider mockProvider;
 

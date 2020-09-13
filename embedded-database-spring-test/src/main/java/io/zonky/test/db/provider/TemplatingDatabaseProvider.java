@@ -20,7 +20,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static io.zonky.test.db.context.DataSourceContext.ContextState.INITIALIZING;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
 
 public class TemplatingDatabaseProvider implements DatabaseProvider {
 
@@ -50,14 +50,14 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     private static final ConcurrentMap<TemplateKey, PreparerStats> stats = new ConcurrentHashMap<>();
 
     private final TemplatableDatabaseProvider provider;
-    private final ObjectProvider<List<DataSourceContext>> contexts;
+    private final ObjectProvider<List<DatabaseContext>> contexts;
     private final Config config;
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DataSourceContext>> contexts) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DatabaseContext>> contexts) {
         this(provider, contexts, Config.builder().build());
     }
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DataSourceContext>> contexts, Config config) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DatabaseContext>> contexts, Config config) {
         this.provider = provider;
         this.contexts = contexts;
         this.config = config;

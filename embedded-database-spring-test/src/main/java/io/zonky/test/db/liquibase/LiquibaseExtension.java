@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.liquibase;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.util.AopProxyUtils;
 import liquibase.integration.spring.SpringLiquibase;
 import org.aopalliance.aop.Advice;
@@ -41,7 +41,7 @@ public class LiquibaseExtension implements BeanPostProcessor {
 
         if (bean instanceof SpringLiquibase) {
             SpringLiquibase liquibase = (SpringLiquibase) bean;
-            DataSourceContext context = AopProxyUtils.getDataSourceContext(liquibase.getDataSource());
+            DatabaseContext context = AopProxyUtils.getDatabaseContext(liquibase.getDataSource());
 
             if (context != null) {
                 if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
@@ -88,7 +88,7 @@ public class LiquibaseExtension implements BeanPostProcessor {
             LiquibaseDescriptor descriptor = LiquibaseDescriptor.from(liquibase);
             LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(descriptor);
 
-            DataSourceContext context = AopProxyUtils.getDataSourceContext(liquibase.getDataSource());
+            DatabaseContext context = AopProxyUtils.getDatabaseContext(liquibase.getDataSource());
             checkState(context != null, "Data source context cannot be resolved");
             context.apply(preparer);
 

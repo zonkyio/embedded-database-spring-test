@@ -18,7 +18,7 @@ package io.zonky.test.db.flyway;
 
 import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.aop.DatabaseTargetSource;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
@@ -56,7 +56,7 @@ import static org.mockito.Mockito.withSettings;
 public class FlywayExtensionTest {
 
     @Mock
-    private DataSourceContext dataSourceContext;
+    private DatabaseContext databaseContext;
 
     private Flyway flyway;
 
@@ -67,7 +67,7 @@ public class FlywayExtensionTest {
     @Before
     public void setUp() {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
-        when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(dataSourceContext));
+        when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(databaseContext));
 
         FlywayWrapper wrapper = FlywayWrapper.newInstance();
         wrapper.setLocations(ImmutableList.of("db/migration"));
@@ -82,7 +82,7 @@ public class FlywayExtensionTest {
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
 
         assertThat(flywayExtension.pendingOperations).hasSize(1);
-        verifyZeroInteractions(dataSourceContext);
+        verifyZeroInteractions(databaseContext);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class FlywayExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verifyZeroInteractions(dataSourceContext);
+        verifyZeroInteractions(databaseContext);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class FlywayExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verifyZeroInteractions(dataSourceContext);
+        verifyZeroInteractions(databaseContext);
     }
 
     @Test
@@ -124,7 +124,7 @@ public class FlywayExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verifyZeroInteractions(dataSourceContext);
+        verifyZeroInteractions(databaseContext);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class FlywayExtensionTest {
         flyway.clean();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verify(dataSourceContext).apply(cleanPreparer(flywayWrapper));
+        verify(databaseContext).apply(cleanPreparer(flywayWrapper));
     }
 
     @Test
@@ -140,7 +140,7 @@ public class FlywayExtensionTest {
         flyway.baseline();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verify(dataSourceContext).apply(baselinePreparer(flywayWrapper));
+        verify(databaseContext).apply(baselinePreparer(flywayWrapper));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class FlywayExtensionTest {
         flyway.migrate();
 
         assertThat(flywayExtension.pendingOperations).isEmpty();
-        verify(dataSourceContext).apply(migratePreparer(flywayWrapper));
+        verify(databaseContext).apply(migratePreparer(flywayWrapper));
     }
 
     @Test
@@ -159,8 +159,8 @@ public class FlywayExtensionTest {
 
         flywayExtension.processPendingOperations();
 
-        verify(dataSourceContext).reset();
-        verifyNoMoreInteractions(dataSourceContext);
+        verify(databaseContext).reset();
+        verifyNoMoreInteractions(databaseContext);
     }
 
     @Test
@@ -171,16 +171,16 @@ public class FlywayExtensionTest {
 
         flywayExtension.processPendingOperations();
 
-        InOrder inOrder = inOrder(dataSourceContext);
-        inOrder.verify(dataSourceContext).reset();
+        InOrder inOrder = inOrder(databaseContext);
+        inOrder.verify(databaseContext).reset();
 
         if (FlywayClassUtils.getFlywayVersion() >= 41) {
-            inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
+            inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
         } else {
-            inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));
+            inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));
         }
 
-        verifyNoMoreInteractions(dataSourceContext);
+        verifyNoMoreInteractions(databaseContext);
     }
 
     @Test
@@ -191,12 +191,12 @@ public class FlywayExtensionTest {
 
         flywayExtension.processPendingOperations();
 
-        InOrder inOrder = inOrder(dataSourceContext);
-        inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext).apply(cleanPreparer(flywayWrapper));
-        inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/dependent")));
+        InOrder inOrder = inOrder(databaseContext);
+        inOrder.verify(databaseContext).reset();
+        inOrder.verify(databaseContext).apply(cleanPreparer(flywayWrapper));
+        inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/dependent")));
 
-        verifyNoMoreInteractions(dataSourceContext);
+        verifyNoMoreInteractions(databaseContext);
     }
 
     @Test
@@ -207,12 +207,12 @@ public class FlywayExtensionTest {
 
         flywayExtension.processPendingOperations();
 
-        InOrder inOrder = inOrder(dataSourceContext);
-        inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext).apply(cleanPreparer(flywayWrapper));
-        inOrder.verify(dataSourceContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/separated")));
+        InOrder inOrder = inOrder(databaseContext);
+        inOrder.verify(databaseContext).reset();
+        inOrder.verify(databaseContext).apply(cleanPreparer(flywayWrapper));
+        inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/separated")));
 
-        verifyNoMoreInteractions(dataSourceContext);
+        verifyNoMoreInteractions(databaseContext);
     }
 
     @Test

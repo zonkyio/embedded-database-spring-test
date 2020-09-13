@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.config;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DatabaseResolver;
 import io.zonky.test.db.context.DefaultDatabaseResolver;
 import io.zonky.test.db.flyway.FlywayExtension;
@@ -63,7 +63,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     private AutowireCapableBeanFactory beanFactory;
 
     @Autowired
-    private ObjectProvider<List<DataSourceContext>> contexts;
+    private ObjectProvider<List<DatabaseContext>> contexts;
 
     @Override
     public void setEnvironment(Environment environment) {
