@@ -17,21 +17,31 @@
 package io.zonky.test.db.context;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
-import org.springframework.aop.TargetSource;
+import io.zonky.test.db.provider.EmbeddedDatabase;
 
-public interface DataSourceContext extends TargetSource {
+import java.util.List;
 
-    State getState();
+// TODO: rename to DatabaseContext
+public interface DataSourceContext {
 
-    void reset();
+    List<DatabasePreparer> getCorePreparers();
+
+    List<DatabasePreparer> getTestPreparers();
+
+    EmbeddedDatabase getDatabase();
+
+    ContextState getState();
 
     void apply(DatabasePreparer preparer);
 
-    enum State {
+    void reset();
+
+    enum ContextState {
 
         INITIALIZING,
         FRESH,
         AHEAD,
         DIRTY
+
     }
 }

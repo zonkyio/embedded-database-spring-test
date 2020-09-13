@@ -18,8 +18,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Objects;
 
-import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
-import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
+import static io.zonky.test.db.context.DataSourceContext.ContextState.FRESH;
+import static io.zonky.test.db.context.DataSourceContext.ContextState.INITIALIZING;
 import static io.zonky.test.db.provider.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;

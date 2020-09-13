@@ -18,15 +18,12 @@ package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.context.DataSourceContext;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
 import org.flywaydb.core.internal.util.scanner.Scanner;
-import org.springframework.aop.TargetSource;
-import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.util.ClassUtils;
@@ -162,19 +159,6 @@ public class FlywayWrapper {
         } else {
             flyway.setLocations(locations.toArray(new String[0]));
         }
-    }
-
-    public DataSourceContext getDataSourceContext() {
-        DataSource dataSource = getDataSource();
-
-        if (dataSource instanceof Advised) {
-            TargetSource targetSource = ((Advised) dataSource).getTargetSource();
-            if (targetSource instanceof DataSourceContext) {
-                return (DataSourceContext) targetSource;
-            }
-        }
-
-        throw new IllegalStateException("Data source context cannot be resolved");
     }
 
     public DataSource getDataSource() {

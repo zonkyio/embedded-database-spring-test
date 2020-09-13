@@ -17,110 +17,143 @@
 package io.zonky.test.db.context;
 
 import com.google.common.collect.ImmutableList;
+import io.zonky.test.db.event.TestExecutionFinishedEvent;
+import io.zonky.test.db.event.TestExecutionStartedEvent;
+import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.aop.framework.AopProxyUtils;
-import org.springframework.context.ApplicationListener;
+import org.springframework.beans.factory.BeanNameAware;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.test.context.transaction.TestTransaction;
 
-import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.zonky.test.db.context.DataSourceContext.State.AHEAD;
-import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
-import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
-import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
+import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.DIRTY;
+import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.FRESH;
+import static io.zonky.test.db.context.DefaultDataSourceContext.DatabaseState.RESET;
+import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.INITIALIZING;
+import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.TEST_EXECUTION;
+import static io.zonky.test.db.context.DefaultDataSourceContext.ExecutionPhase.TEST_PREPARATION;
 
-public class DefaultDataSourceContext implements DataSourceContext, ApplicationListener<ContextRefreshedEvent> {
+public class DefaultDataSourceContext implements DataSourceContext, BeanNameAware, DisposableBean {
 
     protected final DatabaseProvider databaseProvider;
 
     protected final List<DatabasePreparer> corePreparers = new LinkedList<>();
     protected final List<DatabasePreparer> testPreparers = new LinkedList<>();
 
-    protected EmbeddedDatabase dataSource;
-    protected boolean initialized = false;
-    protected boolean dirty = false; // TODO: improve the detection of non-tracked changes
+    protected String beanName;
+    protected Thread mainThread;
+
+    protected ExecutionPhase executionPhase = INITIALIZING;
+    protected DatabaseState databaseState = RESET;
+    protected EmbeddedDatabase database;
 
     public DefaultDataSourceContext(DatabaseProvider databaseProvider) {
         this.databaseProvider = databaseProvider;
     }
 
     @Override
-    public Class<?> getTargetClass() {
-        return DataSource.class;
+    public void setBeanName(String name) {
+        this.beanName = name;
     }
 
     @Override
-    public boolean isStatic() {
-        return false;
+    public synchronized List<DatabasePreparer> getCorePreparers() {
+        return ImmutableList.copyOf(corePreparers);
     }
 
     @Override
-    public synchronized Object getTarget() {
-        if (dataSource == null) {
+    public synchronized List<DatabasePreparer> getTestPreparers() {
+        return ImmutableList.copyOf(testPreparers);
+    }
+
+    @Override
+    public synchronized EmbeddedDatabase getDatabase() {
+        if (databaseState == RESET && !isRefreshAllowed()) {
+            return database;
+        }
+
+        if (databaseState == RESET) {
             refreshDatabase();
         }
 
-        if (initialized && !dirty) {
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            boolean includedCaller = Arrays.stream(stackTrace)
-                    .anyMatch(e -> e.getClassName().equals("io.zonky.test.db.logging.EmbeddedDatabaseReportingTestExecutionListener"));
-            if (includedCaller) {
-                dirty = true;
-            }
+        if (executionPhase != INITIALIZING && databaseState != DIRTY) {
+            databaseState = DIRTY;
         }
 
-        if (initialized || dataSource instanceof RecordingDataSource) {
-            return dataSource;
+        if (executionPhase != INITIALIZING || database instanceof RecordingDataSource) {
+            return database;
         }
 
-        dataSource = (EmbeddedDatabase) RecordingDataSource.wrap(dataSource);
-        return dataSource;
+        database = (EmbeddedDatabase) RecordingDataSource.wrap(database);
+        return database;
+    }
+
+    private boolean isRefreshAllowed() {
+        return database == null
+                || executionPhase == INITIALIZING
+                || executionPhase == TEST_EXECUTION
+                || Thread.currentThread() == mainThread;
     }
 
     @Override
-    public void releaseTarget(Object target) {
-        // nothing to do
-    }
-
-    @Override
-    public synchronized void onApplicationEvent(ContextRefreshedEvent event) {
-        stopRecording();
-        initialized = true;
-    }
-
-    @Override
-    public State getState() {
-        if (!initialized) {
-            return INITIALIZING;
-        } else if (dirty) {
-            return DIRTY;
+    public ContextState getState() {
+        if (executionPhase == INITIALIZING) {
+            return ContextState.INITIALIZING;
+        } else if (databaseState == DIRTY) {
+            return ContextState.DIRTY;
         } else if (!testPreparers.isEmpty()) {
-            return AHEAD;
+            return ContextState.AHEAD;
         } else {
-            return FRESH;
+            return ContextState.FRESH;
         }
+    }
+
+    @EventListener
+    public synchronized void handleContextRefreshed(ContextRefreshedEvent event) {
+        stopRecording();
+        mainThread = Thread.currentThread();
+        executionPhase = TEST_PREPARATION;
+    }
+
+    @EventListener
+    public synchronized void handleTestStarted(TestExecutionStartedEvent event) {
+        executionPhase = TEST_EXECUTION;
+
+        if (databaseState == RESET) {
+            refreshDatabase();
+        }
+
+        String databaseBeanName = StringUtils.substringBeforeLast(beanName, "Context");
+        EmbeddedDatabaseReporter.reportDataSource(databaseBeanName, database, event.getTestMethod());
+    }
+
+    @EventListener
+    public synchronized void handleTestFinished(TestExecutionFinishedEvent event) {
+        executionPhase = TEST_PREPARATION;
     }
 
     @Override
     public synchronized void reset() {
-        checkState(getState() != INITIALIZING, "Data source context must be initialized");
+        checkState(getState() != ContextState.INITIALIZING, "Data source context must be initialized");
         checkState(!TestTransaction.isActive(), "Cannot reset the data source context without ending the existing transaction first");
 
-        if (getState() != FRESH) {
+        if (getState() != ContextState.FRESH) {
             testPreparers.clear();
-            cleanDatabase();
+            resetDatabase();
         }
     }
 
@@ -129,50 +162,73 @@ public class DefaultDataSourceContext implements DataSourceContext, ApplicationL
         checkNotNull(preparer, "Preparer must not be null");
         stopRecording();
 
-        if (getState() == INITIALIZING) {
+        if (getState() == ContextState.INITIALIZING) {
             corePreparers.add(preparer);
             refreshDatabase();
-        } else if (getState() != DIRTY) {
+        } else if (getState() != ContextState.DIRTY) {
             testPreparers.add(preparer);
-            cleanDatabase();
+            resetDatabase();
         } else {
             try {
-                preparer.prepare(dataSource);
+                preparer.prepare(database);
             } catch (SQLException e) {
                 throw new IllegalStateException("Unknown error when applying the preparer", e);
             }
         }
     }
 
+    @Override
+    public synchronized void destroy() {
+        if (database != null) {
+            database.close();
+        }
+    }
+
     private synchronized void stopRecording() {
-        if (dataSource instanceof RecordingDataSource) {
-            RecordingDataSource recordingDataSource = (RecordingDataSource) this.dataSource;
+        if (database instanceof RecordingDataSource) {
+            RecordingDataSource recordingDataSource = (RecordingDataSource) this.database;
             ReplayableDatabasePreparer recordedPreparer = recordingDataSource.getPreparer();
 
             if (recordedPreparer.hasRecords()) {
                 corePreparers.add(recordedPreparer);
             }
 
-            dataSource = (EmbeddedDatabase) AopProxyUtils.getSingletonTarget(dataSource);
-            dirty = false;
+            database = (EmbeddedDatabase) AopProxyUtils.getSingletonTarget(database);
+            databaseState = FRESH;
         }
     }
 
     private synchronized void refreshDatabase() {
-        cleanDatabase();
+        if (database != null) {
+            database.close();
+        }
 
         List<DatabasePreparer> preparers = ImmutableList.<DatabasePreparer>builder()
                 .addAll(corePreparers)
                 .addAll(testPreparers)
                 .build();
-        dataSource = databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers));
+
+        database = databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers));
+        databaseState = FRESH;
     }
 
-    private synchronized void cleanDatabase() {
-        if (dataSource != null) {
-            dataSource.close();
-        }
-        dataSource = null;
-        dirty = false;
+    private synchronized void resetDatabase() {
+        databaseState = RESET;
+    }
+
+    protected enum ExecutionPhase {
+
+        INITIALIZING,
+        TEST_PREPARATION,
+        TEST_EXECUTION
+
+    }
+
+    protected enum DatabaseState {
+
+        FRESH,
+        DIRTY, // TODO: improve the detection of non-tracked changes
+        RESET
+
     }
 }

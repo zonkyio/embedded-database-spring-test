@@ -17,8 +17,6 @@
 package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import io.zonky.test.db.util.AnnotationUtils;
 import io.zonky.test.db.util.ReflectionUtils;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -42,10 +40,8 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.BEFORE_EACH_TEST_METHOD;
 import static org.springframework.asm.SpringAsmInfo.ASM_VERSION;
 import static org.springframework.util.ReflectionUtils.findMethod;
 
@@ -72,13 +68,6 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
     @Override
     public void beforeTestMethod(TestContext testContext) throws Exception {
-        Set<AutoConfigureEmbeddedDatabase> annotations = AnnotationUtils.getDatabaseAnnotations(testContext.getTestClass());
-
-        // TODO: improve it for multiple annotations
-        if (annotations.size() == 1 && annotations.iterator().next().refreshMode() == BEFORE_EACH_TEST_METHOD) {
-            listener.beforeTestClass(testContext);
-        }
-
         listener.beforeTestMethod(testContext);
         processPendingFlywayOperations(testContext);
     }
@@ -97,13 +86,6 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
     @Override
     public void afterTestMethod(TestContext testContext) throws Exception {
-        // TODO: complete it
-//        Set<AutoConfigureEmbeddedDatabase> annotations = AnnotationUtils.getDatabaseAnnotations(testContext.getTestClass());
-//
-//        if (annotations.size() == 1 && annotations.iterator().next().refreshMode() == AFTER_EACH_TEST_METHOD) {
-//            listener.beforeTestClass(testContext);
-//        }
-
         listener.afterTestMethod(testContext);
         processPendingFlywayOperations(testContext);
     }

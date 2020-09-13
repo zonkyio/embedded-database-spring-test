@@ -17,6 +17,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestContext;
@@ -30,9 +31,11 @@ import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.BEFORE_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
@@ -42,7 +45,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         listeners = FlywayMethodRefreshIntegrationTest.class
 )
 @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
-@AutoConfigureEmbeddedDatabase(type = POSTGRES, refreshMode = BEFORE_EACH_TEST_METHOD) // TODO
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, refreshMode = AFTER_EACH_TEST_METHOD)
 @ContextConfiguration
 public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionListener {
 
@@ -76,14 +79,19 @@ public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionLis
     private JdbcTemplate jdbcTemplate;
 
     @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
+    }
+
+    @Override
     public void afterTestClass(TestContext testContext) {
         ApplicationContext applicationContext = testContext.getApplicationContext();
         DataSourceContext dataSourceContext = applicationContext.getBean(DataSourceContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
-//        verify(dataSourceContext, times(4)).reset();
-//        verify(dataSourceContext, times(1)).apply(any());
-//        verify(databaseProvider, times(3)).createDatabase(any());
+        verify(dataSourceContext, times(5)).reset();
+        verify(dataSourceContext, times(5)).apply(any());
+        verify(databaseProvider, times(4)).createDatabase(any());
 
         Mockito.reset(dataSourceContext, databaseProvider);
     }

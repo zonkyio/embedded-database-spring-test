@@ -27,6 +27,7 @@ import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
+import io.zonky.test.db.util.AopProxyUtils;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -56,6 +57,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkState;
+
 public class FlywayExtension implements BeanPostProcessor {
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
@@ -72,16 +75,20 @@ public class FlywayExtension implements BeanPostProcessor {
         if (bean instanceof Flyway) {
             Flyway flyway = (Flyway) bean;
             FlywayWrapper wrapper = FlywayWrapper.of(flyway);
-            flywayBeans.put(wrapper.getDataSourceContext(), flyway);
+            DataSourceContext context = AopProxyUtils.getDataSourceContext(wrapper.getDataSource());
 
-            if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
-                ((Advised) bean).addAdvisor(0, createAdvisor(wrapper));
-                return bean;
-            } else {
-                ProxyFactory proxyFactory = new ProxyFactory(bean);
-                proxyFactory.addAdvisor(createAdvisor(wrapper));
-                proxyFactory.setProxyTargetClass(true);
-                return proxyFactory.getProxy();
+            if (context != null) {
+                flywayBeans.put(context, flyway);
+
+                if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
+                    ((Advised) bean).addAdvisor(0, createAdvisor(wrapper));
+                    return bean;
+                } else {
+                    ProxyFactory proxyFactory = new ProxyFactory(bean);
+                    proxyFactory.addAdvisor(createAdvisor(wrapper));
+                    proxyFactory.setProxyTargetClass(true);
+                    return proxyFactory.getProxy();
+                }
             }
         }
 
@@ -98,7 +105,7 @@ public class FlywayExtension implements BeanPostProcessor {
         this.pendingOperations.drainTo(pendingOperations);
 
         Map<DataSourceContext, List<FlywayOperation>> databaseOperations = pendingOperations.stream()
-                .collect(Collectors.groupingBy(operation -> operation.getFlywayWrapper().getDataSourceContext()));
+                .collect(Collectors.groupingBy(operation -> getDataSourceContext(operation.getFlywayWrapper())));
 
         for (Map.Entry<DataSourceContext, List<FlywayOperation>> entry : databaseOperations.entrySet()) {
             DataSourceContext dataSourceContext = entry.getKey();
@@ -180,7 +187,7 @@ public class FlywayExtension implements BeanPostProcessor {
             if (optimizedListenerProcessing) {
                 pendingOperations.add(new FlywayOperation(flywayWrapper, preparer));
             } else {
-                DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
+                DataSourceContext dataSourceContext = getDataSourceContext(flywayWrapper);
                 dataSourceContext.apply(preparer);
             }
 
@@ -227,6 +234,12 @@ public class FlywayExtension implements BeanPostProcessor {
         }
     }
 
+    protected DataSourceContext getDataSourceContext(FlywayWrapper wrapper) {
+        DataSourceContext context = AopProxyUtils.getDataSourceContext(wrapper.getDataSource());
+        checkState(context != null, "Data source context cannot be resolved");
+        return context;
+    }
+
     protected List<FlywayOperation> squashOperations(List<FlywayOperation> operations) {
         if (operations.stream().anyMatch(FlywayOperation::isBaseline)) {
             return operations;
@@ -242,7 +255,7 @@ public class FlywayExtension implements BeanPostProcessor {
 
     protected void applyTestMigrations(FlywayOperation operation) {
         FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
-        DataSourceContext dataSourceContext = flywayWrapper.getDataSourceContext();
+        DataSourceContext dataSourceContext = getDataSourceContext(flywayWrapper);
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
 
         List<String> preparerLocations = migratePreparer.getFlywayDescriptor().getLocations();

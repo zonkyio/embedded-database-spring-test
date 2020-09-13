@@ -33,6 +33,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestContext;
@@ -94,6 +95,11 @@ public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListene
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
+    }
 
     @Override
     public void afterTestClass(TestContext testContext) {

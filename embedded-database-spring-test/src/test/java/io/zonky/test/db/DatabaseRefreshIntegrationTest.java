@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
@@ -89,12 +90,17 @@ public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListene
     private JdbcTemplate jdbcTemplate;
 
     @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
+    }
+
+    @Override
     public void afterTestClass(TestContext testContext) {
         ApplicationContext applicationContext = testContext.getApplicationContext();
         DataSourceContext dataSourceContext = applicationContext.getBean(DataSourceContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
-        verify(dataSourceContext, times(3)).reset();
+        verify(dataSourceContext, times(4)).reset();
         verify(dataSourceContext, never()).apply(any());
         verify(databaseProvider, times(3)).createDatabase(any());
 

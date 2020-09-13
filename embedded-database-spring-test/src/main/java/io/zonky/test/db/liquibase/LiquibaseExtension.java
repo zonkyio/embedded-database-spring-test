@@ -17,19 +17,19 @@
 package io.zonky.test.db.liquibase;
 
 import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.util.AopProxyUtils;
 import liquibase.integration.spring.SpringLiquibase;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.Advisor;
-import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
-import javax.sql.DataSource;
+import static com.google.common.base.Preconditions.checkState;
 
 public class LiquibaseExtension implements BeanPostProcessor {
 
@@ -41,15 +41,18 @@ public class LiquibaseExtension implements BeanPostProcessor {
 
         if (bean instanceof SpringLiquibase) {
             SpringLiquibase liquibase = (SpringLiquibase) bean;
+            DataSourceContext context = AopProxyUtils.getDataSourceContext(liquibase.getDataSource());
 
-            if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
-                ((Advised) bean).addAdvisor(0, createAdvisor(liquibase));
-                return bean;
-            } else {
-                ProxyFactory proxyFactory = new ProxyFactory(bean);
-                proxyFactory.addAdvisor(createAdvisor(liquibase));
-                proxyFactory.setProxyTargetClass(true);
-                return proxyFactory.getProxy();
+            if (context != null) {
+                if (bean instanceof Advised && !((Advised) bean).isFrozen()) {
+                    ((Advised) bean).addAdvisor(0, createAdvisor(liquibase));
+                    return bean;
+                } else {
+                    ProxyFactory proxyFactory = new ProxyFactory(bean);
+                    proxyFactory.addAdvisor(createAdvisor(liquibase));
+                    proxyFactory.setProxyTargetClass(true);
+                    return proxyFactory.getProxy();
+                }
             }
         }
 
@@ -85,23 +88,11 @@ public class LiquibaseExtension implements BeanPostProcessor {
             LiquibaseDescriptor descriptor = LiquibaseDescriptor.from(liquibase);
             LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(descriptor);
 
-            DataSourceContext dataSourceContext = getDataSourceContext();
-            dataSourceContext.apply(preparer);
+            DataSourceContext context = AopProxyUtils.getDataSourceContext(liquibase.getDataSource());
+            checkState(context != null, "Data source context cannot be resolved");
+            context.apply(preparer);
 
             return null;
-        }
-
-        public DataSourceContext getDataSourceContext() {
-            DataSource dataSource = liquibase.getDataSource();
-
-            if (dataSource instanceof Advised) {
-                TargetSource targetSource = ((Advised) dataSource).getTargetSource();
-                if (targetSource instanceof DataSourceContext) {
-                    return (DataSourceContext) targetSource;
-                }
-            }
-
-            throw new IllegalStateException("Data source context cannot be resolved");
         }
     }
 }

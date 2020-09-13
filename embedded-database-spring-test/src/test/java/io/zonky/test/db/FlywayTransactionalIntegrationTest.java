@@ -43,8 +43,8 @@ import org.springframework.test.context.transaction.BeforeTransaction;
 import javax.sql.DataSource;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
-import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
-import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
+import static io.zonky.test.db.context.DataSourceContext.ContextState.DIRTY;
+import static io.zonky.test.db.context.DataSourceContext.ContextState.FRESH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -102,7 +102,7 @@ public class FlywayTransactionalIntegrationTest {
         inOrder.verify(dataSourceContext).apply(any(MigrateFlywayDatabasePreparer.class));
         inOrder.verify(dataSourceContext).reset();
         inOrder.verify(dataSourceContext, times(3)).getState();
-        inOrder.verify(dataSourceContext, times(2)).getTarget();
+        inOrder.verify(dataSourceContext, times(1)).getDatabase();
         inOrder.verify(dataSourceContext, times(2)).getState();
     }
 

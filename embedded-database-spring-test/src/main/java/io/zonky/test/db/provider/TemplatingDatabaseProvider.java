@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static io.zonky.test.db.context.DataSourceContext.State.INITIALIZING;
+import static io.zonky.test.db.context.DataSourceContext.ContextState.INITIALIZING;
 
 public class TemplatingDatabaseProvider implements DatabaseProvider {
 

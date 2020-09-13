@@ -17,6 +17,7 @@
 package io.zonky.test.db.flyway;
 
 import io.zonky.test.category.StaticTests;
+import io.zonky.test.db.aop.DatabaseTargetSource;
 import io.zonky.test.db.context.DataSourceContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
@@ -66,7 +67,7 @@ public class FlywayExtensionTest {
     @Before
     public void setUp() {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
-        when(dataSource.getTargetSource()).thenReturn(dataSourceContext);
+        when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(dataSourceContext));
 
         FlywayWrapper wrapper = FlywayWrapper.newInstance();
         wrapper.setLocations(ImmutableList.of("db/migration"));

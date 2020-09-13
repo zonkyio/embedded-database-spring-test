@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.config;
+package io.zonky.test.db.aop;
 
 import io.zonky.test.db.context.DataSourceContext;
 import org.springframework.aop.framework.ProxyFactory;
@@ -65,7 +65,7 @@ public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Bea
     public DataSource getObject() {
         if (proxyInstance == null) {
             DataSourceContext dataSourceContext = beanFactory.getBean(dataSourceContextName, DataSourceContext.class);
-            proxyInstance = ProxyFactory.getProxy(DataSource.class, dataSourceContext);
+            proxyInstance = ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(dataSourceContext));
         }
         return proxyInstance;
     }

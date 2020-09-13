@@ -17,6 +17,7 @@
 package io.zonky.test.db.liquibase;
 
 import io.zonky.test.category.LiquibaseTests;
+import io.zonky.test.db.aop.DatabaseTargetSource;
 import io.zonky.test.db.context.DataSourceContext;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
@@ -47,7 +48,7 @@ public class LiquibaseExtensionTest {
     @Before
     public void setUp() {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
-        when(dataSource.getTargetSource()).thenReturn(dataSourceContext);
+        when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(dataSourceContext));
 
         SpringLiquibase liquibase = new SpringLiquibase();
         liquibase.setDataSource((DataSource) dataSource);
