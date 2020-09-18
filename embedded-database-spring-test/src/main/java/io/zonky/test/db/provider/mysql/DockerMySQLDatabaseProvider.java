@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;

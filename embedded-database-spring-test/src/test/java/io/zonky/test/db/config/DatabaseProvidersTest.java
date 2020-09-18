@@ -1,8 +1,8 @@
 package io.zonky.test.db.config;
 
-import io.zonky.test.db.context.DatabaseDescriptor;
+import io.zonky.test.db.support.ProviderDescriptor;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseProviders;
+import io.zonky.test.db.support.DatabaseProviders;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,14 +49,14 @@ public class DatabaseProvidersTest {
 
     @Test
     public void testProviders() {
-        assertThat(databaseProviders.getProvider(DatabaseDescriptor.of("database1", "provider1"))).is(mockWithName("mockProvider1"));
-        assertThat(databaseProviders.getProvider(DatabaseDescriptor.of("database2", "provider1"))).is(mockWithName("mockProvider2"));
-        assertThat(databaseProviders.getProvider(DatabaseDescriptor.of("database2", "provider2"))).is(mockWithName("mockProvider3"));
+        assertThat(databaseProviders.getProvider(ProviderDescriptor.of("provider1", "database1"))).is(mockWithName("mockProvider1"));
+        assertThat(databaseProviders.getProvider(ProviderDescriptor.of("provider1", "database2"))).is(mockWithName("mockProvider2"));
+        assertThat(databaseProviders.getProvider(ProviderDescriptor.of("provider2", "database2"))).is(mockWithName("mockProvider3"));
     }
 
     @Test
     public void missingProvider() {
-        assertThatCode(() -> databaseProviders.getProvider(DatabaseDescriptor.of("database2", "provider3")))
+        assertThatCode(() -> databaseProviders.getProvider(ProviderDescriptor.of("provider3", "database2")))
                 .isExactlyInstanceOf(MissingDatabaseProviderException.class)
                 .hasMessage("Missing database provider for: DatabaseDescriptor{databaseName=database2, providerName=provider3}, available providers: [provider1, provider2]");
     }

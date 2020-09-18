@@ -43,7 +43,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         mergeMode = MERGE_WITH_DEFAULTS,
         listeners = FlywayRefreshIntegrationTest.class
 )
-@AutoConfigureEmbeddedDatabase(type = POSTGRES, refreshMode = AFTER_EACH_TEST_METHOD)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, refresh = AFTER_EACH_TEST_METHOD)
 @ContextConfiguration
 public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener {
 

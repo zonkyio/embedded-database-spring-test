@@ -27,25 +27,13 @@ public class EventPublishingTestExecutionListener extends AbstractTestExecutionL
 
     @Override
     public void beforeTestExecution(TestContext testContext) {
-        ApplicationContext applicationContext;
-        try {
-            applicationContext = testContext.getApplicationContext();
-        } catch (IllegalStateException e) {
-            return;
-        }
-
+        ApplicationContext applicationContext = testContext.getApplicationContext();
         applicationContext.publishEvent(new TestExecutionStartedEvent(applicationContext, testContext.getTestMethod()));
     }
 
     @Override
     public void afterTestExecution(TestContext testContext) {
-        ApplicationContext applicationContext;
-        try {
-            applicationContext = testContext.getApplicationContext();
-        } catch (IllegalStateException e) {
-            return;
-        }
-
+        ApplicationContext applicationContext = testContext.getApplicationContext();
         applicationContext.publishEvent(new TestExecutionFinishedEvent(applicationContext, testContext.getTestMethod()));
     }
 }

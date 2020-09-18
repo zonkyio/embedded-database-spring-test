@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.support;
+
+import io.zonky.test.db.provider.EmbeddedDatabase;
 
 import java.io.PrintWriter;
 import java.sql.Array;

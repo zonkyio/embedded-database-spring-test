@@ -25,12 +25,12 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import de.flapdoodle.embed.process.distribution.GenericVersion;
 import de.flapdoodle.embed.process.distribution.IVersion;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.SimpleDatabaseTemplate;
+import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -186,7 +186,11 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 try {
                     executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
                 } catch (Exception e) {
-                    logger.error("Unexpected error when releasing '{}' database", dbName, e);
+                    if (logger.isTraceEnabled()) {
+                        logger.warn("Unable to release '{}' database", dbName, e);
+                    } else {
+                        logger.warn("Unable to release '{}' database", dbName);
+                    }
                 }
             });
         }

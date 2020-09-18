@@ -17,23 +17,23 @@
 package io.zonky.test.db.config;
 
 import io.zonky.test.db.context.DatabaseContext;
-import io.zonky.test.db.context.DatabaseResolver;
-import io.zonky.test.db.context.DefaultDatabaseResolver;
+import io.zonky.test.db.support.ProviderResolver;
+import io.zonky.test.db.support.DefaultProviderResolver;
 import io.zonky.test.db.flyway.FlywayExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.DatabaseProviders;
+import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
-import io.zonky.test.db.provider.OptimizingDatabaseProvider;
-import io.zonky.test.db.provider.PrefetchingDatabaseProvider;
-import io.zonky.test.db.provider.TemplatingDatabaseProvider;
+import io.zonky.test.db.provider.common.OptimizingDatabaseProvider;
+import io.zonky.test.db.provider.common.PrefetchingDatabaseProvider;
+import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.postgres.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.ZonkyPostgresDatabaseProvider;
 import org.springframework.beans.BeansException;
@@ -185,8 +185,8 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "databaseResolver")
-    public DatabaseResolver databaseResolver(Environment environment) {
-        return new DefaultDatabaseResolver(environment);
+    public ProviderResolver databaseResolver(Environment environment) {
+        return new DefaultProviderResolver(environment, classLoader);
     }
 
     @Bean

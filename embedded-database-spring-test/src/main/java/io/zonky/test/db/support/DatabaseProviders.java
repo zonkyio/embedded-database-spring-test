@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.support;
 
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.config.MissingDatabaseProviderException;
 import io.zonky.test.db.config.Provider;
-import io.zonky.test.db.context.DatabaseDescriptor;
+import io.zonky.test.db.provider.DatabaseProvider;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -34,14 +34,14 @@ import java.util.stream.Collectors;
 
 public class DatabaseProviders {
 
-    private final Map<DatabaseDescriptor, ObjectFactory<DatabaseProvider>> databaseProviders;
+    private final Map<ProviderDescriptor, ObjectFactory<DatabaseProvider>> databaseProviders;
 
     public DatabaseProviders(ConfigurableListableBeanFactory beanFactory) {
-        ImmutableMap.Builder<DatabaseDescriptor, ObjectFactory<DatabaseProvider>> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<ProviderDescriptor, ObjectFactory<DatabaseProvider>> builder = ImmutableMap.builder();
 
         String[] beanNames = beanFactory.getBeanNamesForType(DatabaseProvider.class, true, false);
         for (String beanName : beanNames) {
-            DatabaseDescriptor descriptor = resolveDescriptor(beanFactory, beanName);
+            ProviderDescriptor descriptor = resolveDescriptor(beanFactory, beanName);
             if (descriptor != null) {
                 builder.put(descriptor, () -> beanFactory.getBean(beanName, DatabaseProvider.class));
             }
@@ -50,13 +50,13 @@ public class DatabaseProviders {
         this.databaseProviders = builder.build();
     }
 
-    public DatabaseProvider getProvider(DatabaseDescriptor descriptor) {
+    public DatabaseProvider getProvider(ProviderDescriptor descriptor) {
         ObjectFactory<DatabaseProvider> factory = databaseProviders.get(descriptor);
 
         if (factory == null) {
             List<String> availableProviders = databaseProviders.keySet().stream()
                     .filter(d -> d.getDatabaseName().equals(descriptor.getDatabaseName()))
-                    .map(DatabaseDescriptor::getProviderName)
+                    .map(ProviderDescriptor::getProviderName)
                     .collect(Collectors.toList());
 
             throw new MissingDatabaseProviderException(descriptor, availableProviders);
@@ -65,7 +65,7 @@ public class DatabaseProviders {
         return factory.getObject();
     }
 
-    private static DatabaseDescriptor resolveDescriptor(ConfigurableListableBeanFactory beanFactory, String beanName) {
+    private static ProviderDescriptor resolveDescriptor(ConfigurableListableBeanFactory beanFactory, String beanName) {
         BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
 
         if (!beanDefinition.isAbstract() && beanDefinition instanceof AbstractBeanDefinition) {
@@ -73,7 +73,7 @@ public class DatabaseProviders {
             if (qualifier != null) {
                 String providerType = (String) qualifier.getAttribute("type");
                 String databaseType = (String) qualifier.getAttribute("database");
-                return DatabaseDescriptor.of(databaseType, providerType);
+                return ProviderDescriptor.of(providerType, databaseType);
             }
         }
 
@@ -84,7 +84,7 @@ public class DatabaseProviders {
                 if (qualifier != null) {
                     String providerType = (String) qualifier.get("type");
                     String databaseType = (String) qualifier.get("database");
-                    return DatabaseDescriptor.of(databaseType, providerType);
+                    return ProviderDescriptor.of(providerType, databaseType);
                 }
             }
         }

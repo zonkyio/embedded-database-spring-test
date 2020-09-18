@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.aop;
+package io.zonky.test.db.context;
 
-import io.zonky.test.db.context.DatabaseContext;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -37,6 +36,7 @@ public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Bea
     private BeanFactory beanFactory;
     private DataSource proxyInstance;
 
+    // TODO: use object provider
     public EmbeddedDatabaseFactoryBean(String databaseContextName) {
         this.databaseContextName = databaseContextName;
     }

@@ -17,7 +17,7 @@
 package io.zonky.test.db.liquibase;
 
 import io.zonky.test.category.LiquibaseTests;
-import io.zonky.test.db.aop.DatabaseTargetSource;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.context.DatabaseContext;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;

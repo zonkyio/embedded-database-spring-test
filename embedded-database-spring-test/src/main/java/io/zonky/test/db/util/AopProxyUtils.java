@@ -1,6 +1,6 @@
 package io.zonky.test.db.util;
 
-import io.zonky.test.db.aop.DatabaseTargetSource;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.context.DatabaseContext;
 import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.Advised;

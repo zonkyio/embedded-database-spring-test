@@ -17,7 +17,7 @@
 package io.zonky.test.db.flyway;
 
 import io.zonky.test.category.StaticTests;
-import io.zonky.test.db.aop.DatabaseTargetSource;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;

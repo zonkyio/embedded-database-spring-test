@@ -18,7 +18,7 @@ package io.zonky.test.db.provider.postgres;
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

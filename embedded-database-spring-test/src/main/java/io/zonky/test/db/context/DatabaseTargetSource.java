@@ -1,4 +1,4 @@
-package io.zonky.test.db.aop;
+package io.zonky.test.db.context;
 
 import io.zonky.test.db.context.DatabaseContext;
 import org.springframework.aop.TargetSource;

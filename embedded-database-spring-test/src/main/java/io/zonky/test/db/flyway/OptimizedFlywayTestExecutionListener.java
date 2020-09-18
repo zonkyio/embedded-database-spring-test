@@ -101,12 +101,7 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
             return;
         }
 
-        ApplicationContext applicationContext;
-        try {
-            applicationContext = testContext.getApplicationContext();
-        } catch (IllegalStateException e) {
-            return;
-        }
+        ApplicationContext applicationContext = testContext.getApplicationContext();
 
         if (applicationContext.getBeanNamesForType(FlywayExtension.class, false, false).length > 0) {
             FlywayExtension flywayExtension = applicationContext.getBean(FlywayExtension.class);

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.common;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -24,6 +24,9 @@ import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 
 import java.util.List;
 import java.util.Set;

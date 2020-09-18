@@ -63,6 +63,8 @@ public class FlywayExtension implements BeanPostProcessor {
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
+    private static final ConcurrentMap<FlywayDescriptor, Collection<ResolvedMigration>> resolvedMigrationsCache = new ConcurrentHashMap<>();
+
     protected final Multimap<DatabaseContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
 
@@ -306,13 +308,9 @@ public class FlywayExtension implements BeanPostProcessor {
             return true;
         }
 
-        MigrationVersion coreLastVersion = coreLastVersionCache.computeIfAbsent(defaultLocations, l -> findLastVersion(flyway, l));
-//        MigrationVersion coreLastVersion = findLastVersion(flyway, defaultLocations);
+        MigrationVersion coreLastVersion = findLastVersion(flyway, defaultLocations);
         return coreLastVersion.compareTo(testFirstVersion) < 0;
     }
-
-    // TODO: keys must be more robust, locations are not good enough
-    private static final ConcurrentMap<List<String>, MigrationVersion> coreLastVersionCache = new ConcurrentHashMap<>();
 
     protected List<String> resolveTestLocations(FlywayWrapper flyway, List<String> locations) {
         List<String> defaultLocations = flyway.getLocations();
@@ -343,7 +341,8 @@ public class FlywayExtension implements BeanPostProcessor {
         List<String> oldLocations = flyway.getLocations();
         try {
             flyway.setLocations(locations);
-            return flyway.getMigrations();
+            FlywayDescriptor descriptor = FlywayDescriptor.from(flyway);
+            return resolvedMigrationsCache.computeIfAbsent(descriptor, key -> flyway.getMigrations());
         } finally {
             flyway.setLocations(oldLocations);
         }

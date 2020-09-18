@@ -5,6 +5,7 @@ import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -20,7 +21,7 @@ import java.util.Objects;
 
 import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
 import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
-import static io.zonky.test.db.provider.TemplatingDatabaseProvider.EMPTY_PREPARER;
+import static io.zonky.test.db.provider.common.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Matchers.any;

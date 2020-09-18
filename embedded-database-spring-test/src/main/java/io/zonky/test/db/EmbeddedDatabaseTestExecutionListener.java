@@ -6,6 +6,7 @@ import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Conventions;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
 
@@ -84,16 +85,16 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
     private void forEachDatabase(TestContext testContext, RefreshMode[] refreshModes, BiConsumer<DatabaseContext, AutoConfigureEmbeddedDatabase> action) {
         Set<AutoConfigureEmbeddedDatabase> annotations = AnnotationUtils.getDatabaseAnnotations(testContext.getTestClass());
 
-        for (AutoConfigureEmbeddedDatabase annotation : annotations) {
-            if (Arrays.stream(refreshModes).noneMatch(mode -> mode == annotation.refreshMode())) {
-                continue;
-            }
+        ApplicationContext applicationContext = testContext.getApplicationContext();
+        Environment environment = applicationContext.getEnvironment();
 
-            ApplicationContext applicationContext;
-            try {
-                applicationContext = testContext.getApplicationContext();
-            } catch (IllegalStateException e) {
-                return;
+        for (AutoConfigureEmbeddedDatabase annotation : annotations) {
+            // TODO: write a test for this feature
+            RefreshMode currentMode = annotation.refresh() != RefreshMode.NEVER ? annotation.refresh() :
+                    environment.getProperty("zonky.test.database.refresh", RefreshMode.class, RefreshMode.NEVER);
+
+            if (Arrays.stream(refreshModes).noneMatch(mode -> mode == currentMode)) {
+                continue;
             }
 
             DatabaseContext databaseContext = getDatabaseContext(applicationContext, annotation.beanName());

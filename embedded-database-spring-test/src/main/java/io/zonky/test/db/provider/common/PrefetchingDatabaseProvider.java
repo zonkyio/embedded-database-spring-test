@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.common;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;

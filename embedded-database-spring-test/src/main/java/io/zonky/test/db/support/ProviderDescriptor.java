@@ -14,56 +14,56 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.context;
+package io.zonky.test.db.support;
 
 import com.google.common.base.MoreObjects;
 import org.springframework.util.Assert;
 
 import java.util.Objects;
 
-public final class DatabaseDescriptor {
+public final class ProviderDescriptor {
 
-    private final String databaseName;
     private final String providerName;
+    private final String databaseName;
 
-    public static DatabaseDescriptor of(String databaseName, String providerName) {
-        return new DatabaseDescriptor(databaseName, providerName);
+    public static ProviderDescriptor of(String providerName, String databaseName) {
+        return new ProviderDescriptor(providerName, databaseName);
     }
 
-    private DatabaseDescriptor(String databaseName, String providerName) {
+    private ProviderDescriptor(String providerName, String databaseName) {
         Assert.notNull(databaseName, "Database name must not be null");
         Assert.notNull(providerName, "Provider name must not be null");
         this.databaseName = databaseName.toLowerCase();
         this.providerName = providerName.toLowerCase();
     }
 
-    public String getDatabaseName() {
-        return databaseName;
-    }
-
     public String getProviderName() {
         return providerName;
+    }
+
+    public String getDatabaseName() {
+        return databaseName;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DatabaseDescriptor that = (DatabaseDescriptor) o;
-        return Objects.equals(databaseName, that.databaseName) &&
-                Objects.equals(providerName, that.providerName);
+        ProviderDescriptor that = (ProviderDescriptor) o;
+        return Objects.equals(providerName, that.providerName) &&
+                Objects.equals(databaseName, that.databaseName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(databaseName, providerName);
+        return Objects.hash(providerName, databaseName);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("databaseName", databaseName)
                 .add("providerName", providerName)
+                .add("databaseName", databaseName)
                 .toString();
     }
 }

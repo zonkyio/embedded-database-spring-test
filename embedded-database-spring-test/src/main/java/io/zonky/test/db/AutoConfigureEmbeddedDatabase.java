@@ -66,7 +66,7 @@ public @interface AutoConfigureEmbeddedDatabase {
 
     /**
      * Provider used to create the underlying embedded database,
-     * see the documentation for the comparision matrix.
+     * see the documentation for the comparison matrix.
      * Note that the provider can also be configured
      * through {@code zonky.test.database.provider} property.
      *
@@ -75,7 +75,7 @@ public @interface AutoConfigureEmbeddedDatabase {
     DatabaseProvider provider() default DatabaseProvider.DEFAULT;
 
     // TODO: update javadoc
-    RefreshMode refreshMode() default RefreshMode.NEVER;
+    RefreshMode refresh() default RefreshMode.NEVER;
 
     /**
      * What the test database can replace.

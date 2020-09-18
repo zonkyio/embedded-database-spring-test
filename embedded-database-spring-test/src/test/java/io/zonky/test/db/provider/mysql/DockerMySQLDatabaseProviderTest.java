@@ -19,7 +19,7 @@ package io.zonky.test.db.provider.mysql;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import org.junit.Before;
 import org.junit.Test;

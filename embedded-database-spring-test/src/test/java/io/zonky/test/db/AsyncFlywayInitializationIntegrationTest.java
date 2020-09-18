@@ -20,7 +20,6 @@ import com.google.common.base.Stopwatch;
 import io.zonky.test.category.FlywayTests;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -41,7 +40,6 @@ import java.util.Map;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore // TODO: bring the async initialization feature back
 @RunWith(SpringRunner.class)
 @Category(FlywayTests.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)

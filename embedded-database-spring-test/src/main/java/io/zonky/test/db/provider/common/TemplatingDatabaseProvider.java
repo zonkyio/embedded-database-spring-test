@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.common;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
@@ -24,6 +24,12 @@ import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.DatabaseRequest;
+import io.zonky.test.db.provider.DatabaseTemplate;
+import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Collections;

@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.provider.mariadb;
 
-import io.zonky.test.db.provider.AbstractEmbeddedDatabase;
+import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.mariadb.jdbc.MariaDbDataSource;
 

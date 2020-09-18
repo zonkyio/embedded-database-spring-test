@@ -1,4 +1,6 @@
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.support;
+
+import io.zonky.test.db.provider.EmbeddedDatabase;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;

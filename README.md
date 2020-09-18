@@ -231,7 +231,7 @@ The `@AutoConfigureEmbeddedDatabase` annotation can be used for some basic confi
 The following configuration keys are honored by all providers:
 
 ```properties
-zonky.test.database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparision matrix.
+zonky.test.database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparison matrix.
 zonky.test.database.postgres.client.properties.*= # Additional properties used to configure the test data source.
 zonky.test.database.postgres.initdb.properties.*= # Additional properties to pass to initdb command during the database initialization.
 zonky.test.database.postgres.server.properties.*= # Additional properties used to configure the embedded PostgreSQL server.

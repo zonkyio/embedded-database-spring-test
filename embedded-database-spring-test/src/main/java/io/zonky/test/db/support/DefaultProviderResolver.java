@@ -1,7 +1,6 @@
-package io.zonky.test.db.context;
+package io.zonky.test.db.support;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider;
-import io.zonky.test.db.EmbeddedDatabaseContextCustomizerFactory.DatabaseDefinition;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
@@ -9,28 +8,38 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DEFAULT;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.AUTO;
 
-public class DefaultDatabaseResolver implements DatabaseResolver {
+public class DefaultProviderResolver implements ProviderResolver {
 
     private final Environment environment;
+    private final ClassLoader classLoader;
 
-    public DefaultDatabaseResolver(Environment environment) {
+    public DefaultProviderResolver(Environment environment, ClassLoader classLoader) {
         this.environment = environment;
+        this.classLoader = classLoader;
     }
 
     @Override
-    public DatabaseDescriptor getDescriptor(DatabaseDefinition definition) {
-        // TODO: DatabaseDefinition#beanName may not be initialized properly
+    public ProviderDescriptor getDescriptor(DatabaseDefinition definition) {
         String providerName = getProviderName(definition.getProviderType());
         String databaseName = getDatabaseName(definition.getDatabaseType());
-        return DatabaseDescriptor.of(databaseName, providerName);
+        return ProviderDescriptor.of(providerName, databaseName);
     }
 
     protected String getProviderName(DatabaseProvider providerType) {
-        return providerType != DEFAULT ? providerType.name() :
-                environment.getProperty("zonky.test.database.provider", "docker");
+        if (providerType != DEFAULT) {
+            return providerType.name();
+        }
+
+        String providerName = environment.getProperty("zonky.test.database.provider");
+        if (providerName != null && !providerName.equalsIgnoreCase(DEFAULT.name())) {
+            return providerName;
+        }
+
+        return DOCKER.name();
     }
 
     protected String getDatabaseName(DatabaseType databaseType) {
@@ -39,22 +48,22 @@ public class DefaultDatabaseResolver implements DatabaseResolver {
         }
 
         String databaseName = environment.getProperty("zonky.test.database.type");
-        if (databaseName != null) {
+        if (databaseName != null && !databaseName.equalsIgnoreCase(AUTO.name())) {
             return databaseName;
         }
 
         Set<DatabaseType> detectedTypes = new LinkedHashSet<>();
 
-        if (ClassUtils.isPresent("org.postgresql.ds.PGSimpleDataSource", null)) {
+        if (ClassUtils.isPresent("org.postgresql.ds.PGSimpleDataSource", classLoader)) {
             detectedTypes.add(DatabaseType.POSTGRES);
         }
-        if (ClassUtils.isPresent("com.microsoft.sqlserver.jdbc.SQLServerDataSource", null)) {
+        if (ClassUtils.isPresent("com.microsoft.sqlserver.jdbc.SQLServerDataSource", classLoader)) {
             detectedTypes.add(DatabaseType.MSSQL);
         }
-        if (ClassUtils.isPresent("com.mysql.cj.jdbc.MysqlDataSource", null)) {
+        if (ClassUtils.isPresent("com.mysql.cj.jdbc.MysqlDataSource", classLoader)) {
             detectedTypes.add(DatabaseType.MYSQL);
         }
-        if (ClassUtils.isPresent("org.mariadb.jdbc.MariaDbDataSource", null)) {
+        if (ClassUtils.isPresent("org.mariadb.jdbc.MariaDbDataSource", classLoader)) {
             detectedTypes.add(DatabaseType.MARIADB);
         }
 

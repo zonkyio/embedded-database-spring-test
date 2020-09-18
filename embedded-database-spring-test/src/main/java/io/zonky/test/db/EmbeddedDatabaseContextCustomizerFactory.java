@@ -17,24 +17,18 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
+import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
 import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
-import io.zonky.test.db.aop.EmbeddedDatabaseFactoryBean;
-import io.zonky.test.db.context.DatabaseDescriptor;
-import io.zonky.test.db.context.DatabaseResolver;
 import io.zonky.test.db.context.DefaultDatabaseContext;
-import io.zonky.test.db.provider.DatabaseProviders;
+import io.zonky.test.db.support.DatabaseDefinition;
 import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
@@ -60,10 +54,8 @@ import org.springframework.util.ObjectUtils;
 import javax.sql.DataSource;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
 import static java.util.stream.Collectors.toCollection;
 
 /**
@@ -128,47 +120,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         @Override
         public int hashCode() {
             return databaseDefinitions.hashCode();
-        }
-    }
-
-    // TODO: public
-    public static class DatabaseDefinition {
-
-        private final String beanName;
-        private final DatabaseType databaseType;
-        private final DatabaseProvider providerType;
-
-        public DatabaseDefinition(String beanName, DatabaseType databaseType, DatabaseProvider providerType) {
-            this.beanName = beanName;
-            this.databaseType = databaseType;
-            this.providerType = providerType;
-        }
-
-        public String getBeanName() {
-            return beanName;
-        }
-
-        public DatabaseType getDatabaseType() {
-            return databaseType;
-        }
-
-        public DatabaseProvider getProviderType() {
-            return providerType;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            DatabaseDefinition that = (DatabaseDefinition) o;
-            return Objects.equals(beanName, that.beanName) &&
-                    databaseType == that.databaseType &&
-                    providerType == that.providerType;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(beanName, databaseType, providerType);
         }
     }
 
@@ -249,21 +200,12 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
                 String dataSourceBeanName = dataSourceInfo.getBeanName();
                 String contextBeanName = dataSourceBeanName + "Context";
-                String resolverBeanName = dataSourceBeanName + "DatabaseProviderArgumentResolver";
-
-                RootBeanDefinition resolverDefinition = new RootBeanDefinition();
-                resolverDefinition.setBeanClass(DatabaseProviderArgumentResolver.class);
-                resolverDefinition.setSynthetic(true);
-                resolverDefinition.setAutowireCandidate(false);
-                resolverDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-                resolverDefinition.getConstructorArgumentValues()
-                        .addIndexedArgumentValue(0, databaseDefinition);
 
                 RootBeanDefinition contextDefinition = new RootBeanDefinition();
                 contextDefinition.setBeanClass(DefaultDatabaseContext.class);
                 contextDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
                 contextDefinition.getConstructorArgumentValues()
-                        .addIndexedArgumentValue(0, new RuntimeBeanReference(resolverBeanName));
+                        .addIndexedArgumentValue(0, databaseDefinition);
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
                 dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
@@ -276,7 +218,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                     registry.removeBeanDefinition(dataSourceBeanName);
                 }
 
-                registry.registerBeanDefinition(resolverBeanName, resolverDefinition);
                 registry.registerBeanDefinition(contextBeanName, contextDefinition);
                 registry.registerBeanDefinition(dataSourceBeanName, dataSourceDefinition);
             }
@@ -285,36 +226,6 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
-        }
-    }
-
-    protected static class DatabaseProviderArgumentResolver implements FactoryBean<io.zonky.test.db.provider.DatabaseProvider> {
-
-        @Autowired
-        private DatabaseResolver databaseResolver;
-        @Autowired
-        private DatabaseProviders databaseProviders;
-
-        private final DatabaseDefinition databaseDefinition;
-
-        public DatabaseProviderArgumentResolver(DatabaseDefinition databaseDefinition) {
-            this.databaseDefinition = databaseDefinition;
-        }
-
-        @Override
-        public io.zonky.test.db.provider.DatabaseProvider getObject() {
-            DatabaseDescriptor databaseDescriptor = databaseResolver.getDescriptor(databaseDefinition);
-            return databaseProviders.getProvider(databaseDescriptor);
-        }
-
-        @Override
-        public Class<?> getObjectType() {
-            return io.zonky.test.db.provider.DatabaseProvider.class;
-        }
-
-        @Override
-        public boolean isSingleton() {
-            return true;
         }
     }
 

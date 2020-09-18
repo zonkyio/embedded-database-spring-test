@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package io.zonky.test.db.provider;
+package io.zonky.test.db.provider.support;
+
+import io.zonky.test.db.provider.DatabaseTemplate;
 
 public class SimpleDatabaseTemplate implements DatabaseTemplate {
 
