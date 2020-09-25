@@ -58,6 +58,6 @@ public class DatabaseProvidersTest {
     public void missingProvider() {
         assertThatCode(() -> databaseProviders.getProvider(ProviderDescriptor.of("provider3", "database2")))
                 .isExactlyInstanceOf(MissingDatabaseProviderException.class)
-                .hasMessage("Missing database provider for: DatabaseDescriptor{databaseName=database2, providerName=provider3}, available providers: [provider1, provider2]");
+                .hasMessage("Missing database provider for: DatabaseDescriptor{providerName=provider3, databaseName=database2}, available providers: [provider1, provider2]");
     }
 }

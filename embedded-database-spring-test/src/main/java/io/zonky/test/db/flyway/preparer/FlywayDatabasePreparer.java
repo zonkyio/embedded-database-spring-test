@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.flyway.preparer;
 
+import com.google.common.base.MoreObjects;
 import io.zonky.test.db.flyway.FlywayDescriptor;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.preparer.DatabasePreparer;
@@ -59,5 +60,13 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
     @Override
     public int hashCode() {
         return Objects.hash(descriptor);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("schemas", descriptor.getSchemas())
+                .add("locations", descriptor.getLocations())
+                .toString();
     }
 }

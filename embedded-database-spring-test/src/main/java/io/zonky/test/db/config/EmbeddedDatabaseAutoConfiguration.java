@@ -45,6 +45,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,14 +58,15 @@ import org.springframework.util.ClassUtils;
 import java.util.List;
 
 @Configuration
-public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware {
+public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware, ApplicationContextAware {
 
     private Environment environment;
     private ClassLoader classLoader;
     private AutowireCapableBeanFactory beanFactory;
+    private ApplicationContext applicationContext;
 
-    @Autowired
-    private ObjectProvider<List<DatabaseContext>> contexts;
+//    @Autowired
+//    private ObjectProvider<List<DatabaseContext>> contexts;
 
     @Override
     public void setEnvironment(Environment environment) {
@@ -76,8 +79,13 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     }
 
     @Override
-    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+    public void setBeanFactory(BeanFactory beanFactory) {
         this.beanFactory = (AutowireCapableBeanFactory) beanFactory;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
     }
 
     @Bean
@@ -172,7 +180,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "templatingDatabaseProvider")
     public TemplatingDatabaseProvider templatingDatabaseProvider(TemplatableDatabaseProvider provider) {
-        return new TemplatingDatabaseProvider(provider, contexts);
+        return new TemplatingDatabaseProvider(provider, applicationContext);
     }
 
     @Bean

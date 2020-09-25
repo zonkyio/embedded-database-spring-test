@@ -26,11 +26,14 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.support.DatabaseDefinition;
+import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.support.ProviderDescriptor;
 import io.zonky.test.db.support.ProviderResolver;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -54,10 +57,9 @@ import java.util.concurrent.Future;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-
-import io.zonky.test.db.support.DatabaseDefinition;
 import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.DIRTY;
 import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.FRESH;
+import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.RECORDING;
 import static io.zonky.test.db.context.DefaultDatabaseContext.DatabaseState.RESET;
 import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.INITIALIZING;
 import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.TEST_EXECUTION;
@@ -65,6 +67,8 @@ import static io.zonky.test.db.context.DefaultDatabaseContext.ExecutionPhase.TES
 import static org.springframework.aop.interceptor.AsyncExecutionAspectSupport.DEFAULT_TASK_EXECUTOR_BEAN_NAME;
 
 public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, BeanFactoryAware, DisposableBean {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultDatabaseContext.class);
 
     protected final DatabaseDefinition databaseDefinition;
 
@@ -125,15 +129,23 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
             databaseState = DIRTY;
         }
 
-        if (executionPhase != INITIALIZING || database instanceof RecordingDataSource) {
+        if (executionPhase != INITIALIZING || databaseState == RECORDING) {
             return awaitDatabase();
         }
 
+        logger.trace("Starting database recording - context={}", beanName);
         database = databaseFuture(RecordingDataSource.wrap(awaitDatabase()));
+        databaseState = RECORDING;
+
         return awaitDatabase();
     }
 
     private boolean isRefreshAllowed() {
+        // TODO: only temporary logging
+        if (mainThread != null && Thread.currentThread().getName().equals("main") && Thread.currentThread() != mainThread) {
+            logger.warn("Threads are different - initThread={}@{}, currentThread={}@{}",
+                    mainThread, mainThread.hashCode(), Thread.currentThread(), Thread.currentThread().hashCode());
+        }
         return database == null
                 || executionPhase == INITIALIZING
                 || executionPhase == TEST_EXECUTION
@@ -155,9 +167,12 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
     @EventListener
     public synchronized void handleContextRefreshed(ContextRefreshedEvent event) {
-        stopRecording();
-        mainThread = Thread.currentThread();
-        executionPhase = TEST_PREPARATION;
+        if (event.getApplicationContext().containsBean(beanName) && mainThread == null) {
+            stopRecording();
+            mainThread = Thread.currentThread();
+            executionPhase = TEST_PREPARATION;
+            logger.trace("Execution phase has been changed to {} - context={}", executionPhase, beanName);
+        }
     }
 
     @EventListener
@@ -170,11 +185,14 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
         String databaseBeanName = StringUtils.substringBeforeLast(beanName, "Context");
         EmbeddedDatabaseReporter.reportDataSource(databaseBeanName, awaitDatabase(), event.getTestMethod());
+
+        logger.trace("Execution phase has been changed to {} - context={}", executionPhase, beanName);
     }
 
     @EventListener
     public synchronized void handleTestFinished(TestExecutionFinishedEvent event) {
         executionPhase = TEST_PREPARATION;
+        logger.trace("Execution phase has been changed to {} - context={}", executionPhase, beanName);
     }
 
     @Override
@@ -210,14 +228,17 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
     @Override
     public synchronized void destroy() {
+        logger.trace("Closing database context bean - context={}", beanName);
         if (database != null) {
             awaitDatabase().close();
         }
     }
 
     private synchronized void stopRecording() {
-        if (database instanceof RecordingDataSource) {
-            RecordingDataSource recordingDataSource = (RecordingDataSource) this.database;
+        if (databaseState == RECORDING) {
+            logger.trace("Stopping database recording - context={}", beanName);
+
+            RecordingDataSource recordingDataSource = (RecordingDataSource) awaitDatabase();
             ReplayableDatabasePreparer recordedPreparer = recordingDataSource.getPreparer();
 
             if (recordedPreparer.hasRecords()) {
@@ -231,8 +252,11 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
     private synchronized void refreshDatabase() {
         if (database != null) {
+            logger.trace("Closing previous database - context={}", beanName);
             awaitDatabase().close();
         }
+
+        logger.trace("Refreshing database context - context={}, corePreparers={}, testPreparers={}", beanName, corePreparers, testPreparers);
 
         List<DatabasePreparer> preparers = ImmutableList.<DatabasePreparer>builder()
                 .addAll(corePreparers)
@@ -295,6 +319,7 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
         FRESH,
         DIRTY, // TODO: improve the detection of non-tracked changes
+        RECORDING,
         RESET
 
     }

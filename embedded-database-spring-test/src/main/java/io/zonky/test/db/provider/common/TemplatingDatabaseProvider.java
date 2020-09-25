@@ -20,7 +20,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
@@ -30,8 +29,12 @@ import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.ContextRefreshedEvent;
 
+import javax.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -46,8 +49,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
-
 public class TemplatingDatabaseProvider implements DatabaseProvider {
 
     public static final CompositeDatabasePreparer EMPTY_PREPARER = new CompositeDatabasePreparer(Collections.emptyList());
@@ -56,16 +57,17 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     private static final ConcurrentMap<TemplateKey, PreparerStats> stats = new ConcurrentHashMap<>();
 
     private final TemplatableDatabaseProvider provider;
-    private final ObjectProvider<List<DatabaseContext>> contexts;
+//    private final ObjectProvider<List<DatabaseContext>> contexts;
+    private final ApplicationContext applicationContext;
     private final Config config;
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DatabaseContext>> contexts) {
-        this(provider, contexts, Config.builder().build());
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ApplicationContext applicationContext) {
+        this(provider, applicationContext, Config.builder().build());
     }
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ObjectProvider<List<DatabaseContext>> contexts, Config config) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ApplicationContext applicationContext, Config config) {
         this.provider = provider;
-        this.contexts = contexts;
+        this.applicationContext = applicationContext;
         this.config = config;
     }
 
@@ -99,8 +101,19 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
         }
     }
 
+    @PostConstruct
+    public void initApplicationListener() {
+        ConfigurableApplicationContext applicationContext = (ConfigurableApplicationContext) this.applicationContext;
+        applicationContext.addApplicationListener((ApplicationListener<ContextRefreshedEvent>) event -> {
+            initialized = true;
+        });
+    }
+
+    private boolean initialized = false;
+
     private boolean isInitialized() {
-        return contexts.getObject().stream().noneMatch(context -> context.getState() == INITIALIZING);
+//        return contexts.getObject().stream().noneMatch(context -> context.getState() == INITIALIZING);
+        return initialized;
     }
 
     private boolean hasCleanOperation(CompositeDatabasePreparer preparer) {
@@ -110,20 +123,20 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     private EmbeddedDatabase createDatabase(CompositeDatabasePreparer preparer, TemplateWrapper template, boolean createNewTemplate) {
         if (createNewTemplate) {
             TemplateWrapper newTemplate = createTemplateIfPossible(preparer, template);
-            if (newTemplate != null && isTemplateReady(newTemplate)) {
+            if (isTemplateApplicable(newTemplate)) {
                 return newTemplate.createDatabase(EMPTY_PREPARER);
             }
         }
 
-        if (template != null && isTemplateReady(template)) {
+        if (isTemplateApplicable(template)) {
             return template.createDatabase(preparer);
         } else {
             return provider.createDatabase(DatabaseRequest.of(mergedPreparer(preparer, template)));
         }
     }
 
-    private boolean isTemplateReady(TemplateWrapper template) {
-        return config.getDurationThreshold() == 0 || template.isLoaded();
+    private boolean isTemplateApplicable(TemplateWrapper template) {
+        return template != null && (config.getDurationThreshold() == 0 || template.isLoaded());
     }
 
     private DatabaseTemplate createTemplate(CompositeDatabasePreparer preparer, TemplateWrapper template) {

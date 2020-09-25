@@ -54,7 +54,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     private static final ThreadPoolTaskExecutor taskExecutor = new PriorityThreadPoolTaskExecutor();
     private static final ConcurrentMap<PipelineKey, DatabasePipeline> pipelines = new ConcurrentHashMap<>();
 
-    private final int pipelineCacheSize;
+    private final int pipelineMaxCacheSize;
 
     static {
         taskExecutor.setThreadNamePrefix("prefetching-");
@@ -71,7 +71,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
         String threadNamePrefix = environment.getProperty("zonky.test.database.prefetching.thread-name-prefix", "prefetching-");
         int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
-        pipelineCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 3);
+        pipelineMaxCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-max-cache-size", int.class, 3);
 
         taskExecutor.setThreadNamePrefix(threadNamePrefix);
         taskExecutor.setCorePoolSize(concurrency);
@@ -90,7 +90,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
         long invocationCount = pipeline.requests.incrementAndGet();
         if (invocationCount > 1) {
-            if (invocationCount - 1 <= pipelineCacheSize) {
+            if (invocationCount - 1 <= pipelineMaxCacheSize) {
                 prepareDatabase(key, -1);
             }
 

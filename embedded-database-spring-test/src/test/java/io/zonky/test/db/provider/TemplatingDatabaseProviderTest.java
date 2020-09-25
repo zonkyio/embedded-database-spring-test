@@ -49,7 +49,7 @@ public class TemplatingDatabaseProviderTest {
     @Before
     public void setUp() {
         when(mockContexts.getObject()).thenReturn(ImmutableList.of(mockContext));
-        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, mockContexts, TemplatingDatabaseProvider.Config.builder().build());
+        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, null, TemplatingDatabaseProvider.Config.builder().build());
     }
 
     @Test

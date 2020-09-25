@@ -17,9 +17,8 @@
 package io.zonky.test.db.context;
 
 import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.core.Ordered;
 
 import javax.sql.DataSource;
@@ -29,26 +28,19 @@ import javax.sql.DataSource;
  * that provides fully cacheable instances of the embedded postgres database.
  */
 // TODO: replace by using factory method (java configuration)
-public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, BeanFactoryAware, Ordered {
+public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Ordered {
 
-    private final String databaseContextName;
+    private final ObjectFactory<DatabaseContext> databaseContextProvider;
 
-    private BeanFactory beanFactory;
-    private DataSource proxyInstance;
+    private DataSource dataSource;
 
-    // TODO: use object provider
-    public EmbeddedDatabaseFactoryBean(String databaseContextName) {
-        this.databaseContextName = databaseContextName;
+    public EmbeddedDatabaseFactoryBean(ObjectFactory<DatabaseContext> databaseContextProvider) {
+        this.databaseContextProvider = databaseContextProvider;
     }
 
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;
-    }
-
-    @Override
-    public void setBeanFactory(BeanFactory beanFactory) {
-        this.beanFactory = beanFactory;
     }
 
     @Override
@@ -62,11 +54,11 @@ public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Bea
     }
 
     @Override
-    public DataSource getObject() {
-        if (proxyInstance == null) {
-            DatabaseContext databaseContext = beanFactory.getBean(databaseContextName, DatabaseContext.class);
-            proxyInstance = ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(databaseContext));
+    public synchronized DataSource getObject() {
+        if (dataSource == null) {
+            DatabaseContext databaseContext = databaseContextProvider.getObject();
+            dataSource = ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(databaseContext));
         }
-        return proxyInstance;
+        return dataSource;
     }
 }

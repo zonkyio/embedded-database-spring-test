@@ -10,7 +10,8 @@
     </appender>
 
     <logger name="org.flywaydb" level="INFO"/>
-    <logger name="io.zonky.test.db.provider" level="INFO"/>
+    <logger name="io.zonky.test.db.context" level="TRACE"/>
+    <logger name="io.zonky.test.db.provider" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

@@ -18,14 +18,16 @@ package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
-import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
 import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DefaultDatabaseContext;
+import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
 import io.zonky.test.db.support.DatabaseDefinition;
 import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -211,7 +213,8 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                 dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
                 dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
                 dataSourceDefinition.getConstructorArgumentValues()
-                        .addIndexedArgumentValue(0, contextBeanName);
+                        .addIndexedArgumentValue(0, (ObjectFactory<DatabaseContext>) () ->
+                                beanFactory.getBean(contextBeanName, DatabaseContext.class));
 
                 if (registry.containsBeanDefinition(dataSourceBeanName)) {
                     logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceBeanName);

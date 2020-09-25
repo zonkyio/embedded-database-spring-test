@@ -57,10 +57,10 @@ public @interface AutoConfigureEmbeddedDatabase {
     Replace replace() default Replace.ANY;
 
     /**
-     * The type of an embedded database to be initialized
+     * The type of embedded database to be initialized
      * when {@link #replace() replacing} the data source.
      *
-     * @return the type of an embedded database
+     * @return the type of embedded database
      */
     DatabaseType type() default DatabaseType.AUTO;
 
@@ -74,7 +74,12 @@ public @interface AutoConfigureEmbeddedDatabase {
      */
     DatabaseProvider provider() default DatabaseProvider.DEFAULT;
 
-    // TODO: update javadoc
+    /**
+     * Determines at what stage the embedded database
+     * to be refreshed to its initial state.
+     *
+     * @return the type of refresh mode to be used to reset the database to its initial state
+     */
     RefreshMode refresh() default RefreshMode.NEVER;
 
     /**

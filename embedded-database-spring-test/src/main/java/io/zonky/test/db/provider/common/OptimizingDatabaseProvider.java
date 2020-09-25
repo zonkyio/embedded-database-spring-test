@@ -44,19 +44,19 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
 
     @Override
     public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
-        if (preparer instanceof CompositeDatabasePreparer) {
-            List<DatabasePreparer> preparers = ((CompositeDatabasePreparer) preparer).getPreparers();
-
-            long flywayPreparersCount = preparers.stream()
-                    .filter(this::isFlywayPreparer)
-                    .map(FlywayDatabasePreparer.class::cast)
-                    .map(schemaExtractor()).distinct().count();
-
-            // TODO: consider whether the optimization is always applicable
-            if (flywayPreparersCount == 1) {
-                return provider.createDatabase(new CompositeDatabasePreparer(squashPreparers(preparers)));
-            }
-        }
+//        if (preparer instanceof CompositeDatabasePreparer) {
+//            List<DatabasePreparer> preparers = ((CompositeDatabasePreparer) preparer).getPreparers();
+//
+//            long flywayPreparersCount = preparers.stream()
+//                    .filter(this::isFlywayPreparer)
+//                    .map(FlywayDatabasePreparer.class::cast)
+//                    .map(schemaExtractor()).distinct().count();
+//
+//            // TODO: consider whether the optimization is always applicable
+//            if (flywayPreparersCount == 1) {
+//                return provider.createDatabase(new CompositeDatabasePreparer(squashPreparers(preparers)));
+//            }
+//        }
 
         return provider.createDatabase(preparer);
     }

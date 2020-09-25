@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.liquibase;
 
+import com.google.common.base.MoreObjects;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
@@ -56,5 +57,12 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
     @Override
     public int hashCode() {
         return Objects.hash(descriptor);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("changeLog", descriptor.getChangeLog())
+                .toString();
     }
 }

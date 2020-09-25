@@ -315,6 +315,13 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         public int hashCode() {
             return Objects.hash(recordData);
         }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("recordDataSize", recordData.size())
+                    .toString();
+        }
     }
 
     private static class Record {
