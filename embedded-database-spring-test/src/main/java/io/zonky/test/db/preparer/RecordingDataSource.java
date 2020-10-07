@@ -19,6 +19,7 @@ package io.zonky.test.db.preparer;
 import org.springframework.aop.framework.ProxyFactory;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Modifier;
 
 public interface RecordingDataSource extends DataSource {
 
@@ -28,7 +29,11 @@ public interface RecordingDataSource extends DataSource {
         ProxyFactory proxyFactory = new ProxyFactory(dataSource);
         proxyFactory.addAdvice(new RecordingMethodInterceptor());
         proxyFactory.addInterface(RecordingDataSource.class);
-        proxyFactory.setProxyTargetClass(true);
+
+        if (!Modifier.isFinal(dataSource.getClass().getModifiers())) {
+            proxyFactory.setProxyTargetClass(true);
+        }
+
         return (RecordingDataSource) proxyFactory.getProxy();
     }
 

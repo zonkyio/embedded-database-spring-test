@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.context;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import io.zonky.test.db.event.TestExecutionFinishedEvent;
@@ -27,10 +28,6 @@ import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import io.zonky.test.db.support.DatabaseDefinition;
-import io.zonky.test.db.support.DatabaseProviders;
-import io.zonky.test.db.support.ProviderDescriptor;
-import io.zonky.test.db.support.ProviderResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +37,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.task.AsyncTaskExecutor;
@@ -70,24 +68,22 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultDatabaseContext.class);
 
-    protected final DatabaseDefinition databaseDefinition;
+    protected final DatabaseProvider databaseProvider;
 
-    protected DatabaseProvider databaseProvider;
-    protected AsyncTaskExecutor bootstrapExecutor;
+    protected final List<DatabasePreparer> corePreparers = new LinkedList<>();
+    protected final List<DatabasePreparer> testPreparers = new LinkedList<>();
 
     protected String beanName;
     protected Thread mainThread;
-
-    protected List<DatabasePreparer> corePreparers = new LinkedList<>();
-    protected List<DatabasePreparer> testPreparers = new LinkedList<>();
+    protected AsyncTaskExecutor bootstrapExecutor;
 
     protected ExecutionPhase executionPhase = INITIALIZING;
     protected DatabaseState databaseState = RESET;
 
     protected Future<EmbeddedDatabase> database;
 
-    public DefaultDatabaseContext(DatabaseDefinition databaseDefinition) {
-        this.databaseDefinition = databaseDefinition;
+    public DefaultDatabaseContext(ObjectFactory<DatabaseProvider> databaseProviderFactory) {
+        this.databaseProvider = databaseProviderFactory.getObject();
     }
 
     @Override
@@ -97,11 +93,6 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) {
-        ProviderResolver providerResolver = beanFactory.getBean(ProviderResolver.class);
-        DatabaseProviders databaseProviders = beanFactory.getBean(DatabaseProviders.class);
-        ProviderDescriptor providerDescriptor = providerResolver.getDescriptor(databaseDefinition);
-
-        this.databaseProvider = databaseProviders.getProvider(providerDescriptor);
         this.bootstrapExecutor = determineBootstrapExecutor(beanFactory);
     }
 
@@ -133,8 +124,8 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
             return awaitDatabase();
         }
 
-        logger.trace("Starting database recording - context={}", beanName);
         database = databaseFuture(RecordingDataSource.wrap(awaitDatabase()));
+        logger.trace("Starting database recording - context={}", beanName);
         databaseState = RECORDING;
 
         return awaitDatabase();
@@ -251,12 +242,15 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
     }
 
     private synchronized void refreshDatabase() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        logger.trace("Refreshing database context - context={}", beanName);
+
         if (database != null) {
             logger.trace("Closing previous database - context={}", beanName);
             awaitDatabase().close();
         }
 
-        logger.trace("Refreshing database context - context={}, corePreparers={}, testPreparers={}", beanName, corePreparers, testPreparers);
+        logger.trace("Creating a new database - context={}, corePreparers={}, testPreparers={}", beanName, corePreparers, testPreparers);
 
         List<DatabasePreparer> preparers = ImmutableList.<DatabasePreparer>builder()
                 .addAll(corePreparers)
@@ -264,9 +258,14 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
                 .build();
 
         if (executionPhase == INITIALIZING) {
-            database = bootstrapExecutor.submit(() -> databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers)));
+            database = bootstrapExecutor.submit(() -> {
+                EmbeddedDatabase database = databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers));
+                logger.trace("Database context has been successfully refreshed in {} - context={}", stopwatch, beanName);
+                return database;
+            });
         } else {
             database = databaseFuture(databaseProvider.createDatabase(new CompositeDatabasePreparer(preparers)));
+            logger.trace("Database context has been successfully refreshed in {} - context={}", stopwatch, beanName);
         }
 
         databaseState = FRESH;

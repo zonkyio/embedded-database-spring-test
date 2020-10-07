@@ -9,14 +9,12 @@ import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.common.OptimizingDatabaseProvider;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import javax.sql.DataSource;
-import java.util.Objects;
 
 import static org.mockito.Mockito.verify;
 
@@ -31,14 +29,14 @@ public class OptimizingDatabaseProviderTest {
 
     @Test
     public void noFlywayPreparer() {
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         optimizingProvider.createDatabase(preparer);
         verify(targetProvider).createDatabase(preparer);
     }
 
     @Test
     public void noFlywayPreparers() {
-        CompositeDatabasePreparer preparer = preparers(dataSource -> {});
+        CompositeDatabasePreparer preparer = preparers(TestDatabasePreparer.empty());
         optimizingProvider.createDatabase(preparer);
         verify(targetProvider).createDatabase(preparer);
     }
@@ -238,31 +236,6 @@ public class OptimizingDatabaseProviderTest {
     }
 
     private static DatabasePreparer preparer(String name) {
-        return new SimpleDatabasePreparer(name);
-    }
-
-    private static class SimpleDatabasePreparer implements DatabasePreparer {
-
-        private final String identifier;
-
-        private SimpleDatabasePreparer(String identifier) {
-            this.identifier = identifier;
-        }
-
-        @Override
-        public void prepare(DataSource dataSource) {}
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            SimpleDatabasePreparer that = (SimpleDatabasePreparer) o;
-            return Objects.equals(identifier, that.identifier);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(identifier);
-        }
+        return TestDatabasePreparer.empty(name);
     }
 }

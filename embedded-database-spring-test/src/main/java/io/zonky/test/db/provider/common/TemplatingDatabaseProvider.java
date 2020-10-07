@@ -20,7 +20,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -29,12 +28,7 @@ import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.event.ContextRefreshedEvent;
 
-import javax.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -57,18 +51,29 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
     private static final ConcurrentMap<TemplateKey, PreparerStats> stats = new ConcurrentHashMap<>();
 
     private final TemplatableDatabaseProvider provider;
-//    private final ObjectProvider<List<DatabaseContext>> contexts;
-    private final ApplicationContext applicationContext;
     private final Config config;
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ApplicationContext applicationContext) {
-        this(provider, applicationContext, Config.builder().build());
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider) {
+        this(provider, Config.builder().build());
     }
 
-    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, ApplicationContext applicationContext, Config config) {
+    public TemplatingDatabaseProvider(TemplatableDatabaseProvider provider, Config config) {
         this.provider = provider;
-        this.applicationContext = applicationContext;
         this.config = config;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TemplatingDatabaseProvider that = (TemplatingDatabaseProvider) o;
+        return Objects.equals(provider, that.provider) &&
+                Objects.equals(config, that.config);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(provider, config);
     }
 
     @Override
@@ -87,7 +92,7 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
 
                 if (existingTemplate != null) {
                     CompositeDatabasePreparer complementaryPreparer = new CompositeDatabasePreparer(preparers.subList(i, preparers.size()));
-                    if (i == preparers.size() || (isInitialized() && !hasCleanOperation(complementaryPreparer))) {
+                    if (i == preparers.size()) {
                         return createDatabase(complementaryPreparer, existingTemplate, false);
                     } else {
                         return createDatabase(complementaryPreparer, existingTemplate, true);
@@ -101,42 +106,19 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
         }
     }
 
-    @PostConstruct
-    public void initApplicationListener() {
-        ConfigurableApplicationContext applicationContext = (ConfigurableApplicationContext) this.applicationContext;
-        applicationContext.addApplicationListener((ApplicationListener<ContextRefreshedEvent>) event -> {
-            initialized = true;
-        });
-    }
-
-    private boolean initialized = false;
-
-    private boolean isInitialized() {
-//        return contexts.getObject().stream().noneMatch(context -> context.getState() == INITIALIZING);
-        return initialized;
-    }
-
-    private boolean hasCleanOperation(CompositeDatabasePreparer preparer) {
-        return preparer.getPreparers().stream().anyMatch(p -> p instanceof CleanFlywayDatabasePreparer);
-    }
-
     private EmbeddedDatabase createDatabase(CompositeDatabasePreparer preparer, TemplateWrapper template, boolean createNewTemplate) {
         if (createNewTemplate) {
             TemplateWrapper newTemplate = createTemplateIfPossible(preparer, template);
-            if (isTemplateApplicable(newTemplate)) {
+            if (newTemplate != null) {
                 return newTemplate.createDatabase(EMPTY_PREPARER);
             }
         }
 
-        if (isTemplateApplicable(template)) {
+        if (template != null) {
             return template.createDatabase(preparer);
         } else {
             return provider.createDatabase(DatabaseRequest.of(mergedPreparer(preparer, template)));
         }
-    }
-
-    private boolean isTemplateApplicable(TemplateWrapper template) {
-        return template != null && (config.getDurationThreshold() == 0 || template.isLoaded());
     }
 
     private DatabaseTemplate createTemplate(CompositeDatabasePreparer preparer, TemplateWrapper template) {
@@ -351,6 +333,20 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
 
         public static Builder builder() {
             return new Builder();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Config config = (Config) o;
+            return durationThreshold == config.durationThreshold &&
+                    maxTemplateCount == config.maxTemplateCount;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(durationThreshold, maxTemplateCount);
         }
 
         public static class Builder {

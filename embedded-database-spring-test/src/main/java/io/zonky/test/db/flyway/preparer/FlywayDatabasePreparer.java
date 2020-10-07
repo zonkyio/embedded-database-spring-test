@@ -17,17 +17,22 @@
 package io.zonky.test.db.flyway.preparer;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 import io.zonky.test.db.flyway.FlywayDescriptor;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.util.Objects;
 
 public abstract class FlywayDatabasePreparer implements DatabasePreparer {
 
-    private final FlywayDescriptor descriptor;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    protected final FlywayDescriptor descriptor;
 
     public FlywayDatabasePreparer(FlywayDescriptor descriptor) {
         this.descriptor = descriptor;
@@ -41,12 +46,14 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
 
     @Override
     public void prepare(DataSource dataSource) {
-        FlywayWrapper wrapper = FlywayWrapper.newInstance();
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
+        FlywayWrapper wrapper = FlywayWrapper.newInstance();
         descriptor.applyTo(wrapper);
         wrapper.setDataSource(dataSource);
 
         doOperation(wrapper.getFlyway());
+        logger.trace("Database has been successfully prepared in {}", stopwatch);
     }
 
     @Override
@@ -66,7 +73,6 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("schemas", descriptor.getSchemas())
-                .add("locations", descriptor.getLocations())
                 .toString();
     }
 }

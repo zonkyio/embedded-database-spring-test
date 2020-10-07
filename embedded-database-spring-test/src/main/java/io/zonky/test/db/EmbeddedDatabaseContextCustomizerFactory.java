@@ -22,7 +22,11 @@ import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DefaultDatabaseContext;
 import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
+import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.support.DatabaseDefinition;
+import io.zonky.test.db.support.DatabaseProviders;
+import io.zonky.test.db.support.ProviderDescriptor;
+import io.zonky.test.db.support.ProviderResolver;
 import io.zonky.test.db.util.AnnotationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -207,7 +211,12 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                 contextDefinition.setBeanClass(DefaultDatabaseContext.class);
                 contextDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
                 contextDefinition.getConstructorArgumentValues()
-                        .addIndexedArgumentValue(0, databaseDefinition);
+                        .addIndexedArgumentValue(0, (ObjectFactory<DatabaseProvider>) () -> {
+                            ProviderResolver providerResolver = beanFactory.getBean(ProviderResolver.class);
+                            DatabaseProviders databaseProviders = beanFactory.getBean(DatabaseProviders.class);
+                            ProviderDescriptor providerDescriptor = providerResolver.getDescriptor(databaseDefinition);
+                            return databaseProviders.getProvider(providerDescriptor);
+                        });
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
                 dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
@@ -216,8 +225,9 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                         .addIndexedArgumentValue(0, (ObjectFactory<DatabaseContext>) () ->
                                 beanFactory.getBean(contextBeanName, DatabaseContext.class));
 
+                logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceBeanName);
+
                 if (registry.containsBeanDefinition(dataSourceBeanName)) {
-                    logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceBeanName);
                     registry.removeBeanDefinition(dataSourceBeanName);
                 }
 

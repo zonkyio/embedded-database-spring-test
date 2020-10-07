@@ -17,25 +17,52 @@
 package io.zonky.test.db.liquibase;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
+import liquibase.integration.spring.SpringLiquibase.SpringResourceOpener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.util.Objects;
 
 public class LiquibaseDatabasePreparer implements DatabasePreparer {
 
+    private static final Logger logger = LoggerFactory.getLogger(LiquibaseDatabasePreparer.class);
+
     private final LiquibaseDescriptor descriptor;
+    private final long estimatedDuration;
 
     public LiquibaseDatabasePreparer(LiquibaseDescriptor descriptor) {
         this.descriptor = descriptor;
+
+        // TODO: finish it
+        String changeLogPath = descriptor.getChangeLog().replace('\\', '/'); //convert to standard / if using absolute path on windows
+        SpringResourceOpener resourceAccessor = new SpringLiquibase().new SpringResourceOpener(descriptor.getChangeLog());
+        Resource resource = resourceAccessor.getResource(changeLogPath);
+        long changeLogSize; // TODO: use size in lines instead of bytes
+        try {
+            changeLogSize = resource.contentLength();
+        } catch (IOException e) {
+            changeLogSize = 100_000;
+        }
+        this.estimatedDuration = changeLogSize;
+    }
+
+    @Override
+    public long estimatedDuration() {
+        return estimatedDuration;
     }
 
     @Override
     public void prepare(DataSource dataSource) {
-        SpringLiquibase liquibase = new SpringLiquibase();
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
+        SpringLiquibase liquibase = new SpringLiquibase();
         descriptor.applyTo(liquibase);
         liquibase.setDataSource(dataSource);
 
@@ -44,6 +71,8 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
         } catch (LiquibaseException e) {
             throw new IllegalStateException("Unexpected error when running Liquibase", e);
         }
+
+        logger.trace("Database has been successfully prepared in {}", stopwatch);
     }
 
     @Override

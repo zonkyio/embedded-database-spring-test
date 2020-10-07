@@ -1,6 +1,9 @@
 package io.zonky.test.db.support;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
@@ -14,6 +17,8 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.AUTO;
 
 public class DefaultProviderResolver implements ProviderResolver {
 
+    private static final Logger logger = LoggerFactory.getLogger(DefaultProviderResolver.class);
+
     private final Environment environment;
     private final ClassLoader classLoader;
 
@@ -26,7 +31,15 @@ public class DefaultProviderResolver implements ProviderResolver {
     public ProviderDescriptor getDescriptor(DatabaseDefinition definition) {
         String providerName = getProviderName(definition.getProviderType());
         String databaseName = getDatabaseName(definition.getDatabaseType());
-        return ProviderDescriptor.of(providerName, databaseName);
+        ProviderDescriptor descriptor = ProviderDescriptor.of(providerName, databaseName);
+
+        if (StringUtils.isBlank(definition.getBeanName())) {
+            logger.debug("Descriptor {} for default DataSource has been resolved", descriptor);
+        } else {
+            logger.debug("Descriptor {} for '{}' DataSource has been resolved", descriptor, definition.getBeanName());
+        }
+
+        return descriptor;
     }
 
     protected String getProviderName(DatabaseProvider providerType) {

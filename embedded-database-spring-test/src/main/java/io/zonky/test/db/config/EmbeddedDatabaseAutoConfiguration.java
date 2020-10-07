@@ -16,32 +16,28 @@
 
 package io.zonky.test.db.config;
 
-import io.zonky.test.db.context.DatabaseContext;
-import io.zonky.test.db.support.ProviderResolver;
-import io.zonky.test.db.support.DefaultProviderResolver;
 import io.zonky.test.db.flyway.FlywayExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import io.zonky.test.db.provider.common.OptimizingDatabaseProvider;
+import io.zonky.test.db.provider.common.PrefetchingDatabaseProvider;
+import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
 import io.zonky.test.db.provider.postgres.DockerPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.OpenTablePostgresDatabaseProvider;
-import io.zonky.test.db.provider.common.OptimizingDatabaseProvider;
-import io.zonky.test.db.provider.common.PrefetchingDatabaseProvider;
-import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.postgres.YandexPostgresDatabaseProvider;
 import io.zonky.test.db.provider.postgres.ZonkyPostgresDatabaseProvider;
-import org.springframework.beans.BeansException;
+import io.zonky.test.db.support.DatabaseProviders;
+import io.zonky.test.db.support.DefaultProviderResolver;
+import io.zonky.test.db.support.ProviderResolver;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -54,8 +50,6 @@ import org.springframework.context.annotation.Role;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
-
-import java.util.List;
 
 @Configuration
 public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware, ApplicationContextAware {
@@ -95,7 +89,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         checkDependency("org.testcontainers", "postgresql", "org.testcontainers.containers.PostgreSQLContainer");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(DockerPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -105,7 +99,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(ZonkyPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -115,7 +109,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(OpenTablePostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -125,7 +119,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         checkDependency("ru.yandex.qatools.embed", "postgresql-embedded", "ru.yandex.qatools.embed.postgresql.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
         TemplatableDatabaseProvider provider = beanFactory.createBean(YandexPostgresDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -135,7 +129,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         checkDependency("org.testcontainers", "mssqlserver", "org.testcontainers.containers.MSSQLServerContainer");
         checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
         DockerMSSQLDatabaseProvider provider = beanFactory.createBean(DockerMSSQLDatabaseProvider.class);
-        return prefetchingDatabaseProvider(optimizingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
     }
 
     @Bean
@@ -180,7 +174,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "templatingDatabaseProvider")
     public TemplatingDatabaseProvider templatingDatabaseProvider(TemplatableDatabaseProvider provider) {
-        return new TemplatingDatabaseProvider(provider, applicationContext);
+        return new TemplatingDatabaseProvider(provider);
     }
 
     @Bean

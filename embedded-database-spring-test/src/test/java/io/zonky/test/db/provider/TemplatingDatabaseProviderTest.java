@@ -6,6 +6,7 @@ import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -40,7 +41,7 @@ public class TemplatingDatabaseProviderTest {
     @Mock
     private DatabaseContext mockContext;
     @Mock
-    private ObjectProvider<List<DatabaseContext>> mockContexts;
+    private ObjectProvider<List<DatabaseContext>> mockContexts; // TODO:
     @Mock
     private TemplatableDatabaseProvider mockProvider;
 
@@ -49,12 +50,12 @@ public class TemplatingDatabaseProviderTest {
     @Before
     public void setUp() {
         when(mockContexts.getObject()).thenReturn(ImmutableList.of(mockContext));
-        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, null, TemplatingDatabaseProvider.Config.builder().build());
+        optimizingProvider = new TemplatingDatabaseProvider(mockProvider, TemplatingDatabaseProvider.Config.builder().build());
     }
 
     @Test
     public void createNewTemplate() {
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DatabaseTemplate template = new TestDatabaseTemplate("template");
         EmbeddedDatabase database = mock(EmbeddedDatabase.class);
 
@@ -72,7 +73,7 @@ public class TemplatingDatabaseProviderTest {
 
     @Test
     public void reuseExistingTemplate() {
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DatabaseTemplate template = new TestDatabaseTemplate("template");
 
         EmbeddedDatabase database1 = mock(EmbeddedDatabase.class);
@@ -97,9 +98,9 @@ public class TemplatingDatabaseProviderTest {
     public void reuseClosestTemplate() {
         DatabaseTemplate template = new TestDatabaseTemplate("template");
 
-        DatabasePreparer preparer1 = dataSource -> {};
-        DatabasePreparer preparer2 = dataSource -> {};
-        DatabasePreparer preparer3 = dataSource -> {};
+        DatabasePreparer preparer1 = TestDatabasePreparer.empty();
+        DatabasePreparer preparer2 = TestDatabasePreparer.empty();
+        DatabasePreparer preparer3 = TestDatabasePreparer.empty();
 
         EmbeddedDatabase database1 = mock(EmbeddedDatabase.class);
         EmbeddedDatabase database2 = mock(EmbeddedDatabase.class);
@@ -123,9 +124,9 @@ public class TemplatingDatabaseProviderTest {
         DatabaseTemplate template1 = new TestDatabaseTemplate("template1");
         DatabaseTemplate template2 = new TestDatabaseTemplate("template2");
 
-        DatabasePreparer preparer1 = dataSource -> {};
-        DatabasePreparer preparer2 = dataSource -> {};
-        DatabasePreparer preparer3 = dataSource -> {};
+        DatabasePreparer preparer1 = TestDatabasePreparer.empty();
+        DatabasePreparer preparer2 = TestDatabasePreparer.empty();
+        DatabasePreparer preparer3 = TestDatabasePreparer.empty();
 
         EmbeddedDatabase database1 = mock(EmbeddedDatabase.class);
         EmbeddedDatabase database2 = mock(EmbeddedDatabase.class);
@@ -148,7 +149,7 @@ public class TemplatingDatabaseProviderTest {
 
     @Test
     public void creatingTemplateShouldThrowProviderException() {
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
 
         when(mockProvider.createTemplate(any())).thenThrow(new ProviderException("test exception"));
 
@@ -158,7 +159,7 @@ public class TemplatingDatabaseProviderTest {
     }
     @Test
     public void creatingDatabaseShouldThrowProviderException() {
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DatabaseTemplate template = new TestDatabaseTemplate("template");
 
         when(mockProvider.createTemplate(any())).thenReturn(template);

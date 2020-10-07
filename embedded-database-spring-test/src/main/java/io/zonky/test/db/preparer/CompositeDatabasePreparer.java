@@ -37,6 +37,13 @@ public class CompositeDatabasePreparer implements DatabasePreparer {
     }
 
     @Override
+    public long estimatedDuration() {
+        return preparers.stream()
+                .mapToLong(DatabasePreparer::estimatedDuration)
+                .sum();
+    }
+
+    @Override
     public void prepare(DataSource dataSource) throws SQLException {
         for (DatabasePreparer preparer : preparers) {
             preparer.prepare(dataSource);

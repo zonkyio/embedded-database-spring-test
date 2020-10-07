@@ -19,6 +19,7 @@ package io.zonky.test.db.provider.postgres;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,15 +57,15 @@ public class ZonkyPostgresDatabaseProviderTest {
     public void testGetDatabase() throws Exception {
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
 
-        DatabasePreparer preparer1 = dataSource -> {
+        DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (number int primary key not null)");
-        };
+        });
 
-        DatabasePreparer preparer2 = dataSource -> {
+        DatabasePreparer preparer2 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
-        };
+        });
 
         DataSource dataSource1 = provider.createDatabase(preparer1);
         DataSource dataSource2 = provider.createDatabase(preparer1);
@@ -95,7 +96,7 @@ public class ZonkyPostgresDatabaseProviderTest {
         int randomPort = SocketUtils.findAvailableTcpPort();
         when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(new MockEnvironment(), databaseCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
@@ -110,7 +111,7 @@ public class ZonkyPostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
         environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         ZonkyPostgresDatabaseProvider provider = new ZonkyPostgresDatabaseProvider(environment, databaseCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
