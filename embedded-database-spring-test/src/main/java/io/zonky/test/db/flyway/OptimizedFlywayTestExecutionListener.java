@@ -42,6 +42,7 @@ import javax.sql.DataSource;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -286,6 +287,21 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     protected static Object createScanner(Flyway flyway) throws ClassNotFoundException {
         Object configuration = getField(flyway, "configuration");
 
+        if (flywayVersion >= 70) {
+            try {
+                // this code is only for version 7.0.0 and above
+                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                        invokeMethod(configuration, "getClassLoader"),
+                        invokeMethod(configuration, "getEncoding"),
+                        false,
+                        getField(flyway, "resourceNameCache"),
+                        getField(flyway, "locationScannerCache"));
+            } catch (RuntimeException ex) {
+                throw ex;
+            }
+        }
         if (flywayVersion >= 63) {
             try {
                 // this code is only for version 6.3.3 and above
