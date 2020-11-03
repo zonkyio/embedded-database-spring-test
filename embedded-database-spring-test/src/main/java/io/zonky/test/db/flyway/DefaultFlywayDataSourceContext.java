@@ -19,6 +19,7 @@ package io.zonky.test.db.flyway;
 import io.zonky.test.db.provider.DatabaseDescriptor;
 import io.zonky.test.db.provider.DatabasePreparer;
 import io.zonky.test.db.provider.GenericDatabaseProvider;
+import io.zonky.test.db.util.ReflectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,7 +171,8 @@ public class DefaultFlywayDataSourceContext implements FlywayDataSourceContext {
         public void prepare(DataSource ds) {
             preparerDataSourceHolder.set(ds);
             try {
-                flyway.migrate();
+                // Return type changed in v7, breaking static call
+                ReflectionUtils.invokeMethod(flyway, "migrate");
             } finally {
                 preparerDataSourceHolder.remove();
             }

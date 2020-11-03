@@ -286,6 +286,16 @@ public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionLis
     protected static Object createScanner(Flyway flyway) throws ClassNotFoundException {
         Object configuration = getField(flyway, "configuration");
 
+        if (flywayVersion >= 70) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
+                    invokeMethod(configuration, "getClassLoader"),
+                    invokeMethod(configuration, "getEncoding"),
+                    false,
+                    getField(flyway, "resourceNameCache"),
+                    getField(flyway, "locationScannerCache"));
+        }
         if (flywayVersion >= 63) {
             try {
                 // this code is only for version 6.3.3 and above
