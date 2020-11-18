@@ -1,10 +1,11 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.support.SpyPostProcessor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
@@ -12,8 +13,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockReset;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,7 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(FlywayTestSuite.class)
 @TestExecutionListeners(
         mergeMode = MERGE_WITH_DEFAULTS,
         listeners = FlywayMethodRefreshIntegrationTest.class
@@ -67,12 +68,19 @@ public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionLis
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
         }
+
+        @Bean
+        public BeanPostProcessor spyPostProcessor() {
+            return new SpyPostProcessor((bean, beanName) ->
+                    bean instanceof DatabaseContext || beanName.equals("dockerPostgresDatabaseProvider"));
+        }
     }
 
-    @SpyBean(reset = MockReset.NONE)
+    @Autowired
     private DatabaseContext databaseContext;
 
-    @SpyBean(reset = MockReset.NONE, name = "dockerPostgresDatabaseProvider")
+    @Autowired
+    @Qualifier("dockerPostgresDatabaseProvider")
     private DatabaseProvider databaseProvider;
 
     @Autowired

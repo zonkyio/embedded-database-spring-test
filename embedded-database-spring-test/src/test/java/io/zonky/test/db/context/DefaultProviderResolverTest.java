@@ -2,11 +2,13 @@ package io.zonky.test.db.context;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.mysql.cj.jdbc.MysqlDataSource;
+import io.zonky.test.category.SpringTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
 import io.zonky.test.db.support.DatabaseDefinition;
 import io.zonky.test.db.support.DefaultProviderResolver;
 import io.zonky.test.db.support.ProviderDescriptor;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mariadb.jdbc.MariaDbDataSource;
 import org.mockito.InjectMocks;
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
+@Category(SpringTestSuite.class)
 public class DefaultProviderResolverTest {
 
     @Mock

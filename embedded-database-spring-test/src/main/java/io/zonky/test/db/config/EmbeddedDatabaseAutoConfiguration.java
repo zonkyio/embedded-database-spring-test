@@ -16,9 +16,9 @@
 
 package io.zonky.test.db.config;
 
-import io.zonky.test.db.flyway.FlywayExtension;
+import io.zonky.test.db.flyway.FlywayDatabaseExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
-import io.zonky.test.db.liquibase.LiquibaseExtension;
+import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
@@ -41,8 +41,6 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,15 +50,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
 @Configuration
-public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware, ApplicationContextAware {
+public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware {
 
     private Environment environment;
     private ClassLoader classLoader;
     private AutowireCapableBeanFactory beanFactory;
-    private ApplicationContext applicationContext;
-
-//    @Autowired
-//    private ObjectProvider<List<DatabaseContext>> contexts;
 
     @Override
     public void setEnvironment(Environment environment) {
@@ -75,11 +69,6 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @Override
     public void setBeanFactory(BeanFactory beanFactory) {
         this.beanFactory = (AutowireCapableBeanFactory) beanFactory;
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
     }
 
     @Bean
@@ -152,6 +141,14 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         return optimizingDatabaseProvider(provider);
     }
 
+    @Bean
+    @Scope("prototype")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "optimizingDatabaseProvider")
+    public OptimizingDatabaseProvider optimizingDatabaseProvider(DatabaseProvider provider) {
+        return new OptimizingDatabaseProvider(provider);
+    }
+
     // TODO: consider using a factory bean instead (also consider using pipeline factories aimed for specific provider types)
     @Bean
     @Scope("prototype")
@@ -159,14 +156,6 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @ConditionalOnMissingBean(name = "prefetchingDatabaseProvider")
     public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
         return new PrefetchingDatabaseProvider(provider, environment);
-    }
-
-    @Bean
-    @Scope("prototype")
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnMissingBean(name = "optimizingDatabaseProvider")
-    public OptimizingDatabaseProvider optimizingDatabaseProvider(DatabaseProvider provider) {
-        return new OptimizingDatabaseProvider(provider);
     }
 
     @Bean
@@ -186,17 +175,17 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnMissingBean(name = "databaseResolver")
-    public ProviderResolver databaseResolver(Environment environment) {
+    @ConditionalOnMissingBean(name = "providerResolver")
+    public ProviderResolver providerResolver(Environment environment) {
         return new DefaultProviderResolver(environment, classLoader);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
-    @ConditionalOnMissingBean(name = "flywayExtension")
-    public FlywayExtension flywayExtension() {
-        return new FlywayExtension();
+    @ConditionalOnMissingBean(name = "flywayDatabaseExtension")
+    public FlywayDatabaseExtension flywayDatabaseExtension() {
+        return new FlywayDatabaseExtension();
     }
 
     @Bean
@@ -210,9 +199,9 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
-    @ConditionalOnMissingBean(name = "liquibaseExtension")
-    public LiquibaseExtension liquibaseExtension() {
-        return new LiquibaseExtension();
+    @ConditionalOnMissingBean(name = "liquibaseDatabaseExtension")
+    public LiquibaseDatabaseExtension liquibaseDatabaseExtension() {
+        return new LiquibaseDatabaseExtension();
     }
 
     @Bean

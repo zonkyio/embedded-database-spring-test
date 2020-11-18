@@ -16,9 +16,9 @@
 
 package io.zonky.test.db.liquibase;
 
-import io.zonky.test.category.LiquibaseTests;
-import io.zonky.test.db.context.DatabaseTargetSource;
+import io.zonky.test.category.LiquibaseTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Before;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
-@Category(LiquibaseTests.class)
-public class LiquibaseExtensionTest {
+@Category(LiquibaseTestSuite.class)
+public class LiquibaseDatabaseExtensionTest {
 
     @Mock
     private DatabaseContext databaseContext;
@@ -53,8 +53,8 @@ public class LiquibaseExtensionTest {
         SpringLiquibase liquibase = new SpringLiquibase();
         liquibase.setDataSource((DataSource) dataSource);
 
-        LiquibaseExtension liquibaseExtension = new LiquibaseExtension();
-        this.liquibase = (SpringLiquibase) liquibaseExtension.postProcessBeforeInitialization(liquibase, "liquibase");
+        LiquibaseDatabaseExtension extension = new LiquibaseDatabaseExtension();
+        this.liquibase = (SpringLiquibase) extension.postProcessBeforeInitialization(liquibase, "liquibase");
     }
 
     @Test

@@ -39,7 +39,6 @@ public class AnnotationUtils {
 
         return annotations.stream()
                 .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
-                .filter(annotation -> annotation.replace() != Replace.NONE)
                 .collect(toCollection(LinkedHashSet::new));
     }
 

@@ -1,5 +1,6 @@
 package io.zonky.test.db.context;
 
+import io.zonky.test.category.SpringTestSuite;
 import io.zonky.test.db.event.TestExecutionFinishedEvent;
 import io.zonky.test.db.event.TestExecutionStartedEvent;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
@@ -7,14 +8,19 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.task.SyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.ReflectionUtils;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
@@ -33,26 +39,40 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
+@Category(SpringTestSuite.class)
 public class DefaultDatabaseContextTest {
 
     private static Method MOCK_TEST_METHOD;
 
     @Mock
+    private BeanFactory beanFactory;
+    @Mock
+    private ApplicationContext applicationContext;
+    @Mock
     private DatabaseProvider databaseProvider;
 
-    @Spy
-    @InjectMocks
     private DefaultDatabaseContext databaseContext;
 
     @BeforeClass
     public static void beforeClass() {
         MOCK_TEST_METHOD = ReflectionUtils.findMethod(DefaultDatabaseContextTest.class, "beforeClass");
+    }
+
+    @Before
+    public void setUp() {
+        when(beanFactory.getBean(TaskExecutor.class)).thenReturn(new SyncTaskExecutor());
+        when(applicationContext.containsBean("testDatabaseContext")).thenReturn(true);
+
+        databaseContext = spy(new DefaultDatabaseContext(() -> databaseProvider));
+        databaseContext.setBeanName("testDatabaseContext");
+        databaseContext.setBeanFactory(beanFactory);
     }
 
     @Test
@@ -76,7 +96,7 @@ public class DefaultDatabaseContextTest {
     public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenInvokedFromMainThread() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext));
 
         assertThat(databaseContext.getState()).isEqualTo(FRESH);
         assertThat(databaseContext.getDatabase()).isNotNull();
@@ -88,7 +108,7 @@ public class DefaultDatabaseContextTest {
     public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenPreviousDatabaseIsNotAvailableEvenWhenInvokedOutOfMainThread() throws InterruptedException {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        runInDifferentThread(() -> databaseContext.handleContextRefreshed(null));
+        runInDifferentThread(() -> databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext)));
 
         assertThat(databaseContext.getState()).isEqualTo(FRESH);
         assertThat(databaseContext.getDatabase()).isNotNull();
@@ -100,7 +120,7 @@ public class DefaultDatabaseContextTest {
     public void databaseContextInTestExecutionStateShouldCreateDatabaseWhenTestExecutionStarted() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
 
-        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext));
         databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
 
         verify(databaseProvider).createDatabase(any());
@@ -115,7 +135,7 @@ public class DefaultDatabaseContextTest {
     public void databaseContextInTestPreparationStateShouldCreateDatabaseWhenResetAndInvokedFromMainThread() {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class), mock(EmbeddedDatabase.class));
 
-        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext));
         databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
 
         EmbeddedDatabase database = databaseContext.getDatabase();
@@ -133,7 +153,7 @@ public class DefaultDatabaseContextTest {
     public void databaseContextInTestPreparationStateShouldReturnPreviousDatabaseWhenResetAndInvokedOutOfMainThread() throws InterruptedException {
         when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class), mock(EmbeddedDatabase.class));
 
-        runInDifferentThread(() -> databaseContext.handleContextRefreshed(null));
+        runInDifferentThread(() -> databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext)));
 
         databaseContext.handleTestStarted(new TestExecutionStartedEvent(this, MOCK_TEST_METHOD));
         verify(databaseProvider).createDatabase(any());
@@ -151,6 +171,8 @@ public class DefaultDatabaseContextTest {
 
     @Test
     public void testPreparers() throws Exception {
+        when(databaseProvider.createDatabase(any())).thenReturn(mock(EmbeddedDatabase.class));
+
         DatabasePreparer preparer1 = mock(DatabasePreparer.class);
         DatabasePreparer preparer2 = mock(DatabasePreparer.class);
         DatabasePreparer preparer3 = mock(DatabasePreparer.class);
@@ -160,7 +182,7 @@ public class DefaultDatabaseContextTest {
         databaseContext.apply(preparer1);
         databaseContext.apply(preparer2);
 
-        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext));
 
         databaseContext.apply(preparer3);
         databaseContext.apply(preparer4);
@@ -215,7 +237,7 @@ public class DefaultDatabaseContextTest {
 
         manualOperations.accept(databaseContext.getDatabase());
 
-        databaseContext.handleContextRefreshed(null);
+        databaseContext.handleContextRefreshed(new ContextRefreshedEvent(applicationContext));
 
         manualOperations.accept(databaseContext.getDatabase());
 
@@ -228,7 +250,7 @@ public class DefaultDatabaseContextTest {
         inOrder.verify(databaseContext).apply(preparer1);
         inOrder.verify(databaseProvider).createDatabase(new CompositeDatabasePreparer(ImmutableList.of(recordedPreparer, preparer1)));
         inOrder.verify(databaseContext).getDatabase();
-        inOrder.verify(databaseContext).handleContextRefreshed(null);
+        inOrder.verify(databaseContext).handleContextRefreshed(any(ContextRefreshedEvent.class));
         inOrder.verify(databaseContext).getDatabase();
         inOrder.verify(databaseContext).reset();
         inOrder.verify(databaseContext).getDatabase();

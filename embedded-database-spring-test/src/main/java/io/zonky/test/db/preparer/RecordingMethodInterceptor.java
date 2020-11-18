@@ -79,7 +79,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
             new MethodPredicate(PreparedStatement.class, "getMetaData", "getParameterMetaData"),
             new MethodPredicate(CallableStatement.class, "getString", "getBoolean", "getByte", "getShort", "getInt", "getLong", "getFloat", "getDouble", "getBigDecimal", "getBytes", "getDate", "getTime", "getTimestamp", "getObject", "getRef", "getBlob", "getClob", "getArray", "getURL", "getRowId", "getNClob", "getSQLXML", "getNString", "getNCharacterStream", "getCharacterStream"),
             new MethodPredicate(ResultSet.class, "wasNull", "getString", "getBoolean", "getByte", "getShort", "getInt", "getLong", "getFloat", "getDouble", "getBigDecimal", "getBytes", "getDate", "getTime", "getTimestamp", "getAsciiStream", "getUnicodeStream", "getBinaryStream", "getWarnings", "clearWarnings", "getCursorName", "getMetaData", "getObject", "findColumn", "getCharacterStream", "isBeforeFirst", "isAfterLast", "isFirst", "isLast", "getRow", "getFetchDirection", "getFetchSize", "getType", "getConcurrency", "rowUpdated", "rowInserted", "rowDeleted", "getRef", "getBlob", "getClob", "getArray", "getURL", "getRowId", "getHoldability", "isClosed", "getNClob", "getSQLXML", "getNString", "getNCharacterStream"));
-            // TODO: consider excluding executeQuery methods
+            // TODO: consider excluding executeQuery methods (select statements)
 
     private static final String ROOT_REFERENCE = "dataSource";
 
@@ -295,7 +295,10 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
 
         @Override
         public long estimatedDuration() {
-            return recordData.size() / 2;
+            long recordsCount = recordData.stream()
+                    .filter(record -> !record.methodName.equals("next"))
+                    .count();
+            return recordsCount / 2;
         }
 
         @Override
@@ -367,6 +370,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         public String toString() {
             return MoreObjects.toStringHelper(this)
                     .add("recordDataSize", recordData.size())
+                    .add("estimatedDuration", estimatedDuration())
                     .toString();
         }
     }

@@ -1,9 +1,11 @@
 package io.zonky.test.db.config;
 
-import io.zonky.test.db.support.ProviderDescriptor;
+import io.zonky.test.category.SpringTestSuite;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.support.DatabaseProviders;
+import io.zonky.test.db.support.ProviderDescriptor;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -12,14 +14,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static io.zonky.test.assertj.MockitoAssertions.mockWithName;
+import static io.zonky.test.support.MockitoAssertions.mockWithName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 
 @RunWith(SpringRunner.class)
+@Category(SpringTestSuite.class)
 @ContextConfiguration
-public class DatabaseProvidersTest {
+public class DatabaseProvidersIntegrationTest {
 
     @Configuration
     @Import(DatabaseProviders.class)
@@ -58,6 +61,6 @@ public class DatabaseProvidersTest {
     public void missingProvider() {
         assertThatCode(() -> databaseProviders.getProvider(ProviderDescriptor.of("provider3", "database2")))
                 .isExactlyInstanceOf(MissingDatabaseProviderException.class)
-                .hasMessage("Missing database provider for: DatabaseDescriptor{providerName=provider3, databaseName=database2}, available providers: [provider1, provider2]");
+                .hasMessage("Missing database provider for: ProviderDescriptor{providerName=provider3, databaseName=database2}, available providers: [provider1, provider2]");
     }
 }

@@ -3,6 +3,7 @@ package io.zonky.test.db;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.util.AnnotationUtils;
+import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Conventions;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
 
 public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecutionListener {
 
@@ -88,18 +90,25 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
         ApplicationContext applicationContext = testContext.getApplicationContext();
         Environment environment = applicationContext.getEnvironment();
 
-        for (AutoConfigureEmbeddedDatabase annotation : annotations) {
-            // TODO: write a test for this feature
-            RefreshMode currentMode = annotation.refresh() != RefreshMode.NEVER ? annotation.refresh() :
-                    environment.getProperty("zonky.test.database.refresh", RefreshMode.class, RefreshMode.NEVER);
+        annotations.stream()
+                .filter(annotation -> isEnabled(annotation, environment))
+                .filter(annotation -> hasAnyRefreshMode(annotation, refreshModes, environment))
+                .forEach(annotation -> {
+                    DatabaseContext databaseContext = getDatabaseContext(applicationContext, annotation.beanName());
+                    action.accept(databaseContext, annotation);
+                });
+    }
 
-            if (Arrays.stream(refreshModes).noneMatch(mode -> mode == currentMode)) {
-                continue;
-            }
+    private boolean isEnabled(AutoConfigureEmbeddedDatabase annotation, Environment environment) {
+        Replace replace = annotation.replace() == Replace.NONE ? Replace.NONE :
+                PropertyUtils.getEnumProperty(environment, "zonky.test.database.replace", Replace.class, Replace.ANY);
+        return replace != Replace.NONE;
+    }
 
-            DatabaseContext databaseContext = getDatabaseContext(applicationContext, annotation.beanName());
-            action.accept(databaseContext, annotation);
-        }
+    private boolean hasAnyRefreshMode(AutoConfigureEmbeddedDatabase annotation, RefreshMode[] refreshModes, Environment environment) {
+        RefreshMode currentMode = annotation.refresh() != RefreshMode.NEVER ? annotation.refresh() :
+                PropertyUtils.getEnumProperty(environment, "zonky.test.database.refresh", RefreshMode.class, RefreshMode.NEVER);
+        return Arrays.stream(refreshModes).anyMatch(mode -> mode == currentMode);
     }
 
     private DatabaseContext getDatabaseContext(ApplicationContext applicationContext, String beanName) {

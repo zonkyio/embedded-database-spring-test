@@ -1,27 +1,20 @@
 package io.zonky.test.db.provider;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.StaticTests;
-import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.beans.factory.ObjectProvider;
 
-import java.util.List;
 import java.util.Objects;
 
-import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
-import static io.zonky.test.db.context.DatabaseContext.ContextState.INITIALIZING;
 import static io.zonky.test.db.provider.common.TemplatingDatabaseProvider.EMPTY_PREPARER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -29,19 +22,12 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Category(StaticTests.class)
 @RunWith(MockitoJUnitRunner.class)
 public class TemplatingDatabaseProviderTest {
 
-    @Mock
-    private DatabaseContext mockContext;
-    @Mock
-    private ObjectProvider<List<DatabaseContext>> mockContexts; // TODO:
     @Mock
     private TemplatableDatabaseProvider mockProvider;
 
@@ -49,7 +35,6 @@ public class TemplatingDatabaseProviderTest {
 
     @Before
     public void setUp() {
-        when(mockContexts.getObject()).thenReturn(ImmutableList.of(mockContext));
         optimizingProvider = new TemplatingDatabaseProvider(mockProvider, TemplatingDatabaseProvider.Config.builder().build());
     }
 
@@ -67,8 +52,6 @@ public class TemplatingDatabaseProviderTest {
         InOrder inOrder = inOrder(mockProvider);
         inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer))));
         inOrder.verify(mockProvider).createDatabase(databaseRequest(EMPTY_PREPARER, template));
-
-        verify(mockContext, never()).getState();
     }
 
     @Test
@@ -90,13 +73,12 @@ public class TemplatingDatabaseProviderTest {
         InOrder inOrder = inOrder(mockProvider);
         inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer))));
         inOrder.verify(mockProvider, times(3)).createDatabase(databaseRequest(EMPTY_PREPARER, template));
-
-        verify(mockContext, never()).getState();
     }
 
     @Test
-    public void reuseClosestTemplate() {
-        DatabaseTemplate template = new TestDatabaseTemplate("template");
+    public void alwaysCreateNewTemplate() {
+        DatabaseTemplate template1 = new TestDatabaseTemplate("template1");
+        DatabaseTemplate template2 = new TestDatabaseTemplate("template2");
 
         DatabasePreparer preparer1 = TestDatabasePreparer.empty();
         DatabasePreparer preparer2 = TestDatabasePreparer.empty();
@@ -105,18 +87,17 @@ public class TemplatingDatabaseProviderTest {
         EmbeddedDatabase database1 = mock(EmbeddedDatabase.class);
         EmbeddedDatabase database2 = mock(EmbeddedDatabase.class);
 
-        when(mockContext.getState()).thenReturn(FRESH);
-        when(mockProvider.createTemplate(any())).thenReturn(template);
+        when(mockProvider.createTemplate(any())).thenReturn(template1).thenReturn(template2);
         when(mockProvider.createDatabase(any(DatabaseRequest.class))).thenReturn(database1, database2);
 
         assertThat(optimizingProvider.createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2)))).isSameAs(database1);
         assertThat(optimizingProvider.createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2, preparer3)))).isSameAs(database2);
 
-        InOrder inOrder = inOrder(mockContext, mockProvider);
+        InOrder inOrder = inOrder(mockProvider);
         inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2))));
-        inOrder.verify(mockProvider).createDatabase(databaseRequest(EMPTY_PREPARER, template));
-        inOrder.verify(mockContext).getState();
-        inOrder.verify(mockProvider).createDatabase(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer3)), template));
+        inOrder.verify(mockProvider).createDatabase(databaseRequest(EMPTY_PREPARER, template1));
+        inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer3)), template1));
+        inOrder.verify(mockProvider).createDatabase(databaseRequest(EMPTY_PREPARER, template2));
     }
 
     @Test
@@ -131,7 +112,6 @@ public class TemplatingDatabaseProviderTest {
         EmbeddedDatabase database1 = mock(EmbeddedDatabase.class);
         EmbeddedDatabase database2 = mock(EmbeddedDatabase.class);
 
-        when(mockContext.getState()).thenReturn(INITIALIZING);
         when(mockProvider.createTemplate(any())).thenReturn(template1, template2);
         when(mockProvider.createDatabase(any(DatabaseRequest.class))).thenReturn(database1, database2);
 
@@ -139,10 +119,9 @@ public class TemplatingDatabaseProviderTest {
         assertThat(optimizingProvider.createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2, preparer3)))).isSameAs(database2);
         assertThat(optimizingProvider.createDatabase(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2, preparer3)))).isSameAs(database2);
 
-        InOrder inOrder = inOrder(mockContext, mockProvider);
+        InOrder inOrder = inOrder(mockProvider);
         inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer1, preparer2))));
         inOrder.verify(mockProvider).createDatabase(databaseRequest(EMPTY_PREPARER, template1));
-        inOrder.verify(mockContext).getState();
         inOrder.verify(mockProvider).createTemplate(databaseRequest(new CompositeDatabasePreparer(ImmutableList.of(preparer3)), template1));
         inOrder.verify(mockProvider, times(2)).createDatabase(databaseRequest(EMPTY_PREPARER, template2));
     }

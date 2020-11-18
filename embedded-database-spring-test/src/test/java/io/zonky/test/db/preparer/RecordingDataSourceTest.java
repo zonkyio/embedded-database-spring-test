@@ -1,9 +1,7 @@
 package io.zonky.test.db.preparer;
 
-import io.zonky.test.category.StaticTests;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -44,7 +42,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Category(StaticTests.class)
 public class RecordingDataSourceTest {
 
     @Test
@@ -57,6 +54,7 @@ public class RecordingDataSourceTest {
         statement.executeUpdate("create table");
         statement.executeUpdate("insert data");
         statement.executeUpdate("select data");
+
         statement.close();
         connection.commit();
         connection.close();
@@ -108,6 +106,10 @@ public class RecordingDataSourceTest {
         resultSet.getURL(12);
         resultSet.cancelRowUpdates();
 
+        resultSet.close();
+        statement.close();
+        connection.close();
+
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);
         Statement mockStatement = mock(Statement.class);
@@ -139,6 +141,9 @@ public class RecordingDataSourceTest {
         inOrder.verify(mockResultSet).updateTime(11, new Time(0));
         inOrder.verify(mockResultSet, never()).getURL(anyInt());
         inOrder.verify(mockResultSet).cancelRowUpdates();
+        inOrder.verify(mockResultSet).close();
+        inOrder.verify(mockStatement).close();
+        inOrder.verify(mockConnection).close();
     }
 
     @Test
@@ -177,6 +182,9 @@ public class RecordingDataSourceTest {
         statement.executeUpdate("create table");
         connection.releaseSavepoint(savepoint);
 
+        statement.close();
+        connection.close();
+
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);
         Statement mockStatement = mock(Statement.class);
@@ -195,6 +203,8 @@ public class RecordingDataSourceTest {
         inOrder.verify(mockConnection).createStatement();
         inOrder.verify(mockStatement).executeUpdate("create table");
         inOrder.verify(mockConnection).releaseSavepoint(mockSavepoint);
+        inOrder.verify(mockStatement).close();
+        inOrder.verify(mockConnection).close();
     }
 
     @Test
@@ -211,6 +221,7 @@ public class RecordingDataSourceTest {
         statement.setBlob(1, blob);
         statement.executeUpdate();
         statement.close();
+        connection.close();
         blob.free();
 
         DataSource mockDataSource = mock(DataSource.class);
@@ -239,6 +250,8 @@ public class RecordingDataSourceTest {
 
         DatabasePreparer preparer = recordingDataSource.getPreparer();
         preparer.prepare(mockDataSource);
+
+        verify(mockStatement).setBlob(eq(1), any(Blob.class));
     }
 
     @Test
@@ -253,7 +266,9 @@ public class RecordingDataSourceTest {
         PreparedStatement statement = connection.prepareStatement("insert data");
         statement.setArray(1, array);
         statement.executeUpdate();
+
         statement.close();
+        connection.close();
 
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);
@@ -274,6 +289,7 @@ public class RecordingDataSourceTest {
         inOrder.verify(mockStatement).setArray(1, mockArray);
         inOrder.verify(mockStatement).executeUpdate();
         inOrder.verify(mockStatement).close();
+        inOrder.verify(mockConnection).close();
 
         verify(mockConnection, never()).createArrayOf(any(), same(objects)); // the array must be a copy of the original array
     }
@@ -295,7 +311,9 @@ public class RecordingDataSourceTest {
         PreparedStatement statement = connection.prepareStatement("insert data");
         statement.setBinaryStream(1, new ByteArrayInputStream(new byte[] { 0, 1, 2, 3 }));
         statement.executeUpdate();
+
         statement.close();
+        connection.close();
 
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);
@@ -333,7 +351,9 @@ public class RecordingDataSourceTest {
         PreparedStatement statement = connection.prepareStatement("insert data");
         statement.setCharacterStream(1, new CharArrayReader(new char[] {'t', 'e', 's', 't'}));
         statement.executeUpdate();
+
         statement.close();
+        connection.close();
 
         DataSource mockDataSource = mock(DataSource.class);
         Connection mockConnection = mock(Connection.class);

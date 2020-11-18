@@ -16,14 +16,12 @@
 
 package io.zonky.test.db.provider.mariadb;
 
-import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mariadb.jdbc.MariaDbDataSource;
 import org.mockito.Mock;
@@ -43,7 +41,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-@Category(StaticTests.class)
 @RunWith(MockitoJUnitRunner.class)
 public class DockerMariaDBDatabaseProviderTest {
 

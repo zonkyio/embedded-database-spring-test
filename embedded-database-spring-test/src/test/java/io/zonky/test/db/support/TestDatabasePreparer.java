@@ -24,17 +24,29 @@ public class TestDatabasePreparer implements DatabasePreparer {
         return new TestDatabasePreparer(identifier, action);
     }
 
+    public static TestDatabasePreparer of(String identifier, long duration, Consumer<DataSource> action) {
+        return new TestDatabasePreparer(identifier, action, duration);
+    }
+
     private final String identifier;
     private final Consumer<DataSource> action;
+    private final long estimatedDuration;
 
     private TestDatabasePreparer(String identifier, Consumer<DataSource> action) {
         this.identifier = identifier;
         this.action = action;
+        this.estimatedDuration = 0;
+    }
+
+    private TestDatabasePreparer(String identifier, Consumer<DataSource> action, long estimatedDuration) {
+        this.identifier = identifier;
+        this.action = action;
+        this.estimatedDuration = estimatedDuration;
     }
 
     @Override
     public long estimatedDuration() {
-        return 0;
+        return estimatedDuration;
     }
 
     @Override

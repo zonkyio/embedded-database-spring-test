@@ -17,13 +17,8 @@
 package io.zonky.test.db.provider.common;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AtomicLongMap;
-import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
-import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
-import io.zonky.test.db.flyway.preparer.FlywayDatabasePreparer;
 import io.zonky.test.db.preparer.CompositeDatabasePreparer;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -33,20 +28,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class OptimizingDatabaseProvider implements DatabaseProvider {
 
+    public static final CompositeDatabasePreparer EMPTY_PREPARER = new CompositeDatabasePreparer(Collections.emptyList());
+
     private static final Logger logger = LoggerFactory.getLogger(OptimizingDatabaseProvider.class);
 
-    private static final ConcurrentMap<BaselineKey, Object> baselines = new ConcurrentHashMap<>();
+    private static final Set<BaselineKey> baselines = Sets.newConcurrentHashSet();
+    private static final AtomicLongMap<BaselineKey> requestCount = AtomicLongMap.create();
 
     private final DatabaseProvider provider;
 
@@ -61,55 +55,38 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
         List<DatabasePreparer> preparers = compositePreparer.getPreparers();
 
         for (int i = preparers.size(); i > 0; i--) {
-            CompositeDatabasePreparer baselinePreparer = new CompositeDatabasePreparer(preparers.subList(0, i));
+            requestCount.incrementAndGet(new BaselineKey(provider, new CompositeDatabasePreparer(preparers.subList(0, i))));
+        }
 
-            if (baselines.containsKey(new BaselineKey(provider, baselinePreparer))) {
+        for (int i = preparers.size(); i > 0; i--) {
+            CompositeDatabasePreparer baselinePreparer = new CompositeDatabasePreparer(preparers.subList(0, i));
+            BaselineKey baselineKey = new BaselineKey(provider, baselinePreparer);
+
+            if (requestCount.get(baselineKey) >= 3 && !baselines.contains(baselineKey)) {
+                logger.trace("Creating a new baseline preparer {} because the preparer has reached the maximum request threshold", baselinePreparer);
+                baselines.add(baselineKey);
+            }
+
+            if (baselines.contains(baselineKey)) {
                 CompositeDatabasePreparer complementaryPreparer = new CompositeDatabasePreparer(preparers.subList(i, preparers.size()));
 
-                if (i != preparers.size() && !hasSlowOperation(complementaryPreparer)) {
-                    logger.trace("Baseline preparer found {}, creating database by using the complementary preparer {}", baselinePreparer, complementaryPreparer);
-
-                    EmbeddedDatabase database = provider.createDatabase(baselinePreparer);
-                    try {
-                        complementaryPreparer.prepare(database);
-                    } catch (SQLException e) {
-                        throw new IllegalStateException("Unknown error when applying the preparer", e);
-                    }
-                    return database;
+                if (i == preparers.size()) {
+                    logger.trace("Baseline preparer found, creating database by using the existing baseline preparer {}", baselinePreparer);
+                    return createDatabase(baselinePreparer, EMPTY_PREPARER);
+                } else if (hasSlowOperation(complementaryPreparer)) {
+                    logger.trace("Baseline preparer found {}, using the existing preparer to create a new baseline preparer {}", baselinePreparer, compositePreparer);
+                    baselines.add(new BaselineKey(provider, compositePreparer));
+                    return createDatabase(compositePreparer, EMPTY_PREPARER);
+                } else {
+                    logger.trace("Baseline preparer found {}, creating database by using a complementary preparer {}", baselinePreparer, complementaryPreparer);
+                    return createDatabase(baselinePreparer, complementaryPreparer);
                 }
-
-                break;
             }
         }
 
-        if (baselines.putIfAbsent(new BaselineKey(provider, preparer), new Object()) == null) {
-            logger.trace("No baseline preparer found, creating database by using a new baseline preparer {}", preparer);
-        } else {
-            logger.trace("Creating database by using the existing baseline preparer {}", preparer);
-        }
-
-        return provider.createDatabase(preparer);
-
-
-
-
-
-
-//        if (preparer instanceof CompositeDatabasePreparer) {
-//            List<DatabasePreparer> preparers = ((CompositeDatabasePreparer) preparer).getPreparers();
-//
-//            long flywayPreparersCount = preparers.stream()
-//                    .filter(this::isFlywayPreparer)
-//                    .map(FlywayDatabasePreparer.class::cast)
-//                    .map(schemaExtractor()).distinct().count();
-//
-//            // TODO: consider whether the optimization is always applicable
-//            if (flywayPreparersCount == 1) {
-//                return provider.createDatabase(new CompositeDatabasePreparer(squashPreparers(preparers)));
-//            }
-//        }
-//
-//        return provider.createDatabase(preparer);
+        logger.trace("No baseline preparer found, creating database by using a new baseline preparer {}", compositePreparer);
+        baselines.add(new BaselineKey(provider, compositePreparer));
+        return createDatabase(compositePreparer, EMPTY_PREPARER);
     }
 
     @Override
@@ -125,44 +102,18 @@ public class OptimizingDatabaseProvider implements DatabaseProvider {
         return Objects.hash(provider);
     }
 
-    // TODO:
-    private static final AtomicLongMap<DatabasePreparer> preparerRequests = AtomicLongMap.create();
-
-    private boolean hasSlowOperation(DatabasePreparer preparer) {
-        return preparer.estimatedDuration() > 150 || preparerRequests.incrementAndGet(preparer) >= 3;
-//        return preparer.estimatedDuration() > 0; // TODO:
-    }
-
-    protected Function<FlywayDatabasePreparer, Set<String>> schemaExtractor() {
-        return preparer -> ImmutableSet.copyOf(preparer.getFlywayDescriptor().getSchemas());
-    }
-
-    protected List<DatabasePreparer> squashPreparers(List<DatabasePreparer> preparers) {
-        if (preparers.stream().anyMatch(this::isBaselinePreparer)) {
-            return preparers;
+    private EmbeddedDatabase createDatabase(CompositeDatabasePreparer baselinePreparer, CompositeDatabasePreparer complementaryPreparer) {
+        EmbeddedDatabase database = provider.createDatabase(baselinePreparer);
+        try {
+            complementaryPreparer.prepare(database);
+        } catch (SQLException e) {
+            throw new IllegalStateException("Unknown error when applying the preparer", e);
         }
-
-        int reverseIndex = Iterables.indexOf(Lists.reverse(preparers), this::isCleanPreparer);
-        if (reverseIndex == -1) {
-            return preparers;
-        }
-
-        Stream<DatabasePreparer> beforeClean = preparers.subList(0, preparers.size() - 1 - reverseIndex).stream().filter(p -> !isFlywayPreparer(p));
-        Stream<DatabasePreparer> afterClean = preparers.subList(preparers.size() - 1 - reverseIndex, preparers.size()).stream();
-
-        return Stream.concat(beforeClean, afterClean).collect(Collectors.toList());
+        return database;
     }
 
-    protected boolean isFlywayPreparer(DatabasePreparer preparer) {
-        return preparer instanceof FlywayDatabasePreparer;
-    }
-
-    protected boolean isBaselinePreparer(DatabasePreparer preparer) {
-        return preparer instanceof BaselineFlywayDatabasePreparer;
-    }
-
-    protected boolean isCleanPreparer(DatabasePreparer preparer) {
-        return preparer instanceof CleanFlywayDatabasePreparer;
+    private boolean hasSlowOperation(CompositeDatabasePreparer preparer) {
+        return preparer.estimatedDuration() > 150;
     }
 
     private static class BaselineKey {

@@ -31,7 +31,7 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class LiquibaseExtension implements BeanPostProcessor {
+public class LiquibaseDatabaseExtension implements BeanPostProcessor {
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
@@ -65,17 +65,17 @@ public class LiquibaseExtension implements BeanPostProcessor {
     }
 
     protected Advisor createAdvisor(SpringLiquibase liquibase) {
-        Advice advice = new LiquibaseExtensionInterceptor(liquibase);
+        Advice advice = new LiquibaseDatabaseExtensionInterceptor(liquibase);
         NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor(advice);
         advisor.setMappedNames("afterPropertiesSet");
         return advisor;
     }
 
-    protected static class LiquibaseExtensionInterceptor implements MethodInterceptor {
+    protected static class LiquibaseDatabaseExtensionInterceptor implements MethodInterceptor {
 
         protected final SpringLiquibase liquibase;
 
-        protected LiquibaseExtensionInterceptor(SpringLiquibase liquibase) {
+        protected LiquibaseDatabaseExtensionInterceptor(SpringLiquibase liquibase) {
             this.liquibase = liquibase;
         }
 

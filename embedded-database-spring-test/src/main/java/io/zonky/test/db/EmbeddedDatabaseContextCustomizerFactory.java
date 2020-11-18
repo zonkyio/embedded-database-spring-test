@@ -28,6 +28,7 @@ import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.support.ProviderDescriptor;
 import io.zonky.test.db.support.ProviderResolver;
 import io.zonky.test.db.util.AnnotationUtils;
+import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
         if (!annotations.isEmpty()) {
             Set<DatabaseDefinition> definitions = annotations.stream()
+                    .filter(annotation -> annotation.replace() != Replace.NONE)
                     .map(a -> new DatabaseDefinition(a.beanName(), a.type(), a.provider()))
                     .collect(toCollection(LinkedHashSet::new));
 
@@ -100,7 +102,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
         @Override
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
-            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
+            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(databaseDefinitions, context.getEnvironment()));
 
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
 
@@ -131,17 +133,22 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
+        private final Set<DatabaseDefinition> databaseDefinitions;
         private final ConfigurableEnvironment environment;
 
-        public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
+        public EnvironmentPostProcessor(Set<DatabaseDefinition> databaseDefinitions, ConfigurableEnvironment environment) {
+            this.databaseDefinitions = databaseDefinitions;
             this.environment = environment;
         }
 
         @Override
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+            Replace zonkyDatabaseReplace = getDatabaseReplaceMode(environment, databaseDefinitions);
+            String springDatabaseReplace = zonkyDatabaseReplace == Replace.NONE ? "NONE" : "AUTO_CONFIGURED";
+
             environment.getPropertySources().addFirst(new MapPropertySource(
                     EmbeddedDatabaseContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of("spring.test.database.replace", "AUTO_CONFIGURED")));
+                    ImmutableMap.of("spring.test.database.replace", springDatabaseReplace)));
         }
 
         @Override
@@ -193,11 +200,9 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                     "Embedded Database Auto-configuration can only be used with a ConfigurableListableBeanFactory");
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
 
-            // TODO: need little polishing
-            Replace replace = environment.getProperty("zonky.test.database.replace", Replace.class);
+            Replace replace = getDatabaseReplaceMode(environment, databaseDefinitions);
             if (replace == Replace.NONE) {
-                // TODO: log a message to console
-                // TODO: check conflict with spring.test.database.replace=AUTO_CONFIGURED
+                logger.info("The use of the embedded database has been disabled");
                 return;
             }
 
@@ -240,6 +245,11 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
         }
+    }
+
+    protected static Replace getDatabaseReplaceMode(Environment environment, Set<DatabaseDefinition> databaseDefinitions) {
+        return databaseDefinitions.isEmpty() ? Replace.NONE :
+                PropertyUtils.getEnumProperty(environment, "zonky.test.database.replace", Replace.class, Replace.ANY);
     }
 
     protected static BeanDefinitionRegistry getBeanDefinitionRegistry(ApplicationContext context) {

@@ -64,7 +64,7 @@ public class FlywayWrapper {
         }
     }
 
-    public static FlywayWrapper of(Flyway flyway) {
+    public static FlywayWrapper forBean(Flyway flyway) {
         return new FlywayWrapper(flyway);
     }
 

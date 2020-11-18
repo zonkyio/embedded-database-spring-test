@@ -155,7 +155,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             DatabasePipeline existingPipeline = pipelines.get(pipelineKey);
 
             if (existingPipeline != null) {
-                if (key.preparer.estimatedDuration() - pipelinePreparer.estimatedDuration() > 500) {
+                if (key.preparer.estimatedDuration() - pipelinePreparer.estimatedDuration() > 600) {
                     return Optional.empty();
                 }
 

@@ -17,21 +17,24 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.SpyPostProcessor;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockReset;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,7 +54,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(FlywayTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
@@ -59,6 +62,9 @@ import static org.mockito.Mockito.times;
 })
 @DataJpaTest
 public class FlywayTransactionalIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
 
     @Configuration
     static class Config {
@@ -75,9 +81,14 @@ public class FlywayTransactionalIntegrationTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
         }
+
+        @Bean
+        public BeanPostProcessor spyPostProcessor() {
+            return new SpyPostProcessor((bean, beanName) -> bean instanceof DatabaseContext);
+        }
     }
 
-    @SpyBean(reset = MockReset.NONE)
+    @Autowired
     private DatabaseContext databaseContext;
 
     @Autowired

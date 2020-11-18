@@ -16,8 +16,11 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -38,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(FlywayTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
@@ -49,6 +52,9 @@ import static org.assertj.core.api.Assertions.entry;
 })
 @DataJpaTest
 public class SpringBootFlywayIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 

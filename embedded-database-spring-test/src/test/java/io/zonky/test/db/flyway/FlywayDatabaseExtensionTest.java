@@ -16,9 +16,9 @@
 
 package io.zonky.test.db.flyway;
 
-import io.zonky.test.category.StaticTests;
-import io.zonky.test.db.context.DatabaseTargetSource;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.flyway.preparer.BaselineFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.CleanFlywayDatabasePreparer;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
@@ -40,7 +40,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static io.zonky.test.db.flyway.FlywayExtension.FlywayOperation;
+import static io.zonky.test.db.flyway.FlywayDatabaseExtension.FlywayOperation;
+import static io.zonky.test.support.TestAssumptions.assumeFlywaySupportsBaselineOperation;
+import static io.zonky.test.support.TestAssumptions.assumeFlywaySupportsRepeatableMigrations;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.inOrder;
@@ -51,9 +53,9 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-@Category(StaticTests.class)
+@Category(FlywayTestSuite.class)
 @RunWith(MockitoJUnitRunner.class)
-public class FlywayExtensionTest {
+public class FlywayDatabaseExtensionTest {
 
     @Mock
     private DatabaseContext databaseContext;
@@ -62,7 +64,7 @@ public class FlywayExtensionTest {
 
     private FlywayWrapper flywayWrapper;
 
-    private FlywayExtension flywayExtension = new FlywayExtension();
+    private FlywayDatabaseExtension extension = new FlywayDatabaseExtension();
 
     @Before
     public void setUp() {
@@ -73,28 +75,30 @@ public class FlywayExtensionTest {
         wrapper.setLocations(ImmutableList.of("db/migration"));
         wrapper.setDataSource((DataSource) dataSource);
 
-        this.flyway = (Flyway) flywayExtension.postProcessBeforeInitialization(wrapper.getFlyway(), "flyway");
-        this.flywayWrapper = FlywayWrapper.of(flyway);
+        this.flyway = (Flyway) extension.postProcessBeforeInitialization(wrapper.getFlyway(), "flyway");
+        this.flywayWrapper = FlywayWrapper.forBean(flyway);
     }
 
     @Test
     public void cleanFromExecutionListenerShouldBeDeferred() {
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
 
-        assertThat(flywayExtension.pendingOperations).hasSize(1);
+        assertThat(extension.pendingOperations).hasSize(1);
         verifyZeroInteractions(databaseContext);
     }
 
     @Test
     public void baselineFromExecutionListenerShouldBeDeferred() {
+        assumeFlywaySupportsBaselineOperation();
+
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline);
-        assertThat(flywayExtension.pendingOperations).hasSize(1);
+        assertThat(extension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void migrateFromExecutionListenerShouldBeDeferred() {
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate);
-        assertThat(flywayExtension.pendingOperations).hasSize(1);
+        assertThat(extension.pendingOperations).hasSize(1);
     }
 
     @Test
@@ -103,17 +107,19 @@ public class FlywayExtensionTest {
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verifyZeroInteractions(databaseContext);
     }
 
     @Test
     public void baselineFromClassicExecutionListenerShouldFail() {
+        assumeFlywaySupportsBaselineOperation();
+
         assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verifyZeroInteractions(databaseContext);
     }
 
@@ -123,7 +129,7 @@ public class FlywayExtensionTest {
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verifyZeroInteractions(databaseContext);
     }
 
@@ -131,15 +137,17 @@ public class FlywayExtensionTest {
     public void cleanOutsideExecutionListenerShouldBeProcessedImmediately() {
         flyway.clean();
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(cleanPreparer(flywayWrapper));
     }
 
     @Test
     public void baselineOutsideExecutionListenerShouldBeProcessedImmediately() {
+        assumeFlywaySupportsBaselineOperation();
+
         flyway.baseline();
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(baselinePreparer(flywayWrapper));
     }
 
@@ -147,17 +155,17 @@ public class FlywayExtensionTest {
     public void migrateOutsideExecutionListenerShouldBeProcessedImmediately() {
         flyway.migrate();
 
-        assertThat(flywayExtension.pendingOperations).isEmpty();
+        assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(migratePreparer(flywayWrapper));
     }
 
     @Test
     public void testResetWithDefaultLocations() {
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper));
-        flywayExtension.pendingOperations.add(cleanOperation(flywayWrapper));
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper));
+        extension.pendingOperations.add(cleanOperation(flywayWrapper));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper));
 
-        flywayExtension.processPendingOperations();
+        extension.processPendingOperations();
 
         verify(databaseContext).reset();
         verifyNoMoreInteractions(databaseContext);
@@ -165,11 +173,11 @@ public class FlywayExtensionTest {
 
     @Test
     public void testResetWithAppendableLocation() {
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
-        flywayExtension.pendingOperations.add(cleanOperation(flywayWrapper));
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
+        extension.pendingOperations.add(cleanOperation(flywayWrapper));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));
 
-        flywayExtension.processPendingOperations();
+        extension.processPendingOperations();
 
         InOrder inOrder = inOrder(databaseContext);
         inOrder.verify(databaseContext).reset();
@@ -185,11 +193,11 @@ public class FlywayExtensionTest {
 
     @Test
     public void testResetWithDependentLocations() {
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
-        flywayExtension.pendingOperations.add(cleanOperation(flywayWrapper));
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration", "db/test_migration/dependent")));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
+        extension.pendingOperations.add(cleanOperation(flywayWrapper));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration", "db/test_migration/dependent")));
 
-        flywayExtension.processPendingOperations();
+        extension.processPendingOperations();
 
         InOrder inOrder = inOrder(databaseContext);
         inOrder.verify(databaseContext).reset();
@@ -201,11 +209,11 @@ public class FlywayExtensionTest {
 
     @Test
     public void testResetWithSeparatedLocations() {
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
-        flywayExtension.pendingOperations.add(cleanOperation(flywayWrapper));
-        flywayExtension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/test_migration/separated")));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/migration")));
+        extension.pendingOperations.add(cleanOperation(flywayWrapper));
+        extension.pendingOperations.add(migrateOperation(flywayWrapper, withLocations("db/test_migration/separated")));
 
-        flywayExtension.processPendingOperations();
+        extension.processPendingOperations();
 
         InOrder inOrder = inOrder(databaseContext);
         inOrder.verify(databaseContext).reset();
@@ -223,37 +231,37 @@ public class FlywayExtensionTest {
         List<FlywayOperation> operations = ImmutableList.of(
                 cleanOperation, migrateOperation, cleanOperation, cleanOperation, migrateOperation);
 
-        assertThat(flywayExtension.squashOperations(operations))
+        assertThat(extension.squashOperations(operations))
                 .containsExactly(cleanOperation, migrateOperation);
     }
 
     @Test
     public void defaultLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration"));
+        boolean result = extension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration"));
         assertThat(result).isTrue();
     }
 
     @Test
     public void appendableLocation() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/appendable"));
+        boolean result = extension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/appendable"));
         assertThat(result).isTrue();
     }
 
     @Test
     public void dependentLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/dependent"));
+        boolean result = extension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/dependent"));
         assertThat(result).isFalse();
     }
 
     @Test
     public void separatedLocations() {
-        boolean result = flywayExtension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/test_migration/separated"));
+        boolean result = extension.isAppendable(flywayWrapper, ImmutableList.of("classpath:db/test_migration/separated"));
         assertThat(result).isFalse();
     }
 
     @Test
     public void resolveTestLocations() {
-        List<String> testLocations = flywayExtension.resolveTestLocations(
+        List<String> testLocations = extension.resolveTestLocations(
                 flywayWrapper, ImmutableList.of("classpath:db/migration", "classpath:db/test_migration/dependent"));
 
         assertThat(testLocations).containsExactly("classpath:db/test_migration/dependent");
@@ -261,7 +269,7 @@ public class FlywayExtensionTest {
 
     @Test
     public void findFirstVersion() {
-        MigrationVersion firstVersion = flywayExtension.findFirstVersion(
+        MigrationVersion firstVersion = extension.findFirstVersion(
                 flywayWrapper, ImmutableList.of("db/test_migration/dependent"));
 
         assertThat(firstVersion).isNotNull();
@@ -270,7 +278,7 @@ public class FlywayExtensionTest {
 
     @Test
     public void findLastVersion() {
-        MigrationVersion firstVersion = flywayExtension.findLastVersion(
+        MigrationVersion firstVersion = extension.findLastVersion(
                 flywayWrapper, ImmutableList.of("db/test_migration/dependent"));
 
         assertThat(firstVersion).isNotNull();
@@ -279,11 +287,18 @@ public class FlywayExtensionTest {
 
     @Test
     public void resolveMigrations() {
-        Collection<ResolvedMigration> resolvedMigrations = flywayExtension.resolveMigrations(
+        assumeFlywaySupportsRepeatableMigrations();
+
+        Collection<ResolvedMigration> resolvedMigrations = extension.resolveMigrations(
                 flywayWrapper, ImmutableList.of("db/migration", "db/test_migration/dependent"));
 
-        assertThat(resolvedMigrations).extracting("version.version")
-                .containsExactly("0001.1", "0001.2", "0002.1", "0999.1", null);
+        assertThat(resolvedMigrations).extracting("script")
+                .containsExactly(
+                        "V0001_1__create_person_table.sql",
+                        "V0001_2__add_full_name_column.sql",
+                        "V0002_1__rename_surname_column.sql",
+                        "V0999_1__create_test_data.sql",
+                        "R__people_view.sql");
     }
 
     private static FlywayOperation cleanOperation(FlywayWrapper wrapper) {

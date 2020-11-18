@@ -17,10 +17,13 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.MultiFlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -42,10 +45,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@Category(MultiFlywayTests.class)
+@Category(FlywayTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class MultipleFlywayBeansMethodLevelIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeFlywaySupportsRepeatableAnnotations);
 
     @Configuration
     static class Config {

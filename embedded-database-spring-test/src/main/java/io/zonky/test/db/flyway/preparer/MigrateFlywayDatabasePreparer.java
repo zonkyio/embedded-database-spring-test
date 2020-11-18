@@ -17,29 +17,26 @@
 package io.zonky.test.db.flyway.preparer;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 import io.zonky.test.db.flyway.FlywayDescriptor;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.internal.util.Location;
-import org.flywaydb.core.internal.util.scanner.Scanner;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.SettableListenableFuture;
+import org.testcontainers.shaded.org.apache.commons.lang.StringUtils;
 
-import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
 
     private final SettableListenableFuture<Integer> result = new SettableListenableFuture<>();
-    private final long estimatedDuration;
+
+    private volatile Long estimatedDuration;
 
     public MigrateFlywayDatabasePreparer(FlywayDescriptor descriptor) {
         super(descriptor);
-
-        // TODO: try to optimize it
-        Scanner scanner = new Scanner(MigrateFlywayDatabasePreparer.class.getClassLoader());
-        long resources = descriptor.getLocations().stream()
-                .flatMap(location -> Arrays.stream(scanner.scanForResources(new Location(location), "", new String[] {".sql", ".class"})))
-                .count();
-        this.estimatedDuration = 50 * resources;
     }
 
     public MigrateFlywayDatabasePreparer(FlywayDescriptor descriptor, long estimatedDuration) {
@@ -53,6 +50,18 @@ public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
 
     @Override
     public long estimatedDuration() {
+        if (estimatedDuration == null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+            long migrationsCount = descriptor.getLocations().stream()
+                    .map(location -> location.replaceFirst("^filesystem:", "file:"))
+                    .mapToLong(location -> resolveMigrations(resolver, location))
+                    .sum();
+
+            estimatedDuration = 25 + (25 * migrationsCount);
+            logger.trace("Resolved {} migrations in {}", migrationsCount, stopwatch);
+        }
         return estimatedDuration;
     }
 
@@ -71,6 +80,27 @@ public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
         return MoreObjects.toStringHelper(this)
                 .add("schemas", descriptor.getSchemas())
                 .add("locations", descriptor.getLocations())
+                .add("estimatedDuration", estimatedDuration())
                 .toString();
+    }
+
+    protected long resolveMigrations(PathMatchingResourcePatternResolver resolver, String location) {
+        String[] migrationPrefixes = new String[] { descriptor.getSqlMigrationPrefix(), descriptor.getRepeatableSqlMigrationPrefix() };
+        String[] migrationSuffixes = descriptor.getSqlMigrationSuffixes().toArray(new String[0]);
+
+        try {
+            return Stream.of(resolver.getResources(location + "/**/*"))
+                    .map(Resource::getFilename)
+                    .filter(Objects::nonNull)
+                    .filter(filename -> {
+                        boolean isSqlMigration = StringUtils.startsWithAny(filename, migrationPrefixes)
+                                && StringUtils.endsWithAny(filename, migrationSuffixes);
+                        return isSqlMigration || StringUtils.endsWith(filename, ".class");
+                    })
+                    .count();
+        } catch (Exception e) {
+            logger.warn("Unexpected error when resolving flyway locations", e);
+            return 200; // fallback value
+        }
     }
 }

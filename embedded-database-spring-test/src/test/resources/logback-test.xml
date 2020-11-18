@@ -13,6 +13,7 @@
     <logger name="io.zonky.test.db.context" level="TRACE"/>
     <logger name="io.zonky.test.db.provider" level="TRACE"/>
     <logger name="io.zonky.test.db.flyway.preparer" level="TRACE"/>
+    <logger name="io.zonky.test.db.liquibase" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

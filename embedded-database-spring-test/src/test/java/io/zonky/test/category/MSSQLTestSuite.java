@@ -16,5 +16,5 @@
 
 package io.zonky.test.category;
 
-public interface LiquibaseTests {
+public interface MSSQLTestSuite {
 }

@@ -73,6 +73,7 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("schemas", descriptor.getSchemas())
+                .add("estimatedDuration", estimatedDuration())
                 .toString();
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.zonky.test.assertj;
+package io.zonky.test.support;
 
 import org.assertj.core.api.Condition;
 import org.mockito.internal.util.MockUtil;

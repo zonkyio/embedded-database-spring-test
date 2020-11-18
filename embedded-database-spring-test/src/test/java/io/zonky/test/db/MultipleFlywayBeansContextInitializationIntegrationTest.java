@@ -1,7 +1,7 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
+@Category(FlywayTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class MultipleFlywayBeansContextInitializationIntegrationTest {

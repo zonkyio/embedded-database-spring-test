@@ -103,9 +103,9 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
         ApplicationContext applicationContext = testContext.getApplicationContext();
 
-        if (applicationContext.getBeanNamesForType(FlywayExtension.class, false, false).length > 0) {
-            FlywayExtension flywayExtension = applicationContext.getBean(FlywayExtension.class);
-            flywayExtension.processPendingOperations();
+        if (applicationContext.getBeanNamesForType(FlywayDatabaseExtension.class, false, false).length > 0) {
+            FlywayDatabaseExtension flywayDatabaseExtension = applicationContext.getBean(FlywayDatabaseExtension.class);
+            flywayDatabaseExtension.processPendingOperations();
         }
     }
 
@@ -225,7 +225,7 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
     public static void optimizedLocationsMigrationHandling(FlywayTest annotation, Flyway flyway, String executionInfo) {
         String[] locations = annotation.locationsForMigrate();
         // now migration handling for locations support
-        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
+        FlywayWrapper wrapper = FlywayWrapper.forBean(flyway);
         List<String> oldLocations = wrapper.getLocations();
         boolean override = annotation.overrideLocations();
         try {

@@ -16,9 +16,11 @@
 
 package io.zonky.test.db.provider;
 
+import io.zonky.test.category.PostgresTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.provider.postgres.PostgreSQLContainerCustomizer;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGR
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
+@Category(PostgresTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = DOCKER)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",

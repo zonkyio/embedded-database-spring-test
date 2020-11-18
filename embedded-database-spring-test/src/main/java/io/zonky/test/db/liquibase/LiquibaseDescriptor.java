@@ -41,6 +41,10 @@ public class LiquibaseDescriptor {
     private final boolean dropFirst;
     private final boolean shouldRun;
 
+    ResourceLoader getResourceLoader() {
+        return resourceLoader;
+    }
+
     public String getChangeLog() {
         return changeLog;
     }

@@ -33,7 +33,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.zonky.test.assertj.MockitoAssertions.mockWithName;
+import static io.zonky.test.support.MockitoAssertions.mockWithName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.same;

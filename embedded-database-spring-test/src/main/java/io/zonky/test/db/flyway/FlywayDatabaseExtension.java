@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class FlywayExtension implements BeanPostProcessor {
+public class FlywayDatabaseExtension implements BeanPostProcessor {
 
     private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
@@ -76,7 +76,7 @@ public class FlywayExtension implements BeanPostProcessor {
 
         if (bean instanceof Flyway) {
             Flyway flyway = (Flyway) bean;
-            FlywayWrapper wrapper = FlywayWrapper.of(flyway);
+            FlywayWrapper wrapper = FlywayWrapper.forBean(flyway);
             DatabaseContext context = AopProxyUtils.getDatabaseContext(wrapper.getDataSource());
 
             if (context != null) {
@@ -136,17 +136,17 @@ public class FlywayExtension implements BeanPostProcessor {
     }
 
     protected Advisor createAdvisor(FlywayWrapper wrapper) {
-        Advice advice = new FlywayExtensionInterceptor(wrapper);
+        Advice advice = new FlywayDatabaseExtensionInterceptor(wrapper);
         NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor(advice);
         advisor.setMappedNames("clean", "baseline", "migrate");
         return advisor;
     }
 
-    protected class FlywayExtensionInterceptor implements MethodInterceptor {
+    protected class FlywayDatabaseExtensionInterceptor implements MethodInterceptor {
 
         protected final FlywayWrapper flywayWrapper;
 
-        protected FlywayExtensionInterceptor(FlywayWrapper flywayWrapper) {
+        protected FlywayDatabaseExtensionInterceptor(FlywayWrapper flywayWrapper) {
             this.flywayWrapper = flywayWrapper;
         }
 
@@ -270,12 +270,16 @@ public class FlywayExtension implements BeanPostProcessor {
                 if (flywayVersion >= 41) {
                     flywayWrapper.setLocations(testLocations);
                     flywayWrapper.setIgnoreMissingMigrations(true);
+
+                    FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
+                    databaseContext.apply(new MigrateFlywayDatabasePreparer(descriptor));
                 } else {
                     flywayWrapper.setLocations(ImmutableList.<String>builder()
                             .addAll(defaultLocations).addAll(testLocations).build());
+
+                    FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
+                    databaseContext.apply(new MigrateFlywayDatabasePreparer(descriptor, 100));
                 }
-                FlywayDescriptor descriptor = FlywayDescriptor.from(flywayWrapper);
-                databaseContext.apply(new MigrateFlywayDatabasePreparer(descriptor));
             } finally {
                 flywayWrapper.setLocations(defaultLocations);
                 flywayWrapper.setIgnoreMissingMigrations(ignoreMissingMigrations);

@@ -16,5 +16,5 @@
 
 package io.zonky.test.category;
 
-public interface FlywayTests {
+public interface LiquibaseTestSuite {
 }
