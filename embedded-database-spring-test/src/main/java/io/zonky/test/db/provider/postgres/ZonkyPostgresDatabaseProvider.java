@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -62,8 +63,6 @@ import static java.util.Collections.emptyList;
 public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(ZonkyPostgresDatabaseProvider.class);
-
-    private static final int MAX_DATABASE_CONNECTIONS = 300;
 
     private static final LoadingCache<DatabaseConfig, DatabaseInstance> databases = CacheBuilder.newBuilder()
             .build(new CacheLoader<DatabaseConfig, DatabaseInstance>() {
@@ -134,7 +133,12 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             config.applyTo(builder);
 
             postgres = builder.start();
-            semaphore = new Semaphore(MAX_DATABASE_CONNECTIONS);
+
+            DataSource dataSource = postgres.getDatabase("postgres", "postgres");
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            Integer maxConnections = jdbcTemplate.queryForObject("show max_connections", Integer.class);
+
+            semaphore = new Semaphore(maxConnections);
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
@@ -204,11 +208,11 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
         }
 
         public final void applyTo(EmbeddedPostgres.Builder builder) {
+            builder.setServerConfig("max_connections", "300");
             builder.setPGStartupWait(Duration.ofSeconds(20L));
             initdbProperties.forEach(builder::setLocaleConfig);
             configProperties.forEach(builder::setServerConfig);
             customizers.forEach(c -> c.accept(builder));
-            builder.setServerConfig("max_connections", String.valueOf(MAX_DATABASE_CONNECTIONS));
         }
 
         @Override
