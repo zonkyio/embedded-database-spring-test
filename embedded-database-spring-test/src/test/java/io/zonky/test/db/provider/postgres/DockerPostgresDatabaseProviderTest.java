@@ -17,7 +17,8 @@
 package io.zonky.test.db.provider.postgres;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,15 +56,15 @@ public class DockerPostgresDatabaseProviderTest {
     public void testGetDatabase() throws Exception {
         DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
 
-        DatabasePreparer preparer1 = dataSource -> {
+        DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (number int primary key not null)");
-        };
+        });
 
-        DatabasePreparer preparer2 = dataSource -> {
+        DatabasePreparer preparer2 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
-        };
+        });
 
         DataSource dataSource1 = provider.createDatabase(preparer1);
         DataSource dataSource2 = provider.createDatabase(preparer1);
@@ -93,7 +94,7 @@ public class DockerPostgresDatabaseProviderTest {
     public void testContainerCustomizers() throws SQLException {
         when(containerCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(container -> container.withPassword("test")));
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(new MockEnvironment(), containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
@@ -133,7 +134,7 @@ public class DockerPostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
         environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DockerPostgresDatabaseProvider provider = new DockerPostgresDatabaseProvider(environment, containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 

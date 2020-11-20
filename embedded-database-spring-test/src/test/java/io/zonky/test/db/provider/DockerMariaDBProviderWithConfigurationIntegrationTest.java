@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.provider;
 
-import io.zonky.test.category.StaticTests;
+import io.zonky.test.category.MariaDBTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.provider.mariadb.MariaDBContainerCustomizer;
 import org.junit.Test;
@@ -36,8 +36,8 @@ import java.sql.SQLException;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.MARIADB;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(StaticTests.class)
 @RunWith(SpringRunner.class)
+@Category(MariaDBTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = MARIADB)
 @ContextConfiguration
 @TestPropertySource(properties = {

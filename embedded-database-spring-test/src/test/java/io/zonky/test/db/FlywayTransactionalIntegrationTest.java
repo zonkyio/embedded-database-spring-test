@@ -17,21 +17,24 @@
 package io.zonky.test.db;
 
 import com.google.common.collect.ImmutableList;
-import io.zonky.test.category.FlywayTests;
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.SpyPostProcessor;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockReset;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,22 +45,26 @@ import org.springframework.test.context.transaction.BeforeTransaction;
 
 import javax.sql.DataSource;
 
-import static io.zonky.test.db.context.DataSourceContext.State.DIRTY;
-import static io.zonky.test.db.context.DataSourceContext.State.FRESH;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.DIRTY;
+import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false"
 })
 @DataJpaTest
 public class FlywayTransactionalIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
 
     @Configuration
     static class Config {
@@ -74,41 +81,46 @@ public class FlywayTransactionalIntegrationTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
         }
+
+        @Bean
+        public BeanPostProcessor spyPostProcessor() {
+            return new SpyPostProcessor((bean, beanName) -> bean instanceof DatabaseContext);
+        }
     }
 
-    @SpyBean(reset = MockReset.NONE)
-    private DataSourceContext dataSourceContext;
+    @Autowired
+    private DatabaseContext databaseContext;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeTransaction
     public void beforeTransaction() {
-        assertThat(dataSourceContext.getState()).isEqualTo(FRESH);
+        assertThat(databaseContext.getState()).isEqualTo(FRESH);
     }
 
     @Before
     public void beforeTestExecution() {
-        assertThat(dataSourceContext.getState()).isEqualTo(DIRTY);
+        assertThat(databaseContext.getState()).isEqualTo(DIRTY);
     }
 
     @AfterTransaction
     public void afterTransaction() throws Exception {
-        assertThat(dataSourceContext.getState()).isEqualTo(DIRTY);
+        assertThat(databaseContext.getState()).isEqualTo(DIRTY);
 
-        InOrder inOrder = inOrder(dataSourceContext);
+        InOrder inOrder = inOrder(databaseContext);
 
-        inOrder.verify(dataSourceContext).apply(any(MigrateFlywayDatabasePreparer.class));
-        inOrder.verify(dataSourceContext).reset();
-        inOrder.verify(dataSourceContext, times(3)).getState();
-        inOrder.verify(dataSourceContext, times(2)).getTarget();
-        inOrder.verify(dataSourceContext, times(2)).getState();
+        inOrder.verify(databaseContext).apply(any(MigrateFlywayDatabasePreparer.class));
+        inOrder.verify(databaseContext).reset();
+        inOrder.verify(databaseContext, times(3)).getState();
+        inOrder.verify(databaseContext, times(1)).getDatabase();
+        inOrder.verify(databaseContext, times(2)).getState();
     }
 
     @Test
     @FlywayTest
     public void test() {
-        assertThat(dataSourceContext).isNotNull();
+        assertThat(databaseContext).isNotNull();
         assertThat(jdbcTemplate.queryForList("select * from test.person")).hasSize(1);
     }
 }

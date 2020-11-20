@@ -16,13 +16,12 @@
 
 package io.zonky.test.db.provider.mariadb;
 
-import io.zonky.test.category.StaticTests;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mariadb.jdbc.MariaDbDataSource;
 import org.mockito.Mock;
@@ -42,7 +41,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-@Category(StaticTests.class)
 @RunWith(MockitoJUnitRunner.class)
 public class DockerMariaDBDatabaseProviderTest {
 
@@ -58,15 +56,15 @@ public class DockerMariaDBDatabaseProviderTest {
     public void testGetDatabase() throws Exception {
         DockerMariaDBDatabaseProvider provider = new DockerMariaDBDatabaseProvider(new MockEnvironment(), containerCustomizers);
 
-        DatabasePreparer preparer1 = dataSource -> {
+        DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (number int primary key not null)");
-        };
+        });
 
-        DatabasePreparer preparer2 = dataSource -> {
+        DatabasePreparer preparer2 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
-        };
+        });
 
         DataSource dataSource1 = provider.createDatabase(preparer1);
         DataSource dataSource2 = provider.createDatabase(preparer1);
@@ -96,15 +94,15 @@ public class DockerMariaDBDatabaseProviderTest {
     public void testDatabaseRecycling() throws SQLException {
         DockerMariaDBDatabaseProvider provider = new DockerMariaDBDatabaseProvider(new MockEnvironment(), containerCustomizers);
 
-        DatabasePreparer preparer1 = dataSource -> {
+        DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (number int primary key not null)");
-        };
+        });
 
-        DatabasePreparer preparer2 = dataSource -> {
+        DatabasePreparer preparer2 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
-        };
+        });
 
         EmbeddedDatabase dataSource1 = provider.createDatabase(preparer1);
         JdbcTemplate jdbcTemplate1 = new JdbcTemplate(dataSource1);
@@ -136,7 +134,7 @@ public class DockerMariaDBDatabaseProviderTest {
     public void testContainerCustomizers() throws SQLException {
         when(containerCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(container -> container.withPassword("test")));
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DockerMariaDBDatabaseProvider provider = new DockerMariaDBDatabaseProvider(new MockEnvironment(), containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
@@ -173,7 +171,7 @@ public class DockerMariaDBDatabaseProviderTest {
         environment.setProperty("zonky.test.database.mariadb.docker.image", "mariadb:10.1");
         environment.setProperty("zonky.test.database.mariadb.client.properties.loginTimeout", "60");
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         DockerMariaDBDatabaseProvider provider = new DockerMariaDBDatabaseProvider(environment, containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 

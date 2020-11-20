@@ -16,8 +16,11 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.LiquibaseTests;
+import io.zonky.test.category.LiquibaseTestSuite;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import liquibase.integration.spring.SpringLiquibase;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -29,11 +32,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(LiquibaseTests.class)
-@AutoConfigureEmbeddedDatabase
+@Category(LiquibaseTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "flyway.enabled=false",
         "spring.flyway.enabled=false",
@@ -48,6 +52,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 @DataJpaTest
 public class SpringBootLiquibasePropertiesIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
 
     @Configuration
     static class Config {}

@@ -18,12 +18,15 @@ package io.zonky.test.db.preparer;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AtomicLongMap;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.util.StringUtils;
 
@@ -45,8 +48,10 @@ import java.sql.Statement;
 import java.sql.Wrapper;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,6 +79,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
             new MethodPredicate(PreparedStatement.class, "getMetaData", "getParameterMetaData"),
             new MethodPredicate(CallableStatement.class, "getString", "getBoolean", "getByte", "getShort", "getInt", "getLong", "getFloat", "getDouble", "getBigDecimal", "getBytes", "getDate", "getTime", "getTimestamp", "getObject", "getRef", "getBlob", "getClob", "getArray", "getURL", "getRowId", "getNClob", "getSQLXML", "getNString", "getNCharacterStream", "getCharacterStream"),
             new MethodPredicate(ResultSet.class, "wasNull", "getString", "getBoolean", "getByte", "getShort", "getInt", "getLong", "getFloat", "getDouble", "getBigDecimal", "getBytes", "getDate", "getTime", "getTimestamp", "getAsciiStream", "getUnicodeStream", "getBinaryStream", "getWarnings", "clearWarnings", "getCursorName", "getMetaData", "getObject", "findColumn", "getCharacterStream", "isBeforeFirst", "isAfterLast", "isFirst", "isLast", "getRow", "getFetchDirection", "getFetchSize", "getType", "getConcurrency", "rowUpdated", "rowInserted", "rowDeleted", "getRef", "getBlob", "getClob", "getArray", "getURL", "getRowId", "getHoldability", "isClosed", "getNClob", "getSQLXML", "getNString", "getNCharacterStream"));
+            // TODO: consider excluding executeQuery methods (select statements)
 
     private static final String ROOT_REFERENCE = "dataSource";
 
@@ -266,10 +272,20 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
 
     public static class ReplayableDatabasePreparerImpl implements ReplayableDatabasePreparer {
 
+        private static final Logger logger = LoggerFactory.getLogger(ReplayableDatabasePreparer.class);
+
         private final List<Record> recordData;
 
-        private ReplayableDatabasePreparerImpl(Iterable<Record> recordData) {
-            this.recordData = ImmutableList.copyOf(recordData);
+        private ReplayableDatabasePreparerImpl(Collection<Record> recordData) {
+            List<Record> records = new LinkedList<>(recordData);
+
+            List<Record> removableRecords = records.stream()
+                    .filter(ReplayableDatabasePreparerImpl::isGetConnectionMethod)
+                    .filter(method -> !hasUsefulCommands(records, method.resultId) || !hasCloseMethod(records, method.resultId))
+                    .collect(Collectors.toList());
+            removableRecords.forEach(method -> removeAllReferences(records, method));
+
+            this.recordData = ImmutableList.copyOf(records);
         }
 
         @Override
@@ -278,7 +294,17 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         }
 
         @Override
+        public long estimatedDuration() {
+            long recordsCount = recordData.stream()
+                    .filter(record -> !record.methodName.equals("next"))
+                    .count();
+            return recordsCount / 2;
+        }
+
+        @Override
         public void prepare(DataSource dataSource) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
             Map<String, Object> context = new HashMap<>();
             context.put(ROOT_REFERENCE, dataSource);
 
@@ -291,6 +317,8 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
                     context.put(record.resultId, result);
                 }
             }
+
+            logger.trace("Database has been successfully prepared in {}", stopwatch);
         }
 
         private static Object mapArgument(Object argument, Map<String, Object> context) {
@@ -301,6 +329,28 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
             } else {
                 return argument;
             }
+        }
+
+        private static boolean isGetConnectionMethod(Record record) {
+            return record.thisId.equals(ROOT_REFERENCE) && record.methodName.equals("getConnection") && record.arguments.isEmpty();
+        }
+
+        private static boolean hasUsefulCommands(List<Record> records, String connectionId) {
+            return records.stream().anyMatch(record -> record.thisId.equals(connectionId) && !(record.methodName.equals("close") && record.arguments.isEmpty()));
+        }
+
+        private static boolean hasCloseMethod(List<Record> records, String connectionId) {
+            return records.stream().anyMatch(record -> record.thisId.equals(connectionId) && record.methodName.equals("close") && record.arguments.isEmpty());
+        }
+
+        private static void removeAllReferences(List<Record> records, Record record) {
+            records.removeIf(r -> r.equals(record));
+
+            Set<Record> removableRecords = records.stream()
+                    .filter(r -> r.thisId.equals(record.resultId))
+                    .collect(Collectors.toSet());
+
+            removableRecords.forEach(r -> removeAllReferences(records, r));
         }
 
         @Override
@@ -314,6 +364,14 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         @Override
         public int hashCode() {
             return Objects.hash(recordData);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("recordDataSize", recordData.size())
+                    .add("estimatedDuration", estimatedDuration())
+                    .toString();
         }
     }
 

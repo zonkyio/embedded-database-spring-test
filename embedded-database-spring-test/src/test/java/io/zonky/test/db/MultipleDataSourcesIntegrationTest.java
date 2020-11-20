@@ -28,12 +28,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-import static io.zonky.test.assertj.MockitoAssertions.mockWithName;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
+import static io.zonky.test.support.MockitoAssertions.mockWithName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource2")
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource2", type = POSTGRES)
 @ContextConfiguration
 public class MultipleDataSourcesIntegrationTest {
 

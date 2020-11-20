@@ -1,6 +1,6 @@
 package io.zonky.test.db.provider;
 
-import io.zonky.test.category.StaticTests;
+import io.zonky.test.category.MSSQLTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.provider.mssql.MSSQLServerContainerCustomizer;
 import io.zonky.test.db.provider.mssql.MsSQLEmbeddedDatabase;
@@ -21,8 +21,8 @@ import java.sql.SQLException;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.MSSQL;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(StaticTests.class)
 @RunWith(SpringRunner.class)
+@Category(MSSQLTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = MSSQL)
 @TestPropertySource(properties = {
         "zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-CU20"

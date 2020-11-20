@@ -17,78 +17,25 @@
 package io.zonky.test.db.provider.mssql;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import io.zonky.test.db.provider.EmbeddedDatabase;
+import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.logging.Logger;
+import javax.sql.DataSource;
 
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 
-public class MsSQLEmbeddedDatabase implements EmbeddedDatabase {
+public class MsSQLEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
     private final SQLServerDataSource dataSource;
-    private final CloseCallback closeCallback;
 
-    public MsSQLEmbeddedDatabase(SQLServerDataSource dataSource, CloseCallback closeCallback) {
+    public MsSQLEmbeddedDatabase(SQLServerDataSource dataSource, Runnable closeCallback) {
+        super(closeCallback);
         this.dataSource = dataSource;
-        this.closeCallback = closeCallback;
     }
 
     @Override
-    public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
-    }
-
-    @Override
-    public Connection getConnection(String username, String password) throws SQLException {
-        return dataSource.getConnection(username, password);
-    }
-
-    @Override
-    public PrintWriter getLogWriter() {
-        return dataSource.getLogWriter();
-    }
-
-    @Override
-    public void setLogWriter(PrintWriter out) {
-        dataSource.setLogWriter(out);
-    }
-
-    @Override
-    public int getLoginTimeout() {
-        return dataSource.getLoginTimeout();
-    }
-
-    @Override
-    public void setLoginTimeout(int seconds) {
-        dataSource.setLoginTimeout(seconds);
-    }
-
-    @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass())) {
-            return iface.cast(this);
-        }
-        return dataSource.unwrap(iface);
-    }
-
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        if (iface.isAssignableFrom(getClass())) {
-            return true;
-        }
-        return dataSource.isWrapperFor(iface);
-    }
-    
-    @Override
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        return dataSource.getParentLogger();
+    protected DataSource getDataSource() {
+        return dataSource;
     }
 
     @Override
@@ -103,27 +50,5 @@ public class MsSQLEmbeddedDatabase implements EmbeddedDatabase {
 
     private String getPassword() {
         return invokeMethod(dataSource, "getPassword");
-    }
-
-    @Override
-    public Map<String, String> getAliases() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public synchronized void close() {
-        try {
-            closeCallback.call();
-        } catch (SQLException e) {
-            // TODO: investigate the issue and consider adding a configuration property for enabling/disabling the exception
-//            throw new ProviderException("Unexpected error when releasing the database", e);
-        }
-    }
-
-    @FunctionalInterface
-    public interface CloseCallback {
-
-        void call() throws SQLException;
-
     }
 }

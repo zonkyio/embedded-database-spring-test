@@ -25,16 +25,19 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import de.flapdoodle.embed.process.distribution.GenericVersion;
 import de.flapdoodle.embed.process.distribution.IVersion;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 import ru.yandex.qatools.embed.postgresql.util.SocketUtil;
@@ -49,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -59,6 +63,8 @@ import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.DEFAULT_HOST;
 import static ru.yandex.qatools.embed.postgresql.EmbeddedPostgres.defaultRuntimeConfig;
 
 public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvider {
+
+    private static final Logger logger = LoggerFactory.getLogger(YandexPostgresDatabaseProvider.class);
 
     private static final String POSTGRES_USERNAME = "postgres";
     private static final String POSTGRES_PASSWORD = "yandex";
@@ -89,7 +95,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
         try {
             EmbeddedDatabase result = createDatabase(request);
             BaseDataSource dataSource = result.unwrap(BaseDataSource.class);
-            return new PostgresDatabaseTemplate(dataSource.getDatabaseName(), result::close);
+            return new SimpleDatabaseTemplate(dataSource.getDatabaseName(), result::close);
         } catch (SQLException e) {
             throw new ProviderException("Unexpected error when creating a database template", e);
         }
@@ -163,17 +169,30 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 executeStatement(config, String.format("CREATE DATABASE %s OWNER %s ENCODING 'utf8'", databaseName, "postgres"));
             }
 
-            EmbeddedDatabase database = getDatabase(config, databaseName);
-
-            if (preparer != null) {
-                preparer.prepare(database);
+            try {
+                EmbeddedDatabase database = getDatabase(config, databaseName);
+                if (preparer != null) {
+                    preparer.prepare(database);
+                }
+                return database;
+            } catch (Exception e) {
+                dropDatabase(config, databaseName);
+                throw e;
             }
-
-            return database;
         }
 
-        private void dropDatabase(ClientConfig config, String dbName) throws SQLException {
-            executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+        private void dropDatabase(ClientConfig config, String dbName) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
+                } catch (Exception e) {
+                    if (logger.isTraceEnabled()) {
+                        logger.warn("Unable to release '{}' database", dbName, e);
+                    } else {
+                        logger.warn("Unable to release '{}' database", dbName);
+                    }
+                }
+            });
         }
 
         private void executeStatement(ClientConfig config, String ddlStatement) throws SQLException {

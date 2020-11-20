@@ -16,9 +16,12 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayTests;
+import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.core.Flyway;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -30,11 +33,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayTests.class)
-@AutoConfigureEmbeddedDatabase
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @TestPropertySource(properties = {
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false",
@@ -52,6 +56,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 public class SpringBootFlywayPropertiesIntegrationTest {
 
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
+
     @Configuration
     static class Config {}
 
@@ -63,7 +70,7 @@ public class SpringBootFlywayPropertiesIntegrationTest {
 
     @Test
     public void test() {
-        FlywayWrapper wrapper = FlywayWrapper.of(flyway);
+        FlywayWrapper wrapper = FlywayWrapper.forBean(flyway);
         assertThat(wrapper.getDataSource()).isSameAs(dataSource);
     }
 }

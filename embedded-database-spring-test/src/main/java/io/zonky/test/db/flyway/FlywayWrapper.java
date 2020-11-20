@@ -18,16 +18,12 @@ package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.zonky.test.db.context.DataSourceContext;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.flywaydb.core.internal.database.DatabaseFactory;
 import org.flywaydb.core.internal.util.scanner.Scanner;
-import org.springframework.aop.TargetSource;
-import org.springframework.aop.framework.Advised;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.util.ClassUtils;
@@ -47,6 +43,7 @@ import static io.zonky.test.db.util.ReflectionUtils.getField;
 import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
+import static org.mockito.Mockito.mock;
 
 public class FlywayWrapper {
 
@@ -67,7 +64,7 @@ public class FlywayWrapper {
         }
     }
 
-    public static FlywayWrapper of(Flyway flyway) {
+    public static FlywayWrapper forBean(Flyway flyway) {
         return new FlywayWrapper(flyway);
     }
 
@@ -104,9 +101,9 @@ public class FlywayWrapper {
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
         if (flywayVersion >= 60) {
-            Object jdbcConnectionFactory = invokeConstructor("org.flywaydb.core.internal.jdbc.JdbcConnectionFactory", invokeMethod(config, "getDataSource"), 0);
-            Object sqlScriptFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptFactory", jdbcConnectionFactory, config);
-            Object sqlScriptExecutorFactory = invokeStaticMethod(DatabaseFactory.class, "createSqlScriptExecutorFactory", jdbcConnectionFactory);
+            // TODO: replace using mockito mocks
+            Object sqlScriptFactory = mock(ClassUtils.forName("org.flywaydb.core.internal.sqlscript.SqlScriptFactory", classLoader));
+            Object sqlScriptExecutorFactory = mock(ClassUtils.forName("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory", classLoader));
             Object scanner;
 
             try {
@@ -124,8 +121,11 @@ public class FlywayWrapper {
 
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
         } else if (flywayVersion >= 52) {
-            Object database = invokeStaticMethod(DatabaseFactory.class, "createDatabase", flyway, false);
-            Object factory = invokeMethod(database, "createSqlStatementBuilderFactory");
+            // TODO: replace using mockito mocks
+            Object database = null;
+            Object placeholderReplacer = mock(ClassUtils.forName("org.flywaydb.core.internal.placeholder.PlaceholderReplacer", classLoader));
+            Object factory = invokeConstructor("org.flywaydb.core.internal.database.postgresql.PostgreSQLSqlStatementBuilderFactory", placeholderReplacer);
+
             Object scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
                     invokeMethod(config, "getClassLoader"),
@@ -159,19 +159,6 @@ public class FlywayWrapper {
         } else {
             flyway.setLocations(locations.toArray(new String[0]));
         }
-    }
-
-    public DataSourceContext getDataSourceContext() {
-        DataSource dataSource = getDataSource();
-
-        if (dataSource instanceof Advised) {
-            TargetSource targetSource = ((Advised) dataSource).getTargetSource();
-            if (targetSource instanceof DataSourceContext) {
-                return (DataSourceContext) targetSource;
-            }
-        }
-
-        throw new IllegalStateException("Data source context cannot be resolved");
     }
 
     public DataSource getDataSource() {

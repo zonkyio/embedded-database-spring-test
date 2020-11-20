@@ -26,6 +26,11 @@ public class CleanFlywayDatabasePreparer extends FlywayDatabasePreparer {
     }
 
     @Override
+    public long estimatedDuration() {
+        return 100;
+    }
+
+    @Override
     protected void doOperation(Flyway flyway) {
         flyway.clean();
     }

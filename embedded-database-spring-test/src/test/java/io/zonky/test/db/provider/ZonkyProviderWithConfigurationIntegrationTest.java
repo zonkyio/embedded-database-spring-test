@@ -16,9 +16,11 @@
 
 package io.zonky.test.db.provider;
 
+import io.zonky.test.category.PostgresTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +35,12 @@ import java.sql.SQLException;
 import java.util.function.Consumer;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = ZONKY)
+@Category(PostgresTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = ZONKY)
 @ContextConfiguration
 public class ZonkyProviderWithConfigurationIntegrationTest {
 

@@ -17,7 +17,8 @@
 package io.zonky.test.db.provider.postgres;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
+import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,15 +37,15 @@ public class YandexPostgresDatabaseProviderTest {
     public void testGetDatabase() throws Exception {
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
 
-        DatabasePreparer preparer1 = dataSource -> {
+        DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (number int primary key not null)");
-        };
+        });
 
-        DatabasePreparer preparer2 = dataSource -> {
+        DatabasePreparer preparer2 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
             jdbcTemplate.update("create table prime_number (id int primary key not null, number int not null)");
-        };
+        });
 
         DataSource dataSource1 = provider.createDatabase(preparer1);
         DataSource dataSource2 = provider.createDatabase(preparer1);
@@ -79,7 +80,7 @@ public class YandexPostgresDatabaseProviderTest {
         environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
         environment.setProperty("zonky.test.database.postgres.server.properties.shared_buffers", "64MB");
 
-        DatabasePreparer preparer = dataSource -> {};
+        DatabasePreparer preparer = TestDatabasePreparer.empty();
         YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(environment);
         DataSource dataSource = provider.createDatabase(preparer);
 

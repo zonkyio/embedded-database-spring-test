@@ -26,11 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.mysql.MySQLEmbeddedDatabase.CloseCallback;
 import io.zonky.test.db.util.PropertyUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
@@ -115,7 +114,7 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
 
     protected static class DatabasePool {
 
-        private final BlockingQueue<DatabaseInstance> databases = new LinkedBlockingQueue<>();
+        private final BlockingQueue<DatabaseInstance> databaseInstances = new LinkedBlockingQueue<>();
         private final DatabaseConfig databaseConfig;
 
         private DatabasePool(DatabaseConfig config) {
@@ -123,29 +122,26 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabasePreparer preparer) throws SQLException {
-            DatabaseInstance instance = databases.poll();
-
+            DatabaseInstance instance = databaseInstances.poll();
             if (instance == null) {
-                instance = new DatabaseInstance(databaseConfig);
+                instance = new DatabaseInstance(databaseConfig, this);
             }
-
-            EmbeddedDatabase database = instance.createDatabase(config, preparer);
-            database.unwrap(MySQLEmbeddedDatabase.class).registerCloseCallback(releaseDatabase(instance));
-
-            return database;
+            return instance.createDatabase(config, preparer);
         }
 
-        private CloseCallback releaseDatabase(DatabaseInstance instance) {
-            return () -> databases.offer(instance);
+        private void recycle(DatabaseInstance instance) {
+            databaseInstances.offer(instance);
         }
     }
 
     protected static class DatabaseInstance {
 
+        private final DatabasePool databasePool;
         private final MySQLContainer container;
         private final Semaphore semaphore;
 
-        private DatabaseInstance(DatabaseConfig config) {
+        private DatabaseInstance(DatabaseConfig config, DatabasePool pool) {
+            databasePool = pool;
             container = new MySQLContainer(config.dockerImage);
 
             if (config.tmpfsEnabled) {
@@ -167,24 +163,31 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabasePreparer preparer) throws SQLException {
             String databaseName = container.getDatabaseName();
-
             executeStatement(config, String.format("CREATE DATABASE IF NOT EXISTS %s", databaseName));
-            EmbeddedDatabase database = getDatabase(config, databaseName);
-
-            if (preparer != null) {
-                preparer.prepare(database);
+            try {
+                EmbeddedDatabase database = getDatabase(config, databaseName);
+                if (preparer != null) {
+                    preparer.prepare(database);
+                }
+                return database;
+            } catch (Exception e) {
+                try {
+                    cleanDatabase(config, databaseName);
+                } catch (Exception ce) {
+                    e.addSuppressed(ce);
+                }
+                throw e;
             }
-
-            return database;
         }
 
-        private void dropDatabase(ClientConfig config, String dbName) {
+        protected void cleanDatabase(ClientConfig config, String dbName) {
             try {
                 String dropCommand = "mysql -uroot -pdocker -N -e \"show databases\" | grep -v -E \"^(information_schema|performance_schema|mysql|sys)$\" | awk '{print \"drop database \" $1 \"\"}' | mysql -uroot -pdocker";
                 ExecResult dropResult = container.execInContainer("sh", "-c", dropCommand);
                 if (dropResult.getExitCode() != 0) {
                     throw new ProviderException("Unexpected error when cleaning up the database");
                 }
+                databasePool.recycle(this);
             } catch (Exception e) {
                 Throwables.throwIfInstanceOf(e.getCause(), ProviderException.class);
                 throw new ProviderException("Unexpected error when cleaning up the database", e.getCause());
@@ -217,7 +220,7 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
                 dataSourceWrapper.setPropertyValue(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDatabaseWrapper(new MySQLEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+            return new BlockingDatabaseWrapper(new MySQLEmbeddedDatabase(dataSource, () -> cleanDatabase(config, dbName)), semaphore);
         }
     }
 

@@ -21,6 +21,8 @@ import java.sql.SQLException;
 
 public interface DatabasePreparer {
 
+    long estimatedDuration();
+
     void prepare(DataSource dataSource) throws SQLException;
 
 }

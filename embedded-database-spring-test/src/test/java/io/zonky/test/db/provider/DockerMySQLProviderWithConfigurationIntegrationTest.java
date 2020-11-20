@@ -17,7 +17,7 @@
 package io.zonky.test.db.provider;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
-import io.zonky.test.category.StaticTests;
+import io.zonky.test.category.MySQLTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.provider.mysql.MySQLContainerCustomizer;
 import org.junit.Test;
@@ -37,8 +37,8 @@ import java.sql.SQLException;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.MYSQL;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Category(StaticTests.class)
 @RunWith(SpringRunner.class)
+@Category(MySQLTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = MYSQL)
 @ContextConfiguration
 @TestPropertySource(properties = {

@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.preparer;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
@@ -36,6 +37,13 @@ public class CompositeDatabasePreparer implements DatabasePreparer {
     }
 
     @Override
+    public long estimatedDuration() {
+        return preparers.stream()
+                .mapToLong(DatabasePreparer::estimatedDuration)
+                .sum();
+    }
+
+    @Override
     public void prepare(DataSource dataSource) throws SQLException {
         for (DatabasePreparer preparer : preparers) {
             preparer.prepare(dataSource);
@@ -53,5 +61,12 @@ public class CompositeDatabasePreparer implements DatabasePreparer {
     @Override
     public int hashCode() {
         return Objects.hash(preparers);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("preparers", preparers)
+                .toString();
     }
 }

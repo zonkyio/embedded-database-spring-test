@@ -47,10 +47,28 @@
   ],
   "properties": [
     {
+      "name": "zonky.test.database.type",
+      "type": "java.lang.String",
+      "description": "Type of embedded database.",
+      "defaultValue": "auto"
+    },
+    {
       "name": "zonky.test.database.provider",
       "type": "java.lang.String",
-      "description": "Provider used to create the underlying embedded database, see the documentation for the comparision matrix.",
-      "defaultValue": "zonky"
+      "description": "Provider used to create the underlying embedded database, see the documentation for the comparison matrix.",
+      "defaultValue": "default"
+    },
+    {
+      "name": "zonky.test.database.refresh",
+      "type": "io.zonky.test.db.AutoConfigureEmbeddedDatabase$RefreshMode",
+      "description": "Type of refresh mode to be used to reset the database to its initial state.",
+      "defaultValue": "never"
+    },
+    {
+      "name": "zonky.test.database.replace",
+      "type": "io.zonky.test.db.AutoConfigureEmbeddedDatabase$Replace",
+      "description": "Type of existing DataSource to replace.",
+      "defaultValue": "any"
     },
     {
       "name": "zonky.test.database.prefetching.thread-name-prefix",
@@ -65,7 +83,7 @@
       "defaultValue": 3
     },
     {
-      "name": "zonky.test.database.prefetching.pipeline-cache-size",
+      "name": "zonky.test.database.prefetching.pipeline-max-cache-size",
       "type": "java.lang.Integer",
       "description": "Maximum number of prepared databases per pipeline. Where pipeline is a queue of independent databases that contains the same initial data.",
       "defaultValue": 3
@@ -169,8 +187,42 @@
   ],
   "hints": [
     {
+      "name": "zonky.test.database.type",
+      "values": [
+        {
+          "value": "auto",
+          "description": "TODO"
+        },
+        {
+          "value": "postgres",
+          "description": "PostgreSQL Database"
+        },
+        {
+          "value": "mssql",
+          "description": "TODO"
+        },
+        {
+          "value": "mysql",
+          "description": "TODO"
+        },
+        {
+          "value": "mariadb",
+          "description": "TODO"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
       "name": "zonky.test.database.provider",
       "values": [
+        {
+          "value": "default",
+          "description": "Default typically equals to docker provider, unless a different default has been configured by externalized configuration."
+        },
         {
           "value": "docker",
           "description": "Run the embedded database in a Docker container."

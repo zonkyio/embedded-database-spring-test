@@ -1,16 +1,18 @@
 package io.zonky.test.db;
 
-import io.zonky.test.db.context.DataSourceContext;
+import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.support.SpyPostProcessor;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockReset;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
@@ -26,6 +28,7 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
@@ -39,7 +42,7 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
         mergeMode = MERGE_WITH_DEFAULTS,
         listeners = DatabaseRefreshIntegrationTest.class
 )
-@AutoConfigureEmbeddedDatabase(refreshMode = AFTER_EACH_TEST_METHOD)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, refresh = AFTER_EACH_TEST_METHOD)
 @ContextConfiguration
 public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListener {
 
@@ -57,6 +60,12 @@ public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListene
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        public BeanPostProcessor spyPostProcessor() {
+            return new SpyPostProcessor((bean, beanName) ->
+                    bean instanceof DatabaseContext || beanName.equals("dockerPostgresDatabaseProvider"));
         }
     }
 
@@ -78,26 +87,32 @@ public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListene
         }
     }
 
-    @SpyBean(reset = MockReset.NONE)
-    private DataSourceContext dataSourceContext;
+    @Autowired
+    private DatabaseContext databaseContext;
 
-    @SpyBean(reset = MockReset.NONE, name = "dockerPostgresDatabaseProvider")
+    @Autowired
+    @Qualifier("dockerPostgresDatabaseProvider")
     private DatabaseProvider databaseProvider;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
+    }
+
+    @Override
     public void afterTestClass(TestContext testContext) {
         ApplicationContext applicationContext = testContext.getApplicationContext();
-        DataSourceContext dataSourceContext = applicationContext.getBean(DataSourceContext.class);
+        DatabaseContext databaseContext = applicationContext.getBean(DatabaseContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
-        verify(dataSourceContext, times(3)).reset();
-        verify(dataSourceContext, never()).apply(any());
+        verify(databaseContext, times(4)).reset();
+        verify(databaseContext, never()).apply(any());
         verify(databaseProvider, times(3)).createDatabase(any());
 
-        Mockito.reset(dataSourceContext, databaseProvider);
+        Mockito.reset(databaseContext, databaseProvider);
     }
 
     @Test
