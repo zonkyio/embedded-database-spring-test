@@ -43,7 +43,6 @@ import static io.zonky.test.db.util.ReflectionUtils.getField;
 import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
-import static org.mockito.Mockito.mock;
 
 public class FlywayWrapper {
 
@@ -100,39 +99,24 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion >= 60) {
-            // TODO: replace using mockito mocks
-            Object sqlScriptFactory = mock(ClassUtils.forName("org.flywaydb.core.internal.sqlscript.SqlScriptFactory", classLoader));
-            Object sqlScriptExecutorFactory = mock(ClassUtils.forName("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory", classLoader));
-            Object scanner;
-
-            try {
-                scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                        invokeMethod(config, "getClassLoader"),
-                        invokeMethod(config, "getEncoding"));
-            } catch (RuntimeException ex) {
-                scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                        invokeMethod(config, "getClassLoader"),
-                        invokeMethod(config, "getEncoding"));
-            }
-
+        if (flywayVersion >= 63) {
+            Object scanner = createScanner(flyway);
+            Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
+            Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
+            Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
+            return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
+        } else if (flywayVersion >= 60) {
+            Object scanner = createScanner(flyway);
+            Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
+            Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
         } else if (flywayVersion >= 52) {
-            // TODO: replace using mockito mocks
-            Object database = null;
-            Object placeholderReplacer = mock(ClassUtils.forName("org.flywaydb.core.internal.placeholder.PlaceholderReplacer", classLoader));
+            Object scanner = createScanner(flyway);
+            Object placeholderReplacer = createMock("org.flywaydb.core.internal.placeholder.PlaceholderReplacer");
             Object factory = invokeConstructor("org.flywaydb.core.internal.database.postgresql.PostgreSQLSqlStatementBuilderFactory", placeholderReplacer);
-
-            Object scanner = invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                    invokeMethod(config, "getClassLoader"),
-                    invokeMethod(config, "getEncoding"));
-            return invokeMethod(flyway, "createMigrationResolver", database, scanner, scanner, factory);
+            return invokeMethod(flyway, "createMigrationResolver", null, scanner, scanner, factory);
         } else if (flywayVersion >= 51) {
-            Object scanner = invokeConstructor(Scanner.class, config);
+            Object scanner = createScanner(flyway);
             Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
             return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
         } else if (flywayVersion >= 40) {
@@ -141,6 +125,57 @@ public class FlywayWrapper {
         } else {
             return invokeMethod(flyway, "createMigrationResolver", (Object) null);
         }
+    }
+
+    private Object createScanner(Flyway flyway) throws ClassNotFoundException {
+        if (flywayVersion >= 63) {
+            try {
+                // this code is only for version 6.3.3 and above
+                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                        invokeMethod(config, "getClassLoader"),
+                        invokeMethod(config, "getEncoding"),
+                        getField(flyway, "resourceNameCache"),
+                        getField(flyway, "locationScannerCache"));
+            } catch (RuntimeException ex) {
+                if (flywayVersion > 63) {
+                    throw ex;
+                }
+                // try next branch
+            }
+        }
+        if (flywayVersion >= 61) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"),
+                    getField(flyway, "resourceNameCache"));
+        }
+        if (flywayVersion >= 60) {
+            try {
+                // this code is only for version 6.0.7 and above
+                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                        invokeMethod(config, "getClassLoader"),
+                        invokeMethod(config, "getEncoding"));
+            } catch (RuntimeException ex) {
+                // try next branch
+            }
+        }
+        if (flywayVersion >= 52) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"));
+        }
+        if (flywayVersion >= 51) {
+            return invokeConstructor(Scanner.class, config);
+        }
+
+        throw new IllegalStateException("Unsupported flyway version: " + flywayVersion);
     }
 
     public List<String> getLocations() {
@@ -298,6 +333,38 @@ public class FlywayWrapper {
         }
     }
 
+    public Object getResourceProvider() {
+        if (flywayVersion >= 65) {
+            return getValue(config, "getResourceProvider");
+        } else {
+            return null;
+        }
+    }
+
+    public void setResourceProvider(Object resourceProvider) {
+        if (flywayVersion >= 65) {
+            setValue(config, "setResourceProvider", resourceProvider);
+        } else if (!Objects.equals(resourceProvider, getResourceProvider())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public Object getJavaMigrationClassProvider() {
+        if (flywayVersion >= 65) {
+            return getValue(config, "getJavaMigrationClassProvider");
+        } else {
+            return null;
+        }
+    }
+
+    public void setJavaMigrationClassProvider(Object javaMigrationClassProvider) {
+        if (flywayVersion >= 65) {
+            setValue(config, "setJavaMigrationClassProvider", javaMigrationClassProvider);
+        } else if (!Objects.equals(javaMigrationClassProvider, getJavaMigrationClassProvider())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
     public String getUndoSqlMigrationPrefix() {
         if (flywayVersion >= 50 && isFlywayPro) {
             return getValue(config, "getUndoSqlMigrationPrefix");
@@ -414,6 +481,22 @@ public class FlywayWrapper {
         if (flywayVersion >= 60) {
             setValue(config, "setTablespace", tablespace);
         } else if (!Objects.equals(tablespace, getTablespace())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public String getDefaultSchemaName() {
+        if (flywayVersion >= 61) {
+            return getValue(config, "getDefaultSchema");
+        } else {
+            return null;
+        }
+    }
+
+    public void setDefaultSchemaName(String defaultSchemaName) {
+        if (flywayVersion >= 61) {
+            setValue(config, "setDefaultSchema", defaultSchemaName);
+        } else if (!Objects.equals(defaultSchemaName, getDefaultSchemaName())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }
@@ -562,6 +645,22 @@ public class FlywayWrapper {
         }
     }
 
+    public boolean isValidateMigrationNaming() {
+        if (flywayVersion >= 62) {
+            return getValue(config, "isValidateMigrationNaming");
+        } else {
+            return false;
+        }
+    }
+
+    public void setValidateMigrationNaming(boolean validateMigrationNaming) {
+        if (flywayVersion >= 62) {
+            setValue(config, "setValidateMigrationNaming", validateMigrationNaming);
+        } else if (!Objects.equals(validateMigrationNaming, isValidateMigrationNaming())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
     public boolean isValidateOnMigrate() {
         return getValue(config, "isValidateOnMigrate");
     }
@@ -606,6 +705,22 @@ public class FlywayWrapper {
         if (flywayVersion >= 41 && flywayVersion < 50) {
             setValue(config, "setAllowMixedMigrations", allowMixedMigrations);
         } else if (!Objects.equals(allowMixedMigrations, isAllowMixedMigrations())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public boolean isCreateSchemas() {
+        if (flywayVersion >= 65) {
+            return getValue(config, "getCreateSchemas");
+        } else {
+            return true;
+        }
+    }
+
+    public void setCreateSchemas(boolean createSchemas) {
+        if (flywayVersion >= 65) {
+            setValue(config, "setShouldCreateSchemas", createSchemas);
+        } else if (!Objects.equals(createSchemas, isCreateSchemas())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }
@@ -776,6 +891,22 @@ public class FlywayWrapper {
         }
     }
 
+    public boolean isOutputQueryResults() {
+        if (flywayVersion >= 60 && isFlywayPro) {
+            return getValue(config, "outputQueryResults");
+        } else {
+            return true;
+        }
+    }
+
+    public void setOutputQueryResults(boolean outputQueryResults) {
+        if (flywayVersion >= 60 && isFlywayPro) {
+            setValue(config, "setOutputQueryResults", outputQueryResults);
+        } else if (!Objects.equals(outputQueryResults, isOutputQueryResults())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
     public int getConnectRetries() {
         if (flywayVersion >= 52) {
             return getValue(config, "getConnectRetries");
@@ -806,5 +937,10 @@ public class FlywayWrapper {
 
     private static void setValue(Object target, String method, Object value) {
         invokeMethod(target, method, value);
+    }
+
+    private static Object createMock(String className) throws ClassNotFoundException {
+        Class<?> proxyInterface = ClassUtils.forName(className, classLoader);
+        return ProxyFactory.getProxy(proxyInterface, (MethodInterceptor) invocation -> null);
     }
 }

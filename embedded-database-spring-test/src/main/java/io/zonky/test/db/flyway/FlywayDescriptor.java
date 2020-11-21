@@ -32,13 +32,15 @@ public class FlywayDescriptor {
     private final OutputStream dryRunOutput;
 
     // included in equals and hashCode methods
-    // but it works only for empty arrays (that is common use-case)
+    // but it works only for empty arrays or null values (that is common use-case)
     // because of missing equals and hashCode methods
     // on classes implementing these interfaces
     private final List<MigrationResolver> resolvers;
     private final List<Object> callbacks;
     private final List<Object> errorHandlers;
     private final List<Object> javaMigrations;
+    private final Object resourceProvider;
+    private final Object javaMigrationClassProvider;
 
     // included in equals and hashCode methods
     private final MigrationVersion baselineVersion;
@@ -50,6 +52,7 @@ public class FlywayDescriptor {
     private final Map<String, String> placeholders;
     private final String table;
     private final String tablespace;
+    private final String defaultSchemaName;
     private final String baselineDescription;
     private final String undoSqlMigrationPrefix;
     private final String repeatableSqlMigrationPrefix;
@@ -69,10 +72,12 @@ public class FlywayDescriptor {
     private final boolean ignoreIgnoredMigrations;
     private final boolean ignorePendingMigrations;
     private final boolean ignoreFutureMigrations;
+    private final boolean validateMigrationNaming;
     private final boolean validateOnMigrate;
     private final boolean cleanOnValidationError;
     private final boolean cleanDisabled;
     private final boolean allowMixedMigrations;
+    private final boolean createSchemas;
     private final boolean mixed;
     private final boolean group;
     private final String installedBy;
@@ -81,6 +86,7 @@ public class FlywayDescriptor {
     private final boolean batch;
     private final boolean oracleSqlPlus;
     private final boolean oracleSqlplusWarn;
+    private final boolean outputQueryResults;
     private final int connectRetries;
 
     public MigrationVersion getBaselineVersion() {
@@ -239,11 +245,13 @@ public class FlywayDescriptor {
         return connectRetries;
     }
 
-    private FlywayDescriptor(List<Object> callbacks, List<MigrationResolver> resolvers, List<Object> errorHandlers, List<Object> javaMigrations, MigrationVersion baselineVersion, MigrationVersion targetVersion, List<String> locations, List<String> schemas, List<String> sqlMigrationSuffixes, List<String> errorOverrides, Map<String, String> placeholders, String table, String tablespace, String baselineDescription, String undoSqlMigrationPrefix, String repeatableSqlMigrationPrefix, String sqlMigrationSeparator, String sqlMigrationPrefix, String placeholderPrefix, String placeholderSuffix, String encoding, String initSql, String licenseKey, boolean skipDefaultResolvers, boolean skipDefaultCallbacks, boolean placeholderReplacement, boolean baselineOnMigrate, boolean outOfOrder, boolean ignoreMissingMigrations, boolean ignoreIgnoredMigrations, boolean ignorePendingMigrations, boolean ignoreFutureMigrations, boolean validateOnMigrate, boolean cleanOnValidationError, boolean cleanDisabled, boolean allowMixedMigrations, boolean mixed, boolean group, String installedBy, OutputStream dryRunOutput, boolean stream, boolean batch, boolean oracleSqlPlus, boolean oracleSqlplusWarn, int connectRetries) {
+    private FlywayDescriptor(List<Object> callbacks, List<MigrationResolver> resolvers, List<Object> errorHandlers, List<Object> javaMigrations, Object resourceProvider, Object javaMigrationClassProvider, MigrationVersion baselineVersion, MigrationVersion targetVersion, List<String> locations, List<String> schemas, List<String> sqlMigrationSuffixes, List<String> errorOverrides, Map<String, String> placeholders, String table, String tablespace, String defaultSchemaName, String baselineDescription, String undoSqlMigrationPrefix, String repeatableSqlMigrationPrefix, String sqlMigrationSeparator, String sqlMigrationPrefix, String placeholderPrefix, String placeholderSuffix, String encoding, String initSql, String licenseKey, boolean skipDefaultResolvers, boolean skipDefaultCallbacks, boolean placeholderReplacement, boolean baselineOnMigrate, boolean outOfOrder, boolean ignoreMissingMigrations, boolean ignoreIgnoredMigrations, boolean ignorePendingMigrations, boolean ignoreFutureMigrations, boolean validateMigrationNaming, boolean validateOnMigrate, boolean cleanOnValidationError, boolean cleanDisabled, boolean allowMixedMigrations, boolean createSchemas, boolean mixed, boolean group, String installedBy, OutputStream dryRunOutput, boolean stream, boolean batch, boolean oracleSqlPlus, boolean oracleSqlplusWarn, boolean outputQueryResults, int connectRetries) {
         this.callbacks = ImmutableList.copyOf(callbacks);
         this.resolvers = ImmutableList.copyOf(resolvers);
         this.errorHandlers = ImmutableList.copyOf(errorHandlers);
         this.javaMigrations = ImmutableList.copyOf(javaMigrations);
+        this.resourceProvider = resourceProvider;
+        this.javaMigrationClassProvider = javaMigrationClassProvider;
         this.baselineVersion = baselineVersion;
         this.targetVersion = targetVersion;
         this.locations = ImmutableList.copyOf(locations);
@@ -253,6 +261,7 @@ public class FlywayDescriptor {
         this.placeholders = ImmutableMap.copyOf(placeholders);
         this.table = table;
         this.tablespace = tablespace;
+        this.defaultSchemaName = defaultSchemaName;
         this.baselineDescription = baselineDescription;
         this.undoSqlMigrationPrefix = undoSqlMigrationPrefix;
         this.repeatableSqlMigrationPrefix = repeatableSqlMigrationPrefix;
@@ -272,10 +281,12 @@ public class FlywayDescriptor {
         this.ignoreIgnoredMigrations = ignoreIgnoredMigrations;
         this.ignorePendingMigrations = ignorePendingMigrations;
         this.ignoreFutureMigrations = ignoreFutureMigrations;
+        this.validateMigrationNaming = validateMigrationNaming;
         this.validateOnMigrate = validateOnMigrate;
         this.cleanOnValidationError = cleanOnValidationError;
         this.cleanDisabled = cleanDisabled;
         this.allowMixedMigrations = allowMixedMigrations;
+        this.createSchemas = createSchemas;
         this.mixed = mixed;
         this.group = group;
         this.installedBy = installedBy;
@@ -285,6 +296,7 @@ public class FlywayDescriptor {
         this.batch = batch;
         this.oracleSqlPlus = oracleSqlPlus;
         this.oracleSqlplusWarn = oracleSqlplusWarn;
+        this.outputQueryResults = outputQueryResults;
         this.connectRetries = connectRetries;
     }
 
@@ -294,6 +306,8 @@ public class FlywayDescriptor {
                 wrapper.getResolvers(),
                 wrapper.getErrorHandlers(),
                 wrapper.getJavaMigrations(),
+                wrapper.getResourceProvider(),
+                wrapper.getJavaMigrationClassProvider(),
                 wrapper.getBaselineVersion(),
                 wrapper.getTargetVersion(),
                 wrapper.getLocations(),
@@ -303,6 +317,7 @@ public class FlywayDescriptor {
                 wrapper.getPlaceholders(),
                 wrapper.getTable(),
                 wrapper.getTablespace(),
+                wrapper.getDefaultSchemaName(),
                 wrapper.getBaselineDescription(),
                 wrapper.getUndoSqlMigrationPrefix(),
                 wrapper.getRepeatableSqlMigrationPrefix(),
@@ -322,10 +337,12 @@ public class FlywayDescriptor {
                 wrapper.isIgnoreIgnoredMigrations(),
                 wrapper.isIgnorePendingMigrations(),
                 wrapper.isIgnoreFutureMigrations(),
+                wrapper.isValidateMigrationNaming(),
                 wrapper.isValidateOnMigrate(),
                 wrapper.isCleanOnValidationError(),
                 wrapper.isCleanDisabled(),
                 wrapper.isAllowMixedMigrations(),
+                wrapper.isCreateSchemas(),
                 wrapper.isMixed(),
                 wrapper.isGroup(),
                 wrapper.getInstalledBy(),
@@ -334,6 +351,7 @@ public class FlywayDescriptor {
                 wrapper.isBatch(),
                 wrapper.isOracleSqlPlus(),
                 wrapper.isOracleSqlplusWarn(),
+                wrapper.isOutputQueryResults(),
                 wrapper.getConnectRetries()
         );
     }
@@ -343,6 +361,8 @@ public class FlywayDescriptor {
         wrapper.setResolvers(resolvers);
         wrapper.setErrorHandlers(errorHandlers);
         wrapper.setJavaMigrations(javaMigrations);
+        wrapper.setResourceProvider(resourceProvider);
+        wrapper.setJavaMigrationClassProvider(javaMigrationClassProvider);
         wrapper.setBaselineVersion(baselineVersion);
         wrapper.setTarget(targetVersion);
         wrapper.setLocations(locations);
@@ -352,6 +372,7 @@ public class FlywayDescriptor {
         wrapper.setPlaceholders(placeholders);
         wrapper.setTable(table);
         wrapper.setTablespace(tablespace);
+        wrapper.setDefaultSchemaName(defaultSchemaName);
         wrapper.setBaselineDescription(baselineDescription);
         wrapper.setUndoSqlMigrationPrefix(undoSqlMigrationPrefix);
         wrapper.setRepeatableSqlMigrationPrefix(repeatableSqlMigrationPrefix);
@@ -371,10 +392,12 @@ public class FlywayDescriptor {
         wrapper.setIgnoreIgnoredMigrations(ignoreIgnoredMigrations);
         wrapper.setIgnorePendingMigrations(ignorePendingMigrations);
         wrapper.setIgnoreFutureMigrations(ignoreFutureMigrations);
+        wrapper.setValidateMigrationNaming(validateMigrationNaming);
         wrapper.setValidateOnMigrate(validateOnMigrate);
         wrapper.setCleanOnValidationError(cleanOnValidationError);
         wrapper.setCleanDisabled(cleanDisabled);
         wrapper.setAllowMixedMigrations(allowMixedMigrations);
+        wrapper.setCreateSchemas(createSchemas);
         wrapper.setMixed(mixed);
         wrapper.setGroup(group);
         wrapper.setInstalledBy(installedBy);
@@ -383,6 +406,7 @@ public class FlywayDescriptor {
         wrapper.setBatch(batch);
         wrapper.setOracleSqlPlus(oracleSqlPlus);
         wrapper.setOracleSqlplusWarn(oracleSqlplusWarn);
+        wrapper.setOutputQueryResults(outputQueryResults);
         wrapper.setConnectRetries(connectRetries);
     }
 
@@ -400,10 +424,12 @@ public class FlywayDescriptor {
                 ignoreIgnoredMigrations == that.ignoreIgnoredMigrations &&
                 ignorePendingMigrations == that.ignorePendingMigrations &&
                 ignoreFutureMigrations == that.ignoreFutureMigrations &&
+                validateMigrationNaming == that.validateMigrationNaming &&
                 validateOnMigrate == that.validateOnMigrate &&
                 cleanOnValidationError == that.cleanOnValidationError &&
                 cleanDisabled == that.cleanDisabled &&
                 allowMixedMigrations == that.allowMixedMigrations &&
+                createSchemas == that.createSchemas &&
                 mixed == that.mixed &&
                 group == that.group &&
                 dryRun == that.dryRun &&
@@ -411,11 +437,14 @@ public class FlywayDescriptor {
                 batch == that.batch &&
                 oracleSqlPlus == that.oracleSqlPlus &&
                 oracleSqlplusWarn == that.oracleSqlplusWarn &&
+                outputQueryResults == that.outputQueryResults &&
                 connectRetries == that.connectRetries &&
                 Objects.equals(callbacks, that.callbacks) &&
                 Objects.equals(resolvers, that.resolvers) &&
                 Objects.equals(errorHandlers, that.errorHandlers) &&
                 Objects.equals(javaMigrations, that.javaMigrations) &&
+                Objects.equals(resourceProvider, that.resourceProvider) &&
+                Objects.equals(javaMigrationClassProvider, that.javaMigrationClassProvider) &&
                 Objects.equals(baselineVersion, that.baselineVersion) &&
                 Objects.equals(targetVersion, that.targetVersion) &&
                 Objects.equals(locations, that.locations) &&
@@ -425,6 +454,7 @@ public class FlywayDescriptor {
                 Objects.equals(placeholders, that.placeholders) &&
                 Objects.equals(table, that.table) &&
                 Objects.equals(tablespace, that.tablespace) &&
+                Objects.equals(defaultSchemaName, that.defaultSchemaName) &&
                 Objects.equals(baselineDescription, that.baselineDescription) &&
                 Objects.equals(undoSqlMigrationPrefix, that.undoSqlMigrationPrefix) &&
                 Objects.equals(repeatableSqlMigrationPrefix, that.repeatableSqlMigrationPrefix) &&
@@ -441,16 +471,16 @@ public class FlywayDescriptor {
     @Override
     public int hashCode() {
         return Objects.hash(
-                callbacks, resolvers, errorHandlers, javaMigrations,
+                callbacks, resolvers, errorHandlers, javaMigrations, resourceProvider, javaMigrationClassProvider,
                 baselineVersion, targetVersion, locations, schemas, sqlMigrationSuffixes,
-                errorOverrides, placeholders, table, tablespace, baselineDescription,
+                errorOverrides, placeholders, table, tablespace, defaultSchemaName, baselineDescription,
                 undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, placeholderPrefix,
                 placeholderSuffix, encoding, initSql, licenseKey,
                 skipDefaultResolvers, skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate,
                 outOfOrder, ignoreMissingMigrations, ignoreIgnoredMigrations, ignorePendingMigrations,
-                ignoreFutureMigrations, validateOnMigrate, cleanOnValidationError, cleanDisabled,
-                allowMixedMigrations, mixed, group, installedBy,
-                dryRun, stream, batch, oracleSqlPlus, oracleSqlplusWarn, connectRetries);
+                ignoreFutureMigrations, validateMigrationNaming, validateOnMigrate, cleanOnValidationError, cleanDisabled,
+                allowMixedMigrations, createSchemas, mixed, group, installedBy,
+                dryRun, stream, batch, oracleSqlPlus, oracleSqlplusWarn, outputQueryResults, connectRetries);
     }
 }
