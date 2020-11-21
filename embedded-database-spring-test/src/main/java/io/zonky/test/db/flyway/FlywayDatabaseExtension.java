@@ -193,10 +193,10 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
                 databaseContext.apply(preparer);
             }
 
-            if (preparer instanceof MigrateFlywayDatabasePreparer) {
-                try {
-                    return ((MigrateFlywayDatabasePreparer) preparer).getResult().get(0, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            try {
+                return preparer.getResult().get(0, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                if (preparer instanceof MigrateFlywayDatabasePreparer && flywayVersion < 70) {
                     return 0;
                 }
             }
@@ -260,7 +260,7 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
         DatabaseContext databaseContext = getDatabaseContext(flywayWrapper);
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
 
-        List<String> preparerLocations = migratePreparer.getFlywayDescriptor().getLocations();
+        List<String> preparerLocations = migratePreparer.getDescriptor().getLocations();
         List<String> testLocations = resolveTestLocations(flywayWrapper, preparerLocations);
 
         if (!testLocations.isEmpty()) {
@@ -290,7 +290,7 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
     protected boolean isAppendable(FlywayOperation operation) {
         FlywayWrapper flywayWrapper = operation.getFlywayWrapper();
         MigrateFlywayDatabasePreparer migratePreparer = (MigrateFlywayDatabasePreparer) operation.getPreparer();
-        return isAppendable(flywayWrapper, migratePreparer.getFlywayDescriptor().getLocations());
+        return isAppendable(flywayWrapper, migratePreparer.getDescriptor().getLocations());
     }
 
     /**

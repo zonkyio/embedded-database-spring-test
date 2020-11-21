@@ -25,7 +25,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,11 +50,11 @@ import static org.assertj.core.api.Assertions.entry;
         "flyway.schemas=test",
         "spring.flyway.schemas=test"
 })
-@DataJpaTest
+@JdbcTest
 public class SpringBootFlywayIntegrationTest {
 
     @ClassRule
-    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootSupportsJdbcTestAnnotation);
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 

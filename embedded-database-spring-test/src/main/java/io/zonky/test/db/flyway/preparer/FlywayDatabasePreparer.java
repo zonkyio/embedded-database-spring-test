@@ -21,9 +21,10 @@ import com.google.common.base.Stopwatch;
 import io.zonky.test.db.flyway.FlywayDescriptor;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.SettableListenableFuture;
 
 import javax.sql.DataSource;
 import java.util.Objects;
@@ -32,17 +33,22 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    protected final SettableListenableFuture<Object> result = new SettableListenableFuture<>();
     protected final FlywayDescriptor descriptor;
 
     public FlywayDatabasePreparer(FlywayDescriptor descriptor) {
         this.descriptor = descriptor;
     }
 
-    public FlywayDescriptor getFlywayDescriptor() {
+    public FlywayDescriptor getDescriptor() {
         return descriptor;
     }
 
-    protected abstract void doOperation(Flyway flyway);
+    public ListenableFuture<Object> getResult() {
+        return result;
+    }
+
+    protected abstract Object doOperation(FlywayWrapper wrapper);
 
     @Override
     public void prepare(DataSource dataSource) {
@@ -52,8 +58,13 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
         descriptor.applyTo(wrapper);
         wrapper.setDataSource(dataSource);
 
-        doOperation(wrapper.getFlyway());
-        logger.trace("Database has been successfully prepared in {}", stopwatch);
+        try {
+            result.set(doOperation(wrapper));
+            logger.trace("Database has been successfully prepared in {}", stopwatch);
+        } catch (RuntimeException e) {
+            result.setException(e);
+            throw e;
+        }
     }
 
     @Override

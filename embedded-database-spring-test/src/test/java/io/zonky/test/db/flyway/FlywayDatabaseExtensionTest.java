@@ -81,7 +81,7 @@ public class FlywayDatabaseExtensionTest {
 
     @Test
     public void cleanFromExecutionListenerShouldBeDeferred() {
-        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::clean);
 
         assertThat(extension.pendingOperations).hasSize(1);
         verifyZeroInteractions(databaseContext);
@@ -91,19 +91,19 @@ public class FlywayDatabaseExtensionTest {
     public void baselineFromExecutionListenerShouldBeDeferred() {
         assumeFlywaySupportsBaselineOperation();
 
-        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::baseline);
         assertThat(extension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void migrateFromExecutionListenerShouldBeDeferred() {
-        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate);
+        OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::migrate);
         assertThat(extension.pendingOperations).hasSize(1);
     }
 
     @Test
     public void cleanFromClassicExecutionListenerShouldFail() {
-        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flyway::clean))
+        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::clean))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
@@ -115,7 +115,7 @@ public class FlywayDatabaseExtensionTest {
     public void baselineFromClassicExecutionListenerShouldFail() {
         assumeFlywaySupportsBaselineOperation();
 
-        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flyway::baseline))
+        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::baseline))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
@@ -125,7 +125,7 @@ public class FlywayDatabaseExtensionTest {
 
     @Test
     public void migrateFromClassicExecutionListenerShouldFail() {
-        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flyway::migrate))
+        assertThatCode(() -> FlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::migrate))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
@@ -135,7 +135,7 @@ public class FlywayDatabaseExtensionTest {
 
     @Test
     public void cleanOutsideExecutionListenerShouldBeProcessedImmediately() {
-        flyway.clean();
+        flywayWrapper.clean();
 
         assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(cleanPreparer(flywayWrapper));
@@ -145,7 +145,7 @@ public class FlywayDatabaseExtensionTest {
     public void baselineOutsideExecutionListenerShouldBeProcessedImmediately() {
         assumeFlywaySupportsBaselineOperation();
 
-        flyway.baseline();
+        flywayWrapper.baseline();
 
         assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(baselinePreparer(flywayWrapper));
@@ -153,7 +153,7 @@ public class FlywayDatabaseExtensionTest {
 
     @Test
     public void migrateOutsideExecutionListenerShouldBeProcessedImmediately() {
-        flyway.migrate();
+        flywayWrapper.migrate();
 
         assertThat(extension.pendingOperations).isEmpty();
         verify(databaseContext).apply(migratePreparer(flywayWrapper));

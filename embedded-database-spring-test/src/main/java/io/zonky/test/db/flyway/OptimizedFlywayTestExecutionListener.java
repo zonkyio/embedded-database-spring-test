@@ -246,7 +246,7 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
             }
             wrapper.setLocations(useLocations);
-            flyway.migrate();
+            wrapper.migrate();
         } finally {
             // reset the flyway bean to original configuration.
             wrapper.setLocations(oldLocations);

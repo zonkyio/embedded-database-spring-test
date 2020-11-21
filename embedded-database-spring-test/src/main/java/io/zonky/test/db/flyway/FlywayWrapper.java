@@ -25,7 +25,6 @@ import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
 import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.test.util.AopTestUtils;
 import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
@@ -43,6 +42,8 @@ import static io.zonky.test.db.util.ReflectionUtils.getField;
 import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
+import static io.zonky.test.db.util.ReflectionUtils.setField;
+import static org.springframework.test.util.AopTestUtils.getUltimateTargetObject;
 
 public class FlywayWrapper {
 
@@ -68,12 +69,12 @@ public class FlywayWrapper {
     }
 
     private FlywayWrapper(Flyway flyway) {
-        this.flyway = AopTestUtils.getUltimateTargetObject(flyway);
+        this.flyway = flyway;
 
         if (flywayVersion >= 51) {
-            config = getField(this.flyway, "configuration");
+            config = getField(getUltimateTargetObject(flyway), "configuration");
         } else {
-            config = this.flyway;
+            config = getUltimateTargetObject(flyway);
         }
     }
 
@@ -81,8 +82,21 @@ public class FlywayWrapper {
         return flyway;
     }
 
+    public Object clean() {
+        return invokeMethod(flyway, "clean");
+    }
+
+    public Object baseline() {
+        return invokeMethod(flyway, "baseline");
+    }
+
+    public Object migrate() {
+        return invokeMethod(flyway, "migrate");
+    }
+
     public Collection<ResolvedMigration> getMigrations() {
         try {
+            Flyway flyway = getUltimateTargetObject(this.flyway);
             MigrationResolver resolver = createMigrationResolver(flyway);
 
             if (flywayVersion >= 52) {
@@ -128,6 +142,16 @@ public class FlywayWrapper {
     }
 
     private Object createScanner(Flyway flyway) throws ClassNotFoundException {
+        if (flywayVersion >= 70) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"),
+                    false,
+                    getField(flyway, "resourceNameCache"),
+                    getField(flyway, "locationScannerCache"));
+        }
         if (flywayVersion >= 63) {
             try {
                 // this code is only for version 6.3.3 and above
@@ -184,7 +208,7 @@ public class FlywayWrapper {
                     .map(location -> (String) invokeMethod(location, "getDescriptor"))
                     .collect(Collectors.toList());
         } else {
-            return ImmutableList.copyOf(flyway.getLocations());
+            return ImmutableList.copyOf(getArray(config, "getLocations"));
         }
     }
 
@@ -192,7 +216,7 @@ public class FlywayWrapper {
         if (flywayVersion >= 51) {
             invokeMethod(config, "setLocationsAsStrings", (Object) locations.toArray(new String[0]));
         } else {
-            flyway.setLocations(locations.toArray(new String[0]));
+            invokeMethod(config, "setLocations", (Object) locations.toArray(new String[0]));
         }
     }
 
@@ -290,6 +314,22 @@ public class FlywayWrapper {
         if (flywayVersion >= 40) {
             setValue(config, "setSkipDefaultCallbacks", skipDefaultCallbacks);
         } else if (!Objects.equals(skipDefaultCallbacks, isSkipDefaultCallbacks())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public boolean isSkipExecutingMigrations() {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            return getValue(config, "isSkipDefaultCallbacks");
+        } else {
+            return false;
+        }
+    }
+
+    public void setSkipExecutingMigrations(boolean skipExecutingMigrations) {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            setValue(config, "setSkipExecutingMigrations", skipExecutingMigrations);
+        } else if (!Objects.equals(skipExecutingMigrations, isSkipExecutingMigrations())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }
@@ -453,6 +493,38 @@ public class FlywayWrapper {
         setValue(config, "setPlaceholders", placeholders);
     }
 
+    public Map<String, String> getJdbcProperties() {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            return ImmutableMap.copyOf(getMap(config, "getJdbcProperties"));
+        } else {
+            return ImmutableMap.of();
+        }
+    }
+
+    public void setJdbcProperties(Map<String, String> jdbcProperties) {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            setValue(config, "setJdbcProperties", jdbcProperties);
+        } else if (!Objects.equals(jdbcProperties, getJdbcProperties())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public List<Object> getCherryPick() {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            return ImmutableList.copyOf(getArray(config, "getCherryPick"));
+        } else {
+            return ImmutableList.of();
+        }
+    }
+
+    public void setCherryPick(List<Object> cherryPick) {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            setValue(config, "setCherryPick", cherryPick);
+        } else if (!Objects.equals(cherryPick, getCherryPick())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
     public MigrationVersion getTargetVersion() {
         return getValue(config, "getTarget");
     }
@@ -553,6 +625,54 @@ public class FlywayWrapper {
         if (flywayVersion >= 52 && isFlywayPro) {
             setValue(config, "setLicenseKey", licenseKey);
         } else if (!Objects.equals(licenseKey, getLicenseKey())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public String getUrl() {
+        if (flywayVersion >= 70) {
+            return getValue(config, "getUrl");
+        } else {
+            return null;
+        }
+    }
+
+    public void setUrl(String url) {
+        if (flywayVersion >= 70) {
+            setField(config, "url", url);
+        } else if (!Objects.equals(url, getUrl())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public String getUser() {
+        if (flywayVersion >= 70) {
+            return getValue(config, "getUser");
+        } else {
+            return null;
+        }
+    }
+
+    public void setUser(String user) {
+        if (flywayVersion >= 70) {
+            setField(config, "user", user);
+        } else if (!Objects.equals(user, getUser())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public String getPassword() {
+        if (flywayVersion >= 70) {
+            return getValue(config, "getPassword");
+        } else {
+            return null;
+        }
+    }
+
+    public void setPassword(String password) {
+        if (flywayVersion >= 70) {
+            setField(config, "password", password);
+        } else if (!Objects.equals(password, getPassword())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }
@@ -891,6 +1011,38 @@ public class FlywayWrapper {
         }
     }
 
+    public String getOracleKerberosConfigFile() {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            return getValue(config, "getOracleKerberosConfigFile");
+        } else {
+            return "";
+        }
+    }
+
+    public void setOracleKerberosConfigFile(String oracleKerberosConfigFile) {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            setValue(config, "setOracleKerberosConfigFile", oracleKerberosConfigFile);
+        } else if (!Objects.equals(oracleKerberosConfigFile, getOracleKerberosConfigFile())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public String getOracleKerberosCacheFile() {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            return getValue(config, "getOracleKerberosCacheFile");
+        } else {
+            return "";
+        }
+    }
+
+    public void setOracleKerberosCacheFile(String oracleKerberosCacheFile) {
+        if (flywayVersion >= 70 && isFlywayPro) {
+            setValue(config, "setOracleKerberosCacheFile", oracleKerberosCacheFile);
+        } else if (!Objects.equals(oracleKerberosCacheFile, getOracleKerberosCacheFile())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
     public boolean isOutputQueryResults() {
         if (flywayVersion >= 60 && isFlywayPro) {
             return getValue(config, "outputQueryResults");
@@ -919,6 +1071,22 @@ public class FlywayWrapper {
         if (flywayVersion >= 52) {
             setValue(config, "setConnectRetries", connectRetries);
         } else if (!Objects.equals(connectRetries, getConnectRetries())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public int getLockRetryCount() {
+        if (flywayVersion >= 71) {
+            return getValue(config, "getLockRetryCount");
+        } else {
+            return 50;
+        }
+    }
+
+    public void setLockRetryCount(int lockRetryCount) {
+        if (flywayVersion >= 71) {
+            setValue(config, "setLockRetryCount", lockRetryCount);
+        } else if (!Objects.equals(lockRetryCount, getLockRetryCount())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
         }
     }

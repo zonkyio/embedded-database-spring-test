@@ -50,6 +50,8 @@ public class FlywayDescriptor {
     private final List<String> sqlMigrationSuffixes;
     private final List<String> errorOverrides;
     private final Map<String, String> placeholders;
+    private final Map<String, String> jdbcProperties;
+    private final List<Object> cherryPick;
     private final String table;
     private final String tablespace;
     private final String defaultSchemaName;
@@ -63,8 +65,12 @@ public class FlywayDescriptor {
     private final String encoding;
     private final String initSql;
     private final String licenseKey;
+    private final String url;
+    private final String user;
+    private final String password;
     private final boolean skipDefaultResolvers;
     private final boolean skipDefaultCallbacks;
+    private final boolean skipExecutingMigrations;
     private final boolean placeholderReplacement;
     private final boolean baselineOnMigrate;
     private final boolean outOfOrder;
@@ -86,8 +92,11 @@ public class FlywayDescriptor {
     private final boolean batch;
     private final boolean oracleSqlPlus;
     private final boolean oracleSqlplusWarn;
+    private final String oracleKerberosConfigFile;
+    private final String oracleKerberosCacheFile;
     private final boolean outputQueryResults;
     private final int connectRetries;
+    private final int lockRetryCount;
 
     public MigrationVersion getBaselineVersion() {
         return baselineVersion;
@@ -245,7 +254,7 @@ public class FlywayDescriptor {
         return connectRetries;
     }
 
-    private FlywayDescriptor(List<Object> callbacks, List<MigrationResolver> resolvers, List<Object> errorHandlers, List<Object> javaMigrations, Object resourceProvider, Object javaMigrationClassProvider, MigrationVersion baselineVersion, MigrationVersion targetVersion, List<String> locations, List<String> schemas, List<String> sqlMigrationSuffixes, List<String> errorOverrides, Map<String, String> placeholders, String table, String tablespace, String defaultSchemaName, String baselineDescription, String undoSqlMigrationPrefix, String repeatableSqlMigrationPrefix, String sqlMigrationSeparator, String sqlMigrationPrefix, String placeholderPrefix, String placeholderSuffix, String encoding, String initSql, String licenseKey, boolean skipDefaultResolvers, boolean skipDefaultCallbacks, boolean placeholderReplacement, boolean baselineOnMigrate, boolean outOfOrder, boolean ignoreMissingMigrations, boolean ignoreIgnoredMigrations, boolean ignorePendingMigrations, boolean ignoreFutureMigrations, boolean validateMigrationNaming, boolean validateOnMigrate, boolean cleanOnValidationError, boolean cleanDisabled, boolean allowMixedMigrations, boolean createSchemas, boolean mixed, boolean group, String installedBy, OutputStream dryRunOutput, boolean stream, boolean batch, boolean oracleSqlPlus, boolean oracleSqlplusWarn, boolean outputQueryResults, int connectRetries) {
+    private FlywayDescriptor(List<Object> callbacks, List<MigrationResolver> resolvers, List<Object> errorHandlers, List<Object> javaMigrations, Object resourceProvider, Object javaMigrationClassProvider, MigrationVersion baselineVersion, MigrationVersion targetVersion, List<String> locations, List<String> schemas, List<String> sqlMigrationSuffixes, List<String> errorOverrides, Map<String, String> placeholders, Map<String, String> jdbcProperties, List<Object> cherryPick, String table, String tablespace, String defaultSchemaName, String baselineDescription, String undoSqlMigrationPrefix, String repeatableSqlMigrationPrefix, String sqlMigrationSeparator, String sqlMigrationPrefix, String placeholderPrefix, String placeholderSuffix, String encoding, String initSql, String licenseKey, String url, String user, String password, boolean skipDefaultResolvers, boolean skipDefaultCallbacks, boolean skipExecutingMigrations, boolean placeholderReplacement, boolean baselineOnMigrate, boolean outOfOrder, boolean ignoreMissingMigrations, boolean ignoreIgnoredMigrations, boolean ignorePendingMigrations, boolean ignoreFutureMigrations, boolean validateMigrationNaming, boolean validateOnMigrate, boolean cleanOnValidationError, boolean cleanDisabled, boolean allowMixedMigrations, boolean createSchemas, boolean mixed, boolean group, String installedBy, OutputStream dryRunOutput, boolean stream, boolean batch, boolean oracleSqlPlus, boolean oracleSqlplusWarn, String oracleKerberosConfigFile, String oracleKerberosCacheFile, boolean outputQueryResults, int connectRetries, int lockRetryCount) {
         this.callbacks = ImmutableList.copyOf(callbacks);
         this.resolvers = ImmutableList.copyOf(resolvers);
         this.errorHandlers = ImmutableList.copyOf(errorHandlers);
@@ -259,6 +268,8 @@ public class FlywayDescriptor {
         this.sqlMigrationSuffixes = ImmutableList.copyOf(sqlMigrationSuffixes);
         this.errorOverrides = ImmutableList.copyOf(errorOverrides);
         this.placeholders = ImmutableMap.copyOf(placeholders);
+        this.jdbcProperties = ImmutableMap.copyOf(jdbcProperties);
+        this.cherryPick = ImmutableList.copyOf(cherryPick);
         this.table = table;
         this.tablespace = tablespace;
         this.defaultSchemaName = defaultSchemaName;
@@ -272,8 +283,12 @@ public class FlywayDescriptor {
         this.encoding = encoding;
         this.initSql = initSql;
         this.licenseKey = licenseKey;
+        this.url = url;
+        this.user = user;
+        this.password = password;
         this.skipDefaultResolvers = skipDefaultResolvers;
         this.skipDefaultCallbacks = skipDefaultCallbacks;
+        this.skipExecutingMigrations = skipExecutingMigrations;
         this.placeholderReplacement = placeholderReplacement;
         this.baselineOnMigrate = baselineOnMigrate;
         this.outOfOrder = outOfOrder;
@@ -296,8 +311,11 @@ public class FlywayDescriptor {
         this.batch = batch;
         this.oracleSqlPlus = oracleSqlPlus;
         this.oracleSqlplusWarn = oracleSqlplusWarn;
+        this.oracleKerberosConfigFile = oracleKerberosConfigFile;
+        this.oracleKerberosCacheFile = oracleKerberosCacheFile;
         this.outputQueryResults = outputQueryResults;
         this.connectRetries = connectRetries;
+        this.lockRetryCount = lockRetryCount;
     }
 
     public static FlywayDescriptor from(FlywayWrapper wrapper) {
@@ -315,6 +333,8 @@ public class FlywayDescriptor {
                 wrapper.getSqlMigrationSuffixes(),
                 wrapper.getErrorOverrides(),
                 wrapper.getPlaceholders(),
+                wrapper.getJdbcProperties(),
+                wrapper.getCherryPick(),
                 wrapper.getTable(),
                 wrapper.getTablespace(),
                 wrapper.getDefaultSchemaName(),
@@ -328,8 +348,12 @@ public class FlywayDescriptor {
                 wrapper.getEncoding(),
                 wrapper.getInitSql(),
                 wrapper.getLicenseKey(),
+                wrapper.getUrl(),
+                wrapper.getUser(),
+                wrapper.getPassword(),
                 wrapper.isSkipDefaultResolvers(),
                 wrapper.isSkipDefaultCallbacks(),
+                wrapper.isSkipExecutingMigrations(),
                 wrapper.isPlaceholderReplacement(),
                 wrapper.isBaselineOnMigrate(),
                 wrapper.isOutOfOrder(),
@@ -351,8 +375,11 @@ public class FlywayDescriptor {
                 wrapper.isBatch(),
                 wrapper.isOracleSqlPlus(),
                 wrapper.isOracleSqlplusWarn(),
+                wrapper.getOracleKerberosConfigFile(),
+                wrapper.getOracleKerberosCacheFile(),
                 wrapper.isOutputQueryResults(),
-                wrapper.getConnectRetries()
+                wrapper.getConnectRetries(),
+                wrapper.getLockRetryCount()
         );
     }
 
@@ -370,6 +397,8 @@ public class FlywayDescriptor {
         wrapper.setSqlMigrationSuffixes(sqlMigrationSuffixes);
         wrapper.setErrorOverrides(errorOverrides);
         wrapper.setPlaceholders(placeholders);
+        wrapper.setJdbcProperties(jdbcProperties);
+        wrapper.setCherryPick(cherryPick);
         wrapper.setTable(table);
         wrapper.setTablespace(tablespace);
         wrapper.setDefaultSchemaName(defaultSchemaName);
@@ -383,8 +412,12 @@ public class FlywayDescriptor {
         wrapper.setEncoding(encoding);
         wrapper.setInitSql(initSql);
         wrapper.setLicenseKey(licenseKey);
+        wrapper.setUrl(url);
+        wrapper.setUser(user);
+        wrapper.setPassword(password);
         wrapper.setSkipDefaultResolvers(skipDefaultResolvers);
         wrapper.setSkipDefaultCallbacks(skipDefaultCallbacks);
+        wrapper.setSkipExecutingMigrations(skipExecutingMigrations);
         wrapper.setPlaceholderReplacement(placeholderReplacement);
         wrapper.setBaselineOnMigrate(baselineOnMigrate);
         wrapper.setOutOfOrder(outOfOrder);
@@ -406,8 +439,11 @@ public class FlywayDescriptor {
         wrapper.setBatch(batch);
         wrapper.setOracleSqlPlus(oracleSqlPlus);
         wrapper.setOracleSqlplusWarn(oracleSqlplusWarn);
+        wrapper.setOracleKerberosConfigFile(oracleKerberosConfigFile);
+        wrapper.setOracleKerberosCacheFile(oracleKerberosCacheFile);
         wrapper.setOutputQueryResults(outputQueryResults);
         wrapper.setConnectRetries(connectRetries);
+        wrapper.setLockRetryCount(lockRetryCount);
     }
 
     @Override
@@ -417,6 +453,7 @@ public class FlywayDescriptor {
         FlywayDescriptor that = (FlywayDescriptor) o;
         return skipDefaultResolvers == that.skipDefaultResolvers &&
                 skipDefaultCallbacks == that.skipDefaultCallbacks &&
+                skipExecutingMigrations == that.skipExecutingMigrations &&
                 placeholderReplacement == that.placeholderReplacement &&
                 baselineOnMigrate == that.baselineOnMigrate &&
                 outOfOrder == that.outOfOrder &&
@@ -439,6 +476,7 @@ public class FlywayDescriptor {
                 oracleSqlplusWarn == that.oracleSqlplusWarn &&
                 outputQueryResults == that.outputQueryResults &&
                 connectRetries == that.connectRetries &&
+                lockRetryCount == that.lockRetryCount &&
                 Objects.equals(callbacks, that.callbacks) &&
                 Objects.equals(resolvers, that.resolvers) &&
                 Objects.equals(errorHandlers, that.errorHandlers) &&
@@ -452,6 +490,8 @@ public class FlywayDescriptor {
                 Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes) &&
                 Objects.equals(errorOverrides, that.errorOverrides) &&
                 Objects.equals(placeholders, that.placeholders) &&
+                Objects.equals(jdbcProperties, that.jdbcProperties) &&
+                Objects.equals(cherryPick, that.cherryPick) &&
                 Objects.equals(table, that.table) &&
                 Objects.equals(tablespace, that.tablespace) &&
                 Objects.equals(defaultSchemaName, that.defaultSchemaName) &&
@@ -465,22 +505,30 @@ public class FlywayDescriptor {
                 Objects.equals(encoding, that.encoding) &&
                 Objects.equals(initSql, that.initSql) &&
                 Objects.equals(licenseKey, that.licenseKey) &&
-                Objects.equals(installedBy, that.installedBy);
+                Objects.equals(installedBy, that.installedBy) &&
+                Objects.equals(url, that.url) &&
+                Objects.equals(user, that.user) &&
+                Objects.equals(password, that.password) &&
+                Objects.equals(oracleKerberosConfigFile, that.oracleKerberosConfigFile) &&
+                Objects.equals(oracleKerberosCacheFile, that.oracleKerberosCacheFile);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(
                 callbacks, resolvers, errorHandlers, javaMigrations, resourceProvider, javaMigrationClassProvider,
-                baselineVersion, targetVersion, locations, schemas, sqlMigrationSuffixes,
-                errorOverrides, placeholders, table, tablespace, defaultSchemaName, baselineDescription,
-                undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
+                baselineVersion, targetVersion, locations, schemas, sqlMigrationSuffixes, errorOverrides,
+                placeholders, jdbcProperties, cherryPick, table, tablespace, defaultSchemaName,
+                baselineDescription, undoSqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationPrefix, placeholderPrefix,
-                placeholderSuffix, encoding, initSql, licenseKey,
-                skipDefaultResolvers, skipDefaultCallbacks, placeholderReplacement, baselineOnMigrate,
+                placeholderSuffix, encoding, initSql, licenseKey, url, user, password,
+                skipDefaultResolvers, skipDefaultCallbacks, skipExecutingMigrations,
+                placeholderReplacement, baselineOnMigrate, outOfOrder,
                 outOfOrder, ignoreMissingMigrations, ignoreIgnoredMigrations, ignorePendingMigrations,
-                ignoreFutureMigrations, validateMigrationNaming, validateOnMigrate, cleanOnValidationError, cleanDisabled,
-                allowMixedMigrations, createSchemas, mixed, group, installedBy,
-                dryRun, stream, batch, oracleSqlPlus, oracleSqlplusWarn, outputQueryResults, connectRetries);
+                ignoreFutureMigrations, validateMigrationNaming, validateOnMigrate,
+                cleanOnValidationError, cleanDisabled, allowMixedMigrations,
+                createSchemas, mixed, group, installedBy, dryRun, stream, batch,
+                oracleSqlPlus, oracleSqlplusWarn, oracleKerberosConfigFile, oracleKerberosCacheFile,
+                outputQueryResults, connectRetries, lockRetryCount);
     }
 }

@@ -1,5 +1,6 @@
-import java.util.regex.Matcher
 import org.apache.tools.ant.taskdefs.condition.Os
+
+import java.util.regex.Matcher
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
@@ -41,6 +42,8 @@ ext {
                     [name: '6.3.3', flyway: '6.3.3',   'flyway-test': '6.3.3',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
                     [name: '6.4.4', flyway: '6.4.4',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
                     [name: '6.5.3', flyway: '6.5.3',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
+                    [name: '7.0.4', flyway: '7.0.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',          'zonky-postgres': 'default'],
+                    [name: '7.1.1', flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',          'zonky-postgres': 'default'],
                     [name: 'no_sb', flyway: 'default', 'flyway-test': 'default',                                                              'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [

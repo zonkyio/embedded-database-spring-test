@@ -60,12 +60,12 @@ public class FlywayClassUtils {
         try {
             if (flywayVersion >= 60) {
                 Object flywayConfig = invokeStaticMethod(Flyway.class, "configure");
-                invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
+                invokeMethod(flywayConfig, "undoSqlMigrationPrefix", "U");
             } else if (flywayVersion >= 51) {
                 Object flywayConfig = getField(new Flyway(), "configuration");
-                invokeMethod(flywayConfig, "getUndoSqlMigrationPrefix");
+                invokeMethod(flywayConfig, "setUndoSqlMigrationPrefix", "U");
             } else {
-                new Flyway().getUndoSqlMigrationPrefix();
+                new Flyway().setUndoSqlMigrationPrefix("U");
             }
             return true;
         } catch (FlywayException e) {

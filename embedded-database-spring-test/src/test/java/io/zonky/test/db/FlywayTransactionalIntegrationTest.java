@@ -34,7 +34,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -60,11 +60,11 @@ import static org.mockito.Mockito.times;
         "liquibase.enabled=false",
         "spring.liquibase.enabled=false"
 })
-@DataJpaTest
+@JdbcTest
 public class FlywayTransactionalIntegrationTest {
 
     @ClassRule
-    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootIsAvailable);
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootSupportsJdbcTestAnnotation);
 
     @Configuration
     static class Config {

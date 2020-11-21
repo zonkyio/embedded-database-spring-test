@@ -17,7 +17,7 @@
 package io.zonky.test.db.flyway.preparer;
 
 import io.zonky.test.db.flyway.FlywayDescriptor;
-import org.flywaydb.core.Flyway;
+import io.zonky.test.db.flyway.FlywayWrapper;
 
 public class CleanFlywayDatabasePreparer extends FlywayDatabasePreparer {
 
@@ -31,7 +31,7 @@ public class CleanFlywayDatabasePreparer extends FlywayDatabasePreparer {
     }
 
     @Override
-    protected void doOperation(Flyway flyway) {
-        flyway.clean();
+    protected Object doOperation(FlywayWrapper wrapper) {
+        return wrapper.clean();
     }
 }

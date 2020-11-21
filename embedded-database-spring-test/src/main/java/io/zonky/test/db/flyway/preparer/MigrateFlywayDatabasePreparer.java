@@ -19,19 +19,15 @@ package io.zonky.test.db.flyway.preparer;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import io.zonky.test.db.flyway.FlywayDescriptor;
-import org.flywaydb.core.Flyway;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.SettableListenableFuture;
 import org.testcontainers.shaded.org.apache.commons.lang.StringUtils;
 
 import java.util.Objects;
 import java.util.stream.Stream;
 
 public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
-
-    private final SettableListenableFuture<Integer> result = new SettableListenableFuture<>();
 
     private volatile Long estimatedDuration;
 
@@ -42,10 +38,6 @@ public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
     public MigrateFlywayDatabasePreparer(FlywayDescriptor descriptor, long estimatedDuration) {
         super(descriptor);
         this.estimatedDuration = estimatedDuration;
-    }
-
-    public ListenableFuture<Integer> getResult() {
-        return result;
     }
 
     @Override
@@ -66,13 +58,8 @@ public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
     }
 
     @Override
-    protected void doOperation(Flyway flyway) {
-        try {
-            result.set(flyway.migrate());
-        } catch (RuntimeException e) {
-            result.setException(e);
-            throw e;
-        }
+    protected Object doOperation(FlywayWrapper wrapper) {
+        return wrapper.migrate();
     }
 
     @Override

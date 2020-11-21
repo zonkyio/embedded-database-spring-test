@@ -25,7 +25,7 @@ public class TestAssumptions {
         assumeTrue(FlywayClassUtils.getFlywayVersion() >= minVersion);
     }
 
-    public static void assumeSpringBootIsAvailable() {
-        assumeTrue(ClassUtils.isPresent("org.springframework.boot.autoconfigure.SpringBootApplication", TestAssumptions.class.getClassLoader()));
+    public static void assumeSpringBootSupportsJdbcTestAnnotation() {
+        assumeTrue(ClassUtils.isPresent("org.springframework.boot.test.autoconfigure.jdbc.JdbcTest", TestAssumptions.class.getClassLoader()));
     }
 }

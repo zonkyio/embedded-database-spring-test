@@ -46,6 +46,22 @@ public class ReflectionUtils {
     }
 
     @SuppressWarnings("unchecked")
+    public static void setField(Object targetObject, String name, Object value) {
+        Assert.notNull(targetObject, "Target object must not be null");
+
+        targetObject = AopTestUtils.getUltimateTargetObject(targetObject);
+        Class<?> targetClass = targetObject.getClass();
+
+        Field field = org.springframework.util.ReflectionUtils.findField(targetClass, name);
+        if (field == null) {
+            throw new IllegalArgumentException(String.format("Could not find field '%s' on %s", name, safeToString(targetObject)));
+        }
+
+        org.springframework.util.ReflectionUtils.makeAccessible(field);
+        org.springframework.util.ReflectionUtils.setField(field, targetObject, value);
+    }
+
+    @SuppressWarnings("unchecked")
     public static <T> T invokeMethod(Object targetObject, String name, Object... args) {
         Assert.notNull(targetObject, "Target object must not be null");
         Assert.hasText(name, "Method name must not be empty");
