@@ -25,13 +25,13 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseRequest;
 import io.zonky.test.db.provider.DatabaseTemplate;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.provider.TemplatableDatabaseProvider;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
+import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.util.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -40,8 +40,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -59,6 +61,7 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static java.util.Collections.emptyList;
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
@@ -152,7 +155,12 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
                     .map(e -> String.format("-c %s=%s", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(" "));
 
-            container = new PostgreSQLContainer(config.dockerImage) {
+            DockerImageName dockerImage = DockerImageName.parse(config.dockerImage);
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                dockerImage = invokeMethod(dockerImage, "asCompatibleSubstituteFor", "postgres");
+            }
+
+            container = new PostgreSQLContainer(dockerImage) {
                 @Override
                 protected void configure() {
                     super.configure();

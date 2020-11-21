@@ -11,71 +11,76 @@ ext {
     ossrhUsername = project.findProperty('ossrh.username')
     ossrhPassword = project.findProperty('ossrh.password')
 
-    // TODO: upgrade all versions to the latest ones
-    // TODO: update matrix versions to the major ones
     testSuites = [
             [name: 'default', versions: [
                     [name: 'suite', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default']
             ]],
             [name: 'spring', versions: [
-                    [name: '4.3.8',  spring: '4.3.8.RELEASE',  'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default'],
-                    [name: '4.3.25', spring: '4.3.25.RELEASE', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default'],
-                    [name: '5.0.13', spring: '5.0.13.RELEASE', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default'],
-                    [name: '5.1.14', spring: '5.1.14.RELEASE', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default'],
-                    [name: '5.2.5',  spring: '5.2.5.RELEASE',  'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default']
+                    [name: '4.3.8',   spring: '4.3.8.RELEASE',   'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
+                    [name: '4.3.29',  spring: '4.3.29.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
+                    [name: '5.0.19',  spring: '5.0.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
+                    [name: '5.1.19',  spring: '5.1.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
+                    [name: '5.2.11',  spring: '5.2.11.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
+                    [name: '5.3.1',   spring: '5.3.1',           'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default']
             ]],
             [name: 'flyway', versions: [
-                    [name: '3.0',   flyway: '3.0',     'flyway-test': '3.0.1',    spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '3.1',   flyway: '3.1',     'flyway-test': '3.1',      spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '3.2.1', flyway: '3.2.1',   'flyway-test': '3.2.1.1',  spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '4.0.3', flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '4.1.2', flyway: '4.1.2',   'flyway-test': '4.1.0',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '4.2.0', flyway: '4.2.0',   'flyway-test': '4.2.0.2',  spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '5.0.7', flyway: '5.0.7',   'flyway-test': '5.0.0',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '5.1.4', flyway: '5.1.4',   'flyway-test': '5.1.0',    spring: '5.0.13.RELEASE',  'spring-boot': '2.0.9.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '5.2.4', flyway: '5.2.4',   'flyway-test': '5.2.4',    spring: '5.1.14.RELEASE',  'spring-boot': '2.1.13.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.0.2', flyway: '6.0.2',   'flyway-test': '6.0.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.0.8', flyway: '6.0.8',   'flyway-test': '6.0.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.1.4', flyway: '6.1.4',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.2.4', flyway: '6.2.4',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.3.2', flyway: '6.3.2',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.3.3', flyway: '6.3.3',   'flyway-test': '6.3.3',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.4.4', flyway: '6.4.4',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '6.5.3', flyway: '6.5.3',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE', 'zonky-postgres': 'default'],
-                    [name: '7.0.4', flyway: '7.0.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',          'zonky-postgres': 'default'],
-                    [name: '7.1.1', flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',          'zonky-postgres': 'default'],
-                    [name: '7.2.0', flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',          'zonky-postgres': 'default'],
-                    [name: 'no_sb', flyway: 'default', 'flyway-test': 'default',                                                              'zonky-postgres': 'default']
+                    [name: '3.0',    flyway: '3.0',     'flyway-test': '3.0.1',    spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
+                    [name: '3.1',    flyway: '3.1',     'flyway-test': '3.1',      spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
+                    [name: '3.2.1',  flyway: '3.2.1',   'flyway-test': '3.2.1.1',  spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
+                    [name: '4.0.3',  flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '4.1.2',  flyway: '4.1.2',   'flyway-test': '4.1.0',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '4.2.0',  flyway: '4.2.0',   'flyway-test': '4.2.0.2',  spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '5.0.7',  flyway: '5.0.7',   'flyway-test': '5.0.0',    spring: '5.0.13.RELEASE',  'spring-boot': '2.0.9.RELEASE',   'zonky-postgres': 'default'],
+                    [name: '5.1.4',  flyway: '5.1.4',   'flyway-test': '5.1.0',    spring: '5.0.13.RELEASE',  'spring-boot': '2.0.9.RELEASE',   'zonky-postgres': 'default'],
+                    [name: '5.2.4',  flyway: '5.2.4',   'flyway-test': '5.2.4',    spring: '5.1.19.RELEASE',  'spring-boot': '2.1.18.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.0.6',  flyway: '6.0.6',   'flyway-test': '6.0.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.0.8',  flyway: '6.0.8',   'flyway-test': '6.0.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.1.4',  flyway: '6.1.4',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.2.4',  flyway: '6.2.4',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.3.2',  flyway: '6.3.2',   'flyway-test': '6.1.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.3.3',  flyway: '6.3.3',   'flyway-test': '6.3.3',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.4.4',  flyway: '6.4.4',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.5.7',  flyway: '6.5.7',   'flyway-test': '6.4.0',    spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '7.0.4',  flyway: '7.0.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.1.1',  flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.2.1',  flyway: '7.2.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
-                    [name: '3.5.3', liquibase: '3.5.3',   spring: '4.3.8.RELEASE',  'spring-boot': '1.4.6.RELEASE'],
-                    [name: '3.5.5', liquibase: '3.5.5',   spring: '4.3.25.RELEASE', 'spring-boot': '1.5.22.RELEASE'],
-                    [name: '3.6.3', liquibase: '3.6.3',   spring: '5.1.14.RELEASE', 'spring-boot': '2.1.13.RELEASE'],
-                    [name: '3.8.8', liquibase: '3.8.8',   spring: '5.2.5.RELEASE',  'spring-boot': '2.2.6.RELEASE'],
-                    [name: 'no_sb', liquibase: 'default']
+                    [name: '3.5.3',  liquibase: '3.5.3',  spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE'],
+                    [name: '3.5.5',  liquibase: '3.5.5',  spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE'],
+                    [name: '3.6.3',  liquibase: '3.6.3',  spring: '5.1.19.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
+                    [name: '3.7.0',  liquibase: '3.7.0',  spring: '5.1.19.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
+                    [name: '3.8.9',  liquibase: '3.8.9',  spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE'],
+                    [name: '3.9.0',  liquibase: '3.9.0',  spring: '5.2.10.RELEASE',  'spring-boot': '2.2.11.RELEASE'],
+                    [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.1',           'spring-boot': '2.4.0'],
+                    [name: '4.0.0',  liquibase: '4.0.0',  spring: '5.3.1',           'spring-boot': '2.4.0'],
+                    [name: '4.1.1',  liquibase: '4.1.1',  spring: '5.3.1',           'spring-boot': '2.4.0'],
+                    [name: '4.2.0',  liquibase: '4.2.0',  spring: '5.3.1',           'spring-boot': '2.4.0'],
+                    [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
-                    [name: '9.5.20', postgres: '9.5.20', 'zonky-postgres': '9.5.20',  opentable: '0.12.8',  yandex: 'default'],
-                    [name: '9.6.16', postgres: '9.6.16', 'zonky-postgres': '9.6.16',  opentable: '0.12.8',  yandex: 'default'],
-                    [name: '10.11',  postgres: '10.11',  'zonky-postgres': '10.11.0', opentable: '0.13.3',  yandex: 'default'],
-                    [name: '11.6',   postgres: '11.6',   'zonky-postgres': '11.6.0',  opentable: 'default', yandex: 'default'],
-                    [name: '12.1',   postgres: '12.1',   'zonky-postgres': '12.1.0',  opentable: 'default', yandex: 'default']
+                    [name: '9.5.20',  postgres: '9.5.20',  'zonky-postgres': '9.5.20',   opentable: '0.12.8',   yandex: 'default'],
+                    [name: '9.6.16',  postgres: '9.6.16',  'zonky-postgres': '9.6.16',   opentable: '0.12.8',   yandex: 'default'],
+                    [name: '10.11',   postgres: '10.11',   'zonky-postgres': '10.11.0',  opentable: '0.13.3',   yandex: 'default'],
+                    [name: '11.6',    postgres: '11.6',    'zonky-postgres': '11.6.0',   opentable: 'default',  yandex: 'default'],
+                    [name: '12.1',    postgres: '12.1',    'zonky-postgres': '12.1.0',   opentable: 'default',  yandex: 'default']
             ]],
             [name: 'mssql', versions: [
-                    [name: '2017', 'mssql': '2017-latest', 'mssql-driver': 'default'],
-                    [name: '2019', 'mssql': '2019-latest', 'mssql-driver': 'default']
+                    [name: '2017',  'mssql': '2017-latest',  'mssql-driver': 'default'],
+                    [name: '2019',  'mssql': '2019-latest',  'mssql-driver': 'default']
             ]],
             [name: 'mysql', versions: [
-                    [name: '8.0', 'mysql': '8.0', 'mysql-driver': 'default'],
-                    [name: '5.7', 'mysql': '5.7', 'mysql-driver': 'default'],
-                    [name: '5.6', 'mysql': '5.6', 'mysql-driver': 'default']
+                    [name: '5.6',  'mysql': '5.6',  'mysql-driver': 'default'],
+                    [name: '5.7',  'mysql': '5.7',  'mysql-driver': 'default'],
+                    [name: '8.0',  'mysql': '8.0',  'mysql-driver': 'default']
             ]],
             [name: 'mariadb', versions: [
-                    [name: '10.5', 'mariadb': '10.5', 'mariadb-driver': 'default'],
-                    [name: '10.4', 'mariadb': '10.4', 'mariadb-driver': 'default'],
-                    [name: '10.3', 'mariadb': '10.3', 'mariadb-driver': 'default'],
-                    [name: '10.2', 'mariadb': '10.2', 'mariadb-driver': 'default'],
-                    [name: '10.1', 'mariadb': '10.1', 'mariadb-driver': 'default']
+                    [name: '10.1',  'mariadb': '10.1',  'mariadb-driver': 'default'],
+                    [name: '10.2',  'mariadb': '10.2',  'mariadb-driver': 'default'],
+                    [name: '10.3',  'mariadb': '10.3',  'mariadb-driver': 'default'],
+                    [name: '10.4',  'mariadb': '10.4',  'mariadb-driver': 'default'],
+                    [name: '10.5',  'mariadb': '10.5',  'mariadb-driver': 'default']
             ]]
     ]
 }
@@ -159,10 +164,6 @@ subprojects {
 
                     developers {
                         developer {
-                            name 'Roman Pichlik'
-                            email 'roman.pichlik@zonky.cz'
-                        }
-                        developer {
                             name 'Tomas Vanek'
                             email 'tomas.vanek@zonky.cz'
                         }
@@ -195,17 +196,17 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'org.testcontainers:postgresql:1.14.1'
-        compile 'org.testcontainers:mssqlserver:1.14.1'
-        compile 'org.testcontainers:mysql:1.14.1'
-        compile 'org.testcontainers:mariadb:1.14.1'
+        compile 'org.testcontainers:postgresql:1.15.0'
+        compile 'org.testcontainers:mssqlserver:1.15.0'
+        compile 'org.testcontainers:mysql:1.15.0'
+        compile 'org.testcontainers:mariadb:1.15.0'
 
         compile 'io.zonky.test:embedded-postgres:1.2.8', optional
-        compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
+        compile 'com.opentable.components:otj-pg-embedded:0.13.3', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
-        compile 'com.microsoft.sqlserver:mssql-jdbc:8.2.2.jre8', optional
-        compile 'mysql:mysql-connector-java:8.0.15', optional
-        compile 'org.mariadb.jdbc:mariadb-java-client:2.3.0', optional
+        compile 'com.microsoft.sqlserver:mssql-jdbc:8.4.1.jre8', optional
+        compile 'mysql:mysql-connector-java:8.0.22', optional
+        compile 'org.mariadb.jdbc:mariadb-java-client:2.7.0', optional
 
         compile 'org.flywaydb:flyway-core:5.0.7', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:5.0.0', optional
@@ -223,7 +224,7 @@ project(':embedded-database-spring-test') {
         testCompile 'org.springframework:spring-jdbc:4.3.25.RELEASE'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
         testCompile 'org.mockito:mockito-core:1.10.19'
-        testCompile 'org.assertj:assertj-core:3.14.0'
+        testCompile 'org.assertj:assertj-core:3.18.1'
     }
 
     configurations {
