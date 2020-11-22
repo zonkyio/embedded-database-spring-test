@@ -397,7 +397,7 @@ public class DockerProviderIntegrationTest {
 The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
 
 ```properties
-zonky.test.database.postgres.docker.image=postgres:10.11-alpine # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.image=postgres:11-alpine # Docker image containing PostgreSQL database.
 zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
 zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
 ``` 
@@ -634,7 +634,7 @@ Below are some examples of how to prepare a docker image running with a non-root
 ### Using Docker provider inside a Docker container
 
 This combination is supported, however, additional configuration is required.
-You need to add `-v /var/run/docker.sock:/var/run/docker.sock` mapping to the Docker command to map the Docker socket.
+You have to add `-v /var/run/docker.sock:/var/run/docker.sock` mapping to the Docker command to map the Docker socket.
 Detailed instructions are [here](https://www.testcontainers.org/supported_docker_environment/continuous_integration/dind_patterns/).
 
 ### Frequent and repeated initialization of the database

@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -87,13 +86,6 @@ public class DatabaseRefreshPropertyIntegrationTest extends AbstractTestExecutio
             DatabasePopulatorUtils.execute(populator, this.dataSource);
         }
     }
-
-    @Autowired
-    private DatabaseContext databaseContext;
-
-    @Autowired
-    @Qualifier("dockerPostgresDatabaseProvider")
-    private DatabaseProvider databaseProvider;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

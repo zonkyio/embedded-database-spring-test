@@ -100,7 +100,9 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         Object[] captured = new Object[arguments.length];
 
         for (int i = 0; i < arguments.length; i++) {
-            if (arguments[i] instanceof OutputStream) {
+            if (arguments[i] == null) {
+                captured[i] = new NullArgumentProvider();
+            } else if (arguments[i] instanceof OutputStream) {
                 throw new UnsupportedOperationException("Output streams can not be captured");
             } else if (context.containsArgumentMapping(arguments[i])) {
                 captured[i] = new ArgumentReference(context.getArgumentId(arguments[i]));
@@ -445,6 +447,19 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         @Override
         public int hashCode() {
             return Objects.hash(referenceId);
+        }
+    }
+
+    private static class NullArgumentProvider implements ArgumentProvider {
+
+        @Override
+        public Object getArgument() {
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return "null";
         }
     }
 

@@ -29,7 +29,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -90,13 +89,6 @@ public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListene
                     bean instanceof DatabaseContext || beanName.equals("dockerPostgresDatabaseProvider"));
         }
     }
-
-    @Autowired
-    private DatabaseContext databaseContext;
-
-    @Autowired
-    @Qualifier("dockerPostgresDatabaseProvider")
-    private DatabaseProvider databaseProvider;
 
     @Autowired
     private DataSource dataSource;

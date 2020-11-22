@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 @Category(FlywayTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
-@TestPropertySource(properties = "zonky.test.database.postgres.server.properties.max_connections=11")
+@TestPropertySource(properties = "zonky.test.database.postgres.server.properties.max_connections=15")
 @ContextConfiguration
 public class ConnectionLeakIntegrationTest {
 
@@ -55,7 +55,7 @@ public class ConnectionLeakIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @Repeat(30)
+    @Repeat(50)
     @Timed(millis = 30000)
     @FlywayTest(locationsForMigrate = "db/test_migration/appendable")
     public void testEmbeddedDatabase() {

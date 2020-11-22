@@ -26,10 +26,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.test.mock.mockito.MockReset;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -88,13 +85,6 @@ public class LiquibaseRefreshIntegrationTest extends AbstractTestExecutionListen
                     bean instanceof DatabaseContext || beanName.equals("dockerPostgresDatabaseProvider"));
         }
     }
-
-    @Autowired
-    private DatabaseContext databaseContext;
-
-    @Autowired
-    @Qualifier("dockerPostgresDatabaseProvider")
-    private DatabaseProvider databaseProvider;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

@@ -1,5 +1,3 @@
-import org.apache.tools.ant.taskdefs.condition.Os
-
 import java.util.regex.Matcher
 
 plugins {
@@ -44,6 +42,7 @@ ext {
                     [name: '7.0.4',  flyway: '7.0.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: '7.1.1',  flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: '7.2.1',  flyway: '7.2.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.3.0',  flyway: '7.3.0',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
@@ -60,11 +59,11 @@ ext {
                     [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
-                    [name: '9.5.20',  postgres: '9.5.20',  'zonky-postgres': '9.5.20',   opentable: '0.12.8',   yandex: 'default'],
-                    [name: '9.6.16',  postgres: '9.6.16',  'zonky-postgres': '9.6.16',   opentable: '0.12.8',   yandex: 'default'],
-                    [name: '10.11',   postgres: '10.11',   'zonky-postgres': '10.11.0',  opentable: '0.13.3',   yandex: 'default'],
-                    [name: '11.6',    postgres: '11.6',    'zonky-postgres': '11.6.0',   opentable: 'default',  yandex: 'default'],
-                    [name: '12.1',    postgres: '12.1',    'zonky-postgres': '12.1.0',   opentable: 'default',  yandex: 'default']
+                    [name: '9.5',  postgres: '9.5.20',  'zonky-postgres': '9.5.20-1',   opentable: '0.12.8',   yandex: 'default'],
+                    [name: '9.6',  postgres: '9.6.16',  'zonky-postgres': '9.6.16-1',   opentable: '0.12.8',   yandex: 'default'],
+                    [name: '10',   postgres: '10.11',   'zonky-postgres': '10.11.0-1',  opentable: '0.13.3',   yandex: 'default'],
+                    [name: '11',   postgres: '11.6',    'zonky-postgres': '11.6.0-1',   opentable: 'default',  yandex: 'default'],
+                    [name: '12',   postgres: '12.1',    'zonky-postgres': '12.1.0-1',   opentable: 'default',  yandex: 'default']
             ]],
             [name: 'mssql', versions: [
                     [name: '2017',  'mssql': '2017-latest',  'mssql-driver': 'default'],
@@ -201,9 +200,11 @@ project(':embedded-database-spring-test') {
         compile 'org.testcontainers:mysql:1.15.0'
         compile 'org.testcontainers:mariadb:1.15.0'
 
-        compile 'io.zonky.test:embedded-postgres:1.2.8', optional
+        compile 'io.zonky.test:embedded-postgres:1.2.9', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.3', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
+
+        compile 'org.postgresql:postgresql:42.2.18', optional
         compile 'com.microsoft.sqlserver:mssql-jdbc:8.4.1.jre8', optional
         compile 'mysql:mysql-connector-java:8.0.22', optional
         compile 'org.mariadb.jdbc:mariadb-java-client:2.7.0', optional
@@ -216,6 +217,9 @@ project(':embedded-database-spring-test') {
         compile 'org.springframework:spring-context:4.3.25.RELEASE'
         compile 'org.springframework:spring-test:4.3.25.RELEASE'
         compile 'com.google.guava:guava:23.0'
+
+        compile 'org.apache.commons:commons-lang3:3.4' // TODO
+        compile 'commons-io:commons-io:2.4' // TODO
 
         compile('com.cedarsoftware:java-util:1.34.0') {
             exclude group: 'org.apache.logging.log4j'
@@ -373,10 +377,7 @@ project(':embedded-database-spring-test') {
                 classpath += configurations."testRuntime_${suite.name}_${version.name}"
 
                 if (version.postgres) {
-                    def pgMajorVersion = (version.postgres =~ /(\d+).+/).with { matches() ? it[0][1].toInteger() : null }
-                    if (pgMajorVersion < 11 || !Os.isFamily(Os.FAMILY_UNIX) || Os.isFamily(Os.FAMILY_MAC)) {
-                        environment 'ZONKY_TEST_DATABASE_POSTGRES_YANDEX-PROVIDER_POSTGRES-VERSION', "${version.postgres}-1"
-                    }
+                    environment 'ZONKY_TEST_DATABASE_POSTGRES_YANDEX-PROVIDER_POSTGRES-VERSION', "${version.postgres}-1"
                     environment 'ZONKY_TEST_DATABASE_POSTGRES_DOCKER_IMAGE', "postgres:${version.postgres}-alpine"
                 }
                 if (version.mssql) {

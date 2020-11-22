@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
 public class TemplatingDatabaseProvider implements DatabaseProvider {
 
@@ -164,7 +165,7 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
             oldTemplate.close();
         }
 
-        newTemplate.setTemplate(createTemplate(preparer, template));
+        newTemplate.loadTemplate(() -> createTemplate(preparer, template));
         return newTemplate;
     }
 
@@ -285,8 +286,13 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
             }
         }
 
-        private void setTemplate(DatabaseTemplate template) {
-            future.complete(template);
+        private void loadTemplate(Supplier<DatabaseTemplate> templateProvider) {
+            try {
+                future.complete(templateProvider.get());
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                throw e;
+            }
         }
     }
 

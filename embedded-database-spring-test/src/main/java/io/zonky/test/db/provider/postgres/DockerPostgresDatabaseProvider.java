@@ -61,7 +61,6 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static java.util.Collections.emptyList;
 import static org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT;
 
@@ -83,7 +82,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
     private final ClientConfig clientConfig;
 
     public DockerPostgresDatabaseProvider(Environment environment, ObjectProvider<List<PostgreSQLContainerCustomizer>> containerCustomizers) {
-        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:10.11-alpine");
+        String dockerImage = environment.getProperty("zonky.test.database.postgres.docker.image", "postgres:11-alpine");
         String tmpfsOptions = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.postgres.docker.tmpfs.enabled", boolean.class, false);
 
@@ -155,19 +154,10 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
                     .map(e -> String.format("-c %s=%s", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(" "));
 
-            DockerImageName dockerImage = DockerImageName.parse(config.dockerImage);
-            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
-                dockerImage = invokeMethod(dockerImage, "asCompatibleSubstituteFor", "postgres");
-            }
-
-            container = new PostgreSQLContainer(dockerImage) {
-                @Override
-                protected void configure() {
-                    super.configure();
-                    addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
-                    setCommand("postgres " + postgresArgs);
-                }
-            };
+            container = createPostgreSQLContainer(config.dockerImage, container -> {
+                container.addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
+                container.setCommand("postgres " + postgresArgs);
+            });
 
             if (config.tmpfsEnabled) {
                 Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
@@ -184,6 +174,26 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class)));
 
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
+        }
+
+        private PostgreSQLContainer createPostgreSQLContainer(String dockerImage, Consumer<PostgreSQLContainer> configAction) {
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                return new PostgreSQLContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("postgres")) {
+                    @Override
+                    protected void configure() {
+                        super.configure();
+                        configAction.accept(this);
+                    }
+                };
+            } else {
+                return new PostgreSQLContainer(dockerImage) {
+                    @Override
+                    protected void configure() {
+                        super.configure();
+                        configAction.accept(this);
+                    }
+                };
+            }
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {

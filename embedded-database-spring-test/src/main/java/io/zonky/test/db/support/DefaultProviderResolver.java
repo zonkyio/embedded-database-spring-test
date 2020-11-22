@@ -81,10 +81,12 @@ public class DefaultProviderResolver implements ProviderResolver {
         }
 
         if (detectedTypes.isEmpty()) {
-            throw new IllegalStateException("Database auto-detection failed, no database detected. Set a database type manually or add an appropriate Maven or Gradle dependency.");
+            throw new IllegalStateException("Database auto-detection failed, no database driver detected. " +
+                    "Please add a corresponding Maven or Gradle dependency to your project.");
         }
         if (detectedTypes.size() > 1) {
-            throw new IllegalStateException("Database auto-detection failed, multiple databases detected: " + detectedTypes);
+            throw new IllegalStateException("Database auto-detection failed, multiple database drivers detected: " + detectedTypes + ". " +
+                    "You have to specify the database type manually via @AutoConfigureEmbeddedDatabase or using configuration properties.");
         }
 
         return detectedTypes.iterator().next().name();

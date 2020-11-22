@@ -221,7 +221,11 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
     public synchronized void destroy() {
         logger.trace("Closing database context bean - context={}", beanName);
         if (database != null) {
-            awaitDatabase().close();
+            try {
+                awaitDatabase().close();
+            } catch (Throwable t) {
+                // TODO: do nothing - consider logging the error
+            }
         }
     }
 

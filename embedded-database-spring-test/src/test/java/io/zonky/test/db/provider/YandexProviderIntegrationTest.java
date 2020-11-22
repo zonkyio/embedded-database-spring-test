@@ -18,6 +18,9 @@ package io.zonky.test.db.provider;
 
 import io.zonky.test.category.PostgresTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -38,6 +41,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = YANDEX)
 @ContextConfiguration
 public class YandexProviderIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeYandexSupportsCurrentPostgresVersion);
 
     @Autowired
     private DataSource dataSource;

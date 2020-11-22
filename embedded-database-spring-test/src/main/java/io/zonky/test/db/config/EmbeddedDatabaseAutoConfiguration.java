@@ -216,7 +216,7 @@ public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, Bean
         if (!ClassUtils.isPresent(className, classLoader)) {
             String dependencyName = String.format("%s:%s", groupId, artifactId);
             String dependencyUrl = String.format("https://mvnrepository.com/artifact/%s/%s", groupId, artifactId);
-            String errorMessage = String.format("You need to add the following dependency: '%s' (%s)", dependencyName, dependencyUrl);
+            String errorMessage = String.format("You have to add the following dependency to your project: '%s' (%s)", dependencyName, dependencyUrl);
             throw new MissingProviderDependencyException(errorMessage);
         }
     }

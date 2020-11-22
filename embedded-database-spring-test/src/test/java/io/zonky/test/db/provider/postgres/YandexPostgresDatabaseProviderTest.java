@@ -35,7 +35,10 @@ public class YandexPostgresDatabaseProviderTest {
 
     @Test
     public void testGetDatabase() throws Exception {
-        YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(new MockEnvironment());
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "10.11-1");
+
+        YandexPostgresDatabaseProvider provider = new YandexPostgresDatabaseProvider(environment);
 
         DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);

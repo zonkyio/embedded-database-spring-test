@@ -16,9 +16,11 @@
 
 package io.zonky.test.db;
 
+import io.zonky.test.category.SpringTestSuite;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,8 +38,9 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
+@Category(SpringTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES)
-public class EmptyDatabaseIntegrationTest {
+public class SpringSqlAnnotationIntegrationTest {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 

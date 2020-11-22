@@ -90,7 +90,7 @@ public class DefaultProviderResolverTest {
 
         assertThatCode(() -> resolver.getDescriptor(new DatabaseDefinition("", DatabaseType.AUTO, DatabaseProvider.DEFAULT)))
                 .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no database detected");
+                .hasMessageContaining("no database driver detected");
     }
 
     @Test
@@ -101,6 +101,6 @@ public class DefaultProviderResolverTest {
 
         assertThatCode(() -> resolver.getDescriptor(new DatabaseDefinition("", DatabaseType.AUTO, DatabaseProvider.DEFAULT)))
                 .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("multiple databases detected");
+                .hasMessageContaining("multiple database drivers detected");
     }
 }

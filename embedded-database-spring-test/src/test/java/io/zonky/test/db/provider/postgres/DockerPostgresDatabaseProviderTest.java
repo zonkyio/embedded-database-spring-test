@@ -128,7 +128,7 @@ public class DockerPostgresDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:9.6.11-alpine");
+        environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:9.6-alpine");
         environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
         environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
         environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");

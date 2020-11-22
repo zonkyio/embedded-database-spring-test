@@ -82,7 +82,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
         String threadNamePrefix = environment.getProperty("zonky.test.database.prefetching.thread-name-prefix", "prefetching-");
         int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
-        pipelineMaxCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-max-cache-size", int.class, 3);
+        pipelineMaxCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 3);
 
         taskExecutor.setThreadNamePrefix(threadNamePrefix);
         taskExecutor.setCorePoolSize(concurrency);
