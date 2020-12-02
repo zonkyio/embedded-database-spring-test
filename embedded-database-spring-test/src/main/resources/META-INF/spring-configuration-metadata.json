@@ -91,17 +91,17 @@
     {
       "name": "zonky.test.database.postgres.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the test data source."
+      "description": "Additional PostgreSQL options used to configure the test data source."
     },
     {
       "name": "zonky.test.database.postgres.initdb.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties to pass to initdb command during the database initialization."
+      "description": "Additional PostgreSQL options to pass to initdb command during the database initialization."
     },
     {
       "name": "zonky.test.database.postgres.server.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the embedded PostgreSQL server."
+      "description": "Additional PostgreSQL options used to configure the embedded database server."
     },
     {
       "name": "zonky.test.database.postgres.docker.image",
@@ -130,7 +130,7 @@
     {
       "name": "zonky.test.database.mssql.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the test data source."
+      "description": "Additional MSSQL options used to configure the test data source."
     },
     {
       "name": "zonky.test.database.mssql.docker.image",
@@ -141,7 +141,7 @@
     {
       "name": "zonky.test.database.mysql.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the test data source."
+      "description": "Additional MySQL options used to configure the test data source."
     },
     {
       "name": "zonky.test.database.mysql.docker.image",
@@ -164,7 +164,7 @@
     {
       "name": "zonky.test.database.mariadb.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the test data source."
+      "description": "Additional MariaDB options used to configure the test data source."
     },
     {
       "name": "zonky.test.database.mariadb.docker.image",

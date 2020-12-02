@@ -54,7 +54,7 @@ public @interface AutoConfigureEmbeddedDatabase {
      *
      * <p>This feature allows for reset the database to its initial state that existed before the test began.
      * It is based on the use of template databases and does not rely on the rollback of the current transaction,
-     * so it is possible to save and commit data within the test without any issues.
+     * so it is possible to save and commit data within the test without any consequences.
      *
      * <p>The refresh mode may also be configured via the {@code zonky.test.database.refresh} configuration property.
      *
