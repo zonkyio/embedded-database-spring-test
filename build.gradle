@@ -180,7 +180,7 @@ subprojects {
         tagTemplate = 'v${version}'
         versionPatterns = [
             // increments the minor version: "1.0.0-SNAPSHOT" => "1.1.0-SNAPSHOT"
-            /(\d+)\.\d+([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}.0${m[0][2]}") }
+            /(\d+)\.\d+(([^\d\.].*)?$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}.0${m[0][2]}") }
         ]
         git {
             requireBranch = '^(master|\\d+\\.\\d+\\.x)$'
