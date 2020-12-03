@@ -29,7 +29,7 @@ Add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.0-beta1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -660,7 +660,7 @@ If this behavior is inappropriate for some reason, you can deactivate it by excl
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.0-beta1</version>
     <scope>test</scope>
     <exclusions>
         <exclusion>
