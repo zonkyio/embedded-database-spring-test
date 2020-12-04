@@ -1,5 +1,13 @@
 # <img src="zonky.jpg" height="100"> Embedded Database
 
+### :information_source: Embedded Database 2.0 Beta 1 release is available for testing
+
+Please read the [release notes](https://github.com/zonkyio/embedded-database-spring-test/wiki/Embedded-Database-2.0-Release-Notes-(Draft)) carefully before installing and testing this release.
+
+Updated documentation is available here: https://github.com/zonkyio/embedded-database-spring-test/tree/v2.0.0-beta1
+
+Thank you for your time and feedback.
+
 ## Introduction
 
 The primary goal of this project is to make it easier to write Spring-powered integration tests that rely on PostgreSQL database. This library is responsible for creating and managing isolated embedded databases for each test class or test method, based on test configuration.
