@@ -95,6 +95,12 @@ public class FlywayConfigSnapshot {
     private final boolean outputQueryResults;
     private final int connectRetries;
     private final int lockRetryCount;
+    private final String conjurUrl;
+    private final String conjurToken;
+    private final String vaultUrl;
+    private final String vaultToken;
+    private final String vaultSecret;
+    private final List<String> vaultSecrets;
 
     public FlywayConfigSnapshot(Flyway flyway) {
         final Object config;
@@ -297,6 +303,30 @@ public class FlywayConfigSnapshot {
             this.lockRetryCount = getValue(config, "getLockRetryCount");
         } else {
             this.lockRetryCount = 50;
+        }
+
+        if (flywayVersion >= 74) {
+            this.conjurUrl = getValue(config, "getConjurUrl");
+            this.conjurToken = getValue(config, "getConjurToken");
+            this.vaultUrl = getValue(config, "getVaultUrl");
+            this.vaultToken = getValue(config, "getVaultToken");
+        } else {
+            this.conjurUrl = null;
+            this.conjurToken = null;
+            this.vaultUrl = null;
+            this.vaultToken = null;
+        }
+
+        if (flywayVersion >= 74 && flywayVersion < 76) {
+            this.vaultSecret = getValue(config, "getVaultSecret");
+        } else {
+            this.vaultSecret = null;
+        }
+
+        if (flywayVersion >= 76) {
+            this.vaultSecrets = ImmutableList.copyOf(getArray(config, "getVaultSecrets"));
+        } else {
+            this.vaultSecrets = ImmutableList.of();;
         }
     }
 
@@ -560,6 +590,30 @@ public class FlywayConfigSnapshot {
         return lockRetryCount;
     }
 
+    public String getConjurUrl() {
+        return conjurUrl;
+    }
+
+    public String getConjurToken() {
+        return conjurToken;
+    }
+
+    public String getVaultUrl() {
+        return vaultUrl;
+    }
+
+    public String getVaultToken() {
+        return vaultToken;
+    }
+
+    public String getVaultSecret() {
+        return vaultSecret;
+    }
+
+    public List<String> getVaultSecrets() {
+        return vaultSecrets;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -623,7 +677,13 @@ public class FlywayConfigSnapshot {
                 Objects.equals(user, that.user) &&
                 Objects.equals(password, that.password) &&
                 Objects.equals(oracleKerberosConfigFile, that.oracleKerberosConfigFile) &&
-                Objects.equals(oracleKerberosCacheFile, that.oracleKerberosCacheFile);
+                Objects.equals(oracleKerberosCacheFile, that.oracleKerberosCacheFile) &&
+                Objects.equals(conjurUrl, that.conjurUrl) &&
+                Objects.equals(conjurToken, that.conjurToken) &&
+                Objects.equals(vaultUrl, that.vaultUrl) &&
+                Objects.equals(vaultToken, that.vaultToken) &&
+                Objects.equals(vaultSecret, that.vaultSecret) &&
+                Objects.equals(vaultSecrets, that.vaultSecrets);
     }
 
     @Override
@@ -643,6 +703,7 @@ public class FlywayConfigSnapshot {
                 cleanOnValidationError, cleanDisabled, allowMixedMigrations, createSchemas,
                 mixed, group, installedBy, dryRun, stream, batch,
                 oracleSqlPlus, oracleSqlplusWarn, oracleKerberosConfigFile, oracleKerberosCacheFile,
-                outputQueryResults, connectRetries, lockRetryCount);
+                outputQueryResults, connectRetries, lockRetryCount,
+                conjurUrl, conjurToken, vaultUrl, vaultToken, vaultSecret, vaultSecrets);
     }
 }
