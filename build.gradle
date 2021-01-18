@@ -163,7 +163,7 @@ project(':embedded-database-spring-test') {
         compile project(':embedded-database-spring-test-autoconfigure')
 
         compile 'io.zonky.test:embedded-postgres:1.2.9'
-        compile 'org.testcontainers:postgresql:1.12.1', optional
+        compile 'org.testcontainers:postgresql:1.15.1', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.1', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
         compile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE', optional

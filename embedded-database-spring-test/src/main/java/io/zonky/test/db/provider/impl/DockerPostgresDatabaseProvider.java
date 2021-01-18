@@ -35,8 +35,10 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -143,14 +145,10 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
                     .map(e -> String.format("-c %s=%s", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(" "));
 
-            container = new PostgreSQLContainer(config.dockerImage) {
-                @Override
-                protected void configure() {
-                    super.configure();
-                    addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
-                    setCommand("postgres " + postgresArgs);
-                }
-            };
+            container = createPostgreSQLContainer(config.dockerImage, container -> {
+                container.addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
+                container.setCommand("postgres " + postgresArgs);
+            });
 
             if (config.tmpfsEnabled) {
                 Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
@@ -167,6 +165,26 @@ public class DockerPostgresDatabaseProvider implements DatabaseProvider {
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerPostgresDatabaseProvider.class)));
 
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
+        }
+
+        private PostgreSQLContainer createPostgreSQLContainer(String dockerImage, Consumer<PostgreSQLContainer> configAction) {
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                return new PostgreSQLContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("postgres")) {
+                    @Override
+                    protected void configure() {
+                        super.configure();
+                        configAction.accept(this);
+                    }
+                };
+            } else {
+                return new PostgreSQLContainer(dockerImage) {
+                    @Override
+                    protected void configure() {
+                        super.configure();
+                        configAction.accept(this);
+                    }
+                };
+            }
         }
 
         public DatabaseTemplate getTemplate(ClientConfig config, DatabasePreparer preparer) {
