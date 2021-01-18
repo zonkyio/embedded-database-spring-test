@@ -37,7 +37,9 @@ ext {
             [core: '7.0.4', test: '7.0.0'],
             [core: '7.1.1', test: '7.0.0'],
             [core: '7.2.1', test: '7.0.0'],
-            [core: '7.3.0', test: '7.0.0'],
+            [core: '7.3.2', test: '7.0.0'],
+            [core: '7.4.0', test: '7.0.0'],
+            [core: '7.5.0', test: '7.0.0'],
 
             [core: '5.0.7', test: '5.0.0'] // default version
     ]
