@@ -127,6 +127,9 @@
       "name": "zonky.test.database.postgres.docker.image",
       "values": [
         {
+          "value": "postgres:13-alpine"
+        },
+        {
           "value": "postgres:12-alpine"
         },
         {
@@ -142,7 +145,7 @@
           "value": "postgres:9.5-alpine"
         },
         {
-          "value": "postgres:9.4-alpine"
+          "value": "postgres:13"
         },
         {
           "value": "postgres:12"
@@ -160,37 +163,40 @@
           "value": "postgres:9.5"
         },
         {
-          "value": "postgres:9.4"
+          "value": "postgis/postgis:13-3.1-alpine"
         },
         {
-          "value": "mdillon/postgis:11-alpine"
+          "value": "postgis/postgis:12-3.1-alpine"
         },
         {
-          "value": "mdillon/postgis:10-alpine"
+          "value": "postgis/postgis:11-3.1-alpine"
         },
         {
-          "value": "mdillon/postgis:9.6-alpine"
+          "value": "postgis/postgis:10-3.1-alpine"
         },
         {
-          "value": "mdillon/postgis:9.5-alpine"
+          "value": "postgis/postgis:9.6-3.1-alpine"
         },
         {
-          "value": "mdillon/postgis:9.4-alpine"
+          "value": "postgis/postgis:9.5-3.0-alpine"
         },
         {
-          "value": "mdillon/postgis:11"
+          "value": "postgis/postgis:13-3.1"
         },
         {
-          "value": "mdillon/postgis:10"
+          "value": "postgis/postgis:12-3.1"
         },
         {
-          "value": "mdillon/postgis:9.6"
+          "value": "postgis/postgis:11-3.1"
         },
         {
-          "value": "mdillon/postgis:9.5"
+          "value": "postgis/postgis:10-3.1"
         },
         {
-          "value": "mdillon/postgis:9.4"
+          "value": "postgis/postgis:9.6-3.1"
+        },
+        {
+          "value": "postgis/postgis:9.5-3.0"
         }
       ],
       "providers": [
