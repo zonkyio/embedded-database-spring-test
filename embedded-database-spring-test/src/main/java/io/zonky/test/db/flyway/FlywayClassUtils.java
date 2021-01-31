@@ -18,20 +18,15 @@ package io.zonky.test.db.flyway;
 
 import org.apache.commons.io.IOUtils;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.FlywayException;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
 
-import static io.zonky.test.db.util.ReflectionUtils.getField;
-import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
-import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FlywayClassUtils {
 
     private static final int flywayVersion = loadFlywayVersion();
-    private static final boolean flywayPro = loadFlywayPro();
 
     private FlywayClassUtils() {}
 
@@ -53,31 +48,7 @@ public class FlywayClassUtils {
         }
     }
 
-    private static boolean loadFlywayPro() {
-        if (flywayVersion < 50) {
-            return false;
-        }
-        try {
-            if (flywayVersion >= 60) {
-                Object flywayConfig = invokeStaticMethod(Flyway.class, "configure");
-                invokeMethod(flywayConfig, "undoSqlMigrationPrefix", "U");
-            } else if (flywayVersion >= 51) {
-                Object flywayConfig = getField(new Flyway(), "configuration");
-                invokeMethod(flywayConfig, "setUndoSqlMigrationPrefix", "U");
-            } else {
-                new Flyway().setUndoSqlMigrationPrefix("U");
-            }
-            return true;
-        } catch (FlywayException e) {
-            return false;
-        }
-    }
-
     public static int getFlywayVersion() {
         return flywayVersion;
-    }
-
-    public static boolean isFlywayPro() {
-        return flywayPro;
     }
 }

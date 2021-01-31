@@ -21,7 +21,6 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.util.ClassUtils;
 
@@ -51,7 +50,7 @@ public class FlywayWrapper {
             Object config = invokeStaticMethod(Flyway.class, "configure");
             return new FlywayWrapper(invokeMethod(config, "load"));
         } else {
-            return new FlywayWrapper(new Flyway());
+            return new FlywayWrapper(invokeConstructor(Flyway.class));
         }
     }
 
@@ -100,7 +99,7 @@ public class FlywayWrapper {
                         "getConfiguration".equals(invocation.getMethod().getName()) ? config : invocation.proceed());
                 return invokeMethod(resolver, "resolveMigrations", contextInstance);
             } else {
-                return resolver.resolveMigrations();
+                return invokeMethod(resolver, "resolveMigrations");
             }
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Class not found: " + e.getMessage());
@@ -129,7 +128,7 @@ public class FlywayWrapper {
             Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
             return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
         } else if (flywayVersion >= 40) {
-            Scanner scanner = new Scanner(flyway.getClassLoader());
+            Object scanner = createScanner(flyway);
             return invokeMethod(flyway, "createMigrationResolver", null, scanner);
         } else {
             return invokeMethod(flyway, "createMigrationResolver", (Object) null);
@@ -191,7 +190,11 @@ public class FlywayWrapper {
                     invokeMethod(config, "getEncoding"));
         }
         if (flywayVersion >= 51) {
-            return invokeConstructor(Scanner.class, config);
+            return invokeConstructor("org.flywaydb.core.internal.util.scanner.Scanner", config);
+        }
+        if (flywayVersion >= 40) {
+            return invokeConstructor("org.flywaydb.core.internal.util.scanner.Scanner",
+                    (Object) invokeMethod(config, "getClassLoader"));
         }
 
         throw new IllegalStateException("Unsupported flyway version: " + flywayVersion);

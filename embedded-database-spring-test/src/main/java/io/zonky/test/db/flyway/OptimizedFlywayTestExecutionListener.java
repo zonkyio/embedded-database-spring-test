@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.springframework.asm.SpringAsmInfo.ASM_VERSION;
+import static org.springframework.asm.Opcodes.ASM6;
 import static org.springframework.util.ReflectionUtils.findMethod;
 
 public class OptimizedFlywayTestExecutionListener implements TestExecutionListener, Ordered {
@@ -157,7 +157,7 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
         private final Function<MethodVisitor, MethodVisitor> methodReplacer;
 
         private ClassTransformer(ClassWriter cw, Method method, Function<MethodVisitor, MethodVisitor> methodReplacer) {
-            super(ASM_VERSION, cw);
+            super(ASM6, cw);
             this.methodName = method.getName();
             this.methodDescriptor = Type.getMethodDescriptor(method);
             this.methodReplacer = methodReplacer;
@@ -181,7 +181,7 @@ public class OptimizedFlywayTestExecutionListener implements TestExecutionListen
 
         private LocationsMigrationHandlingMethodReplacer(MethodVisitor writer) {
             // now, we're not passing the writer to the superclass for our radical changes
-            super(ASM_VERSION);
+            super(ASM6);
             this.writer = writer;
         }
 

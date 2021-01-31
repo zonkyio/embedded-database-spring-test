@@ -209,8 +209,8 @@ project(':embedded-database-spring-test') {
         compile 'mysql:mysql-connector-java:8.0.22', optional
         compile 'org.mariadb.jdbc:mariadb-java-client:2.7.0', optional
 
-        compile 'org.flywaydb:flyway-core:5.0.7', optional
-        compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:5.0.0', optional
+        compile 'org.flywaydb:flyway-core:7.3.0', optional
+        compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
         compile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE', optional
         compile 'org.liquibase:liquibase-core:3.5.5', optional
 
