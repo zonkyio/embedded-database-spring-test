@@ -26,6 +26,7 @@ import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -33,6 +34,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.util.concurrent.ListenableFutureTask;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,6 +66,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
     protected static final ThreadPoolTaskExecutor taskExecutor = new PriorityThreadPoolTaskExecutor();
     protected static final ConcurrentMap<PipelineKey, DatabasePipeline> pipelines = new ConcurrentHashMap<>();
+    protected static final AtomicLong databaseCount = new AtomicLong();
 
     protected final int pipelineMaxCacheSize;
 
@@ -92,6 +95,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.trace("Prefetching pipelines: {}", pipelines.values());
+        databaseCount.decrementAndGet();
 
         PipelineKey key = new PipelineKey(provider, preparer);
         DatabasePipeline pipeline = pipelines.computeIfAbsent(key, k -> new DatabasePipeline());
@@ -108,12 +112,13 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         }
 
         long invocationCount = pipeline.requests.incrementAndGet();
-        if (invocationCount > 1) {
-            if (invocationCount - 1 <= pipelineMaxCacheSize) {
-                prepareDatabase(key, -1);
-            }
-            reschedulePipeline(key);
+        long databasesCount = pipeline.tasks.size() + pipeline.results.size();
+        if (result == null) databasesCount--;
+
+        if (databasesCount < invocationCount - 1 && databasesCount < pipelineMaxCacheSize) {
+            prepareDatabase(key, -1);
         }
+        reschedulePipeline(key);
 
         if (result == null) {
             try {
@@ -141,6 +146,21 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     }
 
     protected PrefetchingTask prepareNewDatabase(PipelineKey key, int priority) {
+        databaseCount.incrementAndGet();
+
+        Pair<PipelineKey, EmbeddedDatabase> databaseToRemove = findDatabaseToRemove().orElse(null);
+        if (databaseToRemove != null) {
+            databaseCount.decrementAndGet();
+
+            if (databaseToRemove.getKey().equals(key)) {
+                return executeTask(key, PrefetchingTask.withDatabase(databaseToRemove.getValue(), priority));
+            } else {
+                databaseToRemove.getValue().close();
+                DatabasePipeline pipeline = pipelines.get(databaseToRemove.getKey());
+                logger.trace("Prepared database has been cleaned: {}", pipeline.key);
+            }
+        }
+
         return executeTask(key, PrefetchingTask.forPreparer(key.provider, key.preparer, priority));
     }
 
@@ -221,6 +241,35 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         return task;
     }
 
+    protected Optional<Pair<PipelineKey, EmbeddedDatabase>> findDatabaseToRemove() {
+        while (databaseCount.get() > 35) {
+            long timestampThreshold = System.currentTimeMillis() - 10_000;
+
+            PipelineKey key = pipelines.entrySet().stream()
+                    .map(e -> Pair.of(e.getKey(), e.getValue().results.peek()))
+                    .filter(e -> e.getValue() != null && e.getValue().getTimestamp() < timestampThreshold)
+                    .min(Comparator.comparing(e -> e.getValue().getTimestamp()))
+                    .map(Pair::getKey).orElse(null);
+
+            if (key == null) {
+                return Optional.empty();
+            }
+
+            DatabasePipeline pipeline = pipelines.get(key);
+            if (pipeline != null) {
+                PreparedResult result = pipeline.results.poll();
+                if (result != null) {
+                    if (result.hasResult()) {
+                        return Optional.of(Pair.of(key, result.get()));
+                    } else {
+                        databaseCount.decrementAndGet();
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -288,6 +337,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
     protected static class PreparedResult {
 
+        private final long timestamp = System.currentTimeMillis();
         private final EmbeddedDatabase result;
         private final Throwable error;
 
@@ -302,6 +352,14 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         protected PreparedResult(EmbeddedDatabase result, Throwable error) {
             this.result = result;
             this.error = error;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public boolean hasResult() {
+            return result != null;
         }
 
         public EmbeddedDatabase get() throws ProviderException {
@@ -338,6 +396,10 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
                 preparer.prepare(database);
                 return database;
             });
+        }
+
+        public static PrefetchingTask withDatabase(EmbeddedDatabase database, int priority) {
+            return new PrefetchingTask(priority, EXISTING_DATABASE, () -> database);
         }
 
         public static PrefetchingTask fromTask(PrefetchingTask task, int priority) {

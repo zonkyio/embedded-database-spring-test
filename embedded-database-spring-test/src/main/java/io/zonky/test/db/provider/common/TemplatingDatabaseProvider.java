@@ -358,7 +358,7 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
         public static class Builder {
 
             private long durationThreshold = 0;
-            private int maxTemplateCount = 50;
+            private int maxTemplateCount = 15;
 
             private Builder() {}
 
