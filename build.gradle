@@ -195,10 +195,10 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'org.testcontainers:postgresql:1.15.0'
-        compile 'org.testcontainers:mssqlserver:1.15.0'
-        compile 'org.testcontainers:mysql:1.15.0'
-        compile 'org.testcontainers:mariadb:1.15.0'
+        compile 'org.testcontainers:postgresql:1.15.3'
+        compile 'org.testcontainers:mssqlserver:1.15.3'
+        compile 'org.testcontainers:mysql:1.15.3'
+        compile 'org.testcontainers:mariadb:1.15.3'
 
         compile 'io.zonky.test:embedded-postgres:1.2.9', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.3', optional
