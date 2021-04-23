@@ -6,6 +6,7 @@ import io.zonky.test.support.SpyPostProcessor;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
@@ -22,7 +23,6 @@ import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +68,7 @@ public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListene
         }
     }
 
-    public static class TestDatabaseInitializer {
+    public static class TestDatabaseInitializer implements InitializingBean {
 
         private final DataSource dataSource;
         private final ResourceLoader resourceLoader;
@@ -78,8 +78,8 @@ public class DatabaseRefreshIntegrationTest extends AbstractTestExecutionListene
             this.resourceLoader = resourceLoader;
         }
 
-        @PostConstruct
-        public void init() {
+        @Override
+        public void afterPropertiesSet() throws Exception {
             ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
             populator.addScript(this.resourceLoader.getResource("db/create_address_table.sql"));
             DatabasePopulatorUtils.execute(populator, this.dataSource);

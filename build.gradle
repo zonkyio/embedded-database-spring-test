@@ -22,9 +22,6 @@ ext {
                     [name: '5.3.1',   spring: '5.3.1',           'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default']
             ]],
             [name: 'flyway', versions: [
-                    [name: '3.0',    flyway: '3.0',     'flyway-test': '3.0.1',    spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
-                    [name: '3.1',    flyway: '3.1',     'flyway-test': '3.1',      spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
-                    [name: '3.2.1',  flyway: '3.2.1',   'flyway-test': '3.2.1.1',  spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE',   'zonky-postgres': 'default'],
                     [name: '4.0.3',  flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
                     [name: '4.1.2',  flyway: '4.1.2',   'flyway-test': '4.1.0',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
                     [name: '4.2.0',  flyway: '4.2.0',   'flyway-test': '4.2.0.2',  spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
@@ -46,7 +43,6 @@ ext {
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
-                    [name: '3.5.3',  liquibase: '3.5.3',  spring: '4.3.8.RELEASE',   'spring-boot': '1.4.6.RELEASE'],
                     [name: '3.5.5',  liquibase: '3.5.5',  spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE'],
                     [name: '3.6.3',  liquibase: '3.6.3',  spring: '5.1.19.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
                     [name: '3.7.0',  liquibase: '3.7.0',  spring: '5.1.19.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
@@ -211,11 +207,11 @@ project(':embedded-database-spring-test') {
 
         compile 'org.flywaydb:flyway-core:7.3.0', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
-        compile 'org.springframework.boot:spring-boot-starter-test:1.5.22.RELEASE', optional
+        compile 'org.springframework.boot:spring-boot-starter-test:2.0.9.RELEASE', optional
         compile 'org.liquibase:liquibase-core:3.5.5', optional
 
-        compile 'org.springframework:spring-context:4.3.25.RELEASE'
-        compile 'org.springframework:spring-test:4.3.25.RELEASE'
+        compile 'org.springframework:spring-context:5.0.13.RELEASE'
+        compile 'org.springframework:spring-test:5.0.13.RELEASE'
         compile 'com.google.guava:guava:23.0'
 
         compile 'org.apache.commons:commons-lang3:3.4' // TODO
@@ -225,9 +221,9 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.apache.logging.log4j'
         }
 
-        testCompile 'org.springframework:spring-jdbc:4.3.25.RELEASE'
+        testCompile 'org.springframework:spring-jdbc:5.0.13.RELEASE'
         testCompile 'ch.qos.logback:logback-classic:1.2.3'
-        testCompile 'org.mockito:mockito-core:1.10.19'
+        testCompile 'org.mockito:mockito-core:3.9.0'
         testCompile 'org.assertj:assertj-core:3.18.1'
     }
 

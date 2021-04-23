@@ -235,16 +235,12 @@ public class RecordingDataSourceTest {
         // it is not possible to use Mockito#verify method
         // because the verification must take place immediately
         // when the PreparedStatement#setBlob method is called
-        doNothing().when(mockStatement).setBlob(eq(1), argThat(new ArgumentMatcher<Blob>() {
-            @Override
-            public boolean matches(Object argument) {
-                try {
-                    Blob blob = (Blob) argument;
-                    byte[] bytes = blob.getBytes(1, 4);
-                    return Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 });
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+        doNothing().when(mockStatement).setBlob(eq(1), argThat((ArgumentMatcher<Blob>) blob1 -> {
+            try {
+                byte[] bytes = blob1.getBytes(1, 4);
+                return Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 });
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
         }));
 
@@ -299,7 +295,7 @@ public class RecordingDataSourceTest {
         DataSource targetDataSource = mock(DataSource.class, RETURNS_DEEP_STUBS);
         PreparedStatement preparedStatement = targetDataSource.getConnection().prepareStatement(any());
         doAnswer(invocation -> {
-            InputStream stream = invocation.getArgumentAt(1, InputStream.class);
+            InputStream stream = invocation.getArgument(1, InputStream.class);
             byte[] bytes = IOUtils.readFully(stream, 4);
             checkState(Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 }));
             return null;
@@ -323,7 +319,7 @@ public class RecordingDataSourceTest {
         when(mockConnection.prepareStatement(any())).thenReturn(mockStatement);
 
         doAnswer(invocation -> {
-            InputStream stream = invocation.getArgumentAt(1, InputStream.class);
+            InputStream stream = invocation.getArgument(1, InputStream.class);
             byte[] bytes = IOUtils.readFully(stream, 4);
             checkState(Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 }));
             return null;
@@ -340,7 +336,7 @@ public class RecordingDataSourceTest {
         DataSource targetDataSource = mock(DataSource.class, RETURNS_DEEP_STUBS);
         PreparedStatement preparedStatement = targetDataSource.getConnection().prepareStatement(any());
         doAnswer(invocation -> {
-            Reader reader = invocation.getArgumentAt(1, Reader.class);
+            Reader reader = invocation.getArgument(1, Reader.class);
             checkState("test".equals(IOUtils.toString(reader)));
             return null;
         }).when(preparedStatement).setCharacterStream(anyInt(), any());
@@ -363,7 +359,7 @@ public class RecordingDataSourceTest {
         when(mockConnection.prepareStatement(any())).thenReturn(mockStatement);
 
         doAnswer(invocation -> {
-            Reader reader = invocation.getArgumentAt(1, Reader.class);
+            Reader reader = invocation.getArgument(1, Reader.class);
             checkState("test".equals(IOUtils.toString(reader)));
             return null;
         }).when(mockStatement).setCharacterStream(eq(1), any());

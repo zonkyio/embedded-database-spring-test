@@ -154,14 +154,8 @@ public class TemplatingDatabaseProviderTest {
     }
 
     private static DatabaseRequest databaseRequest(DatabasePreparer preparer, DatabaseTemplate template) {
-        return argThat(new ArgumentMatcher<DatabaseRequest>() {
-            @Override
-            public boolean matches(Object argument) {
-                DatabaseRequest request = (DatabaseRequest) argument;
-                return Objects.equals(request.getPreparer(), preparer)
-                        && Objects.equals(request.getTemplate(), template);
-            }
-        });
+        return argThat(request -> Objects.equals(request.getPreparer(), preparer)
+                && Objects.equals(request.getTemplate(), template));
     }
 
     private static class TestDatabaseTemplate implements DatabaseTemplate {
