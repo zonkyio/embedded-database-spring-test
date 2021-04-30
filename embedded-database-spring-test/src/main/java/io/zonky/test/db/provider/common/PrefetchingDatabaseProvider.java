@@ -29,7 +29,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.util.concurrent.ListenableFutureTask;
@@ -68,8 +67,6 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     protected static final ConcurrentMap<PipelineKey, DatabasePipeline> pipelines = new ConcurrentHashMap<>();
     protected static final AtomicLong databaseCount = new AtomicLong();
 
-    protected final int pipelineMaxCacheSize;
-
     static {
         taskExecutor.setThreadNamePrefix("prefetching-");
         taskExecutor.setAllowCoreThreadTimeOut(true);
@@ -79,16 +76,32 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     }
 
     protected final DatabaseProvider provider;
+    protected final Config config;
 
-    public PrefetchingDatabaseProvider(DatabaseProvider provider, Environment environment) {
+    public PrefetchingDatabaseProvider(DatabaseProvider provider) {
+        this(provider, Config.builder().build());
+    }
+
+    public PrefetchingDatabaseProvider(DatabaseProvider provider, Config config) {
         this.provider = provider;
+        this.config = config;
 
-        String threadNamePrefix = environment.getProperty("zonky.test.database.prefetching.thread-name-prefix", "prefetching-");
-        int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
-        pipelineMaxCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 3);
+        taskExecutor.setThreadNamePrefix(config.getThreadNamePrefix());
+        taskExecutor.setCorePoolSize(config.getConcurrency());
+    }
 
-        taskExecutor.setThreadNamePrefix(threadNamePrefix);
-        taskExecutor.setCorePoolSize(concurrency);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PrefetchingDatabaseProvider that = (PrefetchingDatabaseProvider) o;
+        return Objects.equals(provider, that.provider) &&
+                Objects.equals(config, that.config);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(provider, config);
     }
 
     @Override
@@ -115,7 +128,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         long databasesCount = pipeline.tasks.size() + pipeline.results.size();
         if (result == null) databasesCount--;
 
-        if (databasesCount < invocationCount - 1 && databasesCount < pipelineMaxCacheSize) {
+        if (databasesCount < invocationCount - 1 && databasesCount < config.getPipelineMaxCacheSize()) {
             prepareDatabase(key, -1);
         }
         reschedulePipeline(key);
@@ -242,7 +255,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     }
 
     protected Optional<Pair<PipelineKey, EmbeddedDatabase>> findDatabaseToRemove() {
-        while (databaseCount.get() > 35) {
+        while (databaseCount.get() > config.getMaxPreparedDatabases()) {
             long timestampThreshold = System.currentTimeMillis() - 10_000;
 
             PipelineKey key = pipelines.entrySet().stream()
@@ -268,20 +281,6 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             }
         }
         return Optional.empty();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PrefetchingDatabaseProvider that = (PrefetchingDatabaseProvider) o;
-        return pipelineMaxCacheSize == that.pipelineMaxCacheSize &&
-                Objects.equals(provider, that.provider);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(pipelineMaxCacheSize, provider);
     }
 
     protected static class PipelineKey {
@@ -439,6 +438,88 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
             NEW_DATABASE, EXISTING_DATABASE
 
+        }
+    }
+
+    public static class Config {
+
+        private final String threadNamePrefix;
+        private final int concurrency;
+        private final int pipelineMaxCacheSize;
+        private final int maxPreparedDatabases;
+
+        private Config(Config.Builder builder) {
+            this.threadNamePrefix = builder.threadNamePrefix;
+            this.concurrency = builder.concurrency;
+            this.pipelineMaxCacheSize = builder.pipelineMaxCacheSize;
+            this.maxPreparedDatabases = builder.maxPreparedDatabases;
+        }
+
+        public String getThreadNamePrefix() {
+            return threadNamePrefix;
+        }
+
+        public int getConcurrency() {
+            return concurrency;
+        }
+
+        public int getPipelineMaxCacheSize() {
+            return pipelineMaxCacheSize;
+        }
+
+        public int getMaxPreparedDatabases() {
+            return maxPreparedDatabases;
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Config config = (Config) o;
+            return pipelineMaxCacheSize == config.pipelineMaxCacheSize;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(pipelineMaxCacheSize);
+        }
+
+        public static class Builder {
+
+            private String threadNamePrefix = "prefetching-";
+            private int concurrency = 3;
+            private int pipelineMaxCacheSize = 5;
+            private int maxPreparedDatabases = 15;
+
+            private Builder() {}
+
+            public Builder withThreadNamePrefix(String threadNamePrefix) {
+                this.threadNamePrefix = threadNamePrefix;
+                return this;
+            }
+
+            public Builder withConcurrency(int concurrency) {
+                this.concurrency = concurrency;
+                return this;
+            }
+
+            public Builder withPipelineMaxCacheSize(int pipelineMaxCacheSize) {
+                this.pipelineMaxCacheSize = pipelineMaxCacheSize;
+                return this;
+            }
+
+            public Builder withMaxPreparedDatabases(int maxPreparedDatabases) {
+                this.maxPreparedDatabases = maxPreparedDatabases;
+                return this;
+            }
+
+            public Config build() {
+                return new Config(this);
+            }
         }
     }
 }

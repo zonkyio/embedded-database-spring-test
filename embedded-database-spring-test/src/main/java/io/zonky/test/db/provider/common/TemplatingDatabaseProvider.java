@@ -324,9 +324,9 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
         private final long durationThreshold;
         private final int maxTemplateCount;
 
-        private Config(long durationThreshold, int maxTemplateCount) {
-            this.durationThreshold = durationThreshold;
-            this.maxTemplateCount = maxTemplateCount;
+        private Config(Config.Builder builder) {
+            this.durationThreshold = builder.durationThreshold;
+            this.maxTemplateCount = builder.maxTemplateCount;
         }
 
         public long getDurationThreshold() {
@@ -358,22 +358,22 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
         public static class Builder {
 
             private long durationThreshold = 0;
-            private int maxTemplateCount = 15;
+            private int maxTemplateCount = 10;
 
             private Builder() {}
 
-            public Builder setDurationThreshold(long durationThreshold) {
+            public Builder withDurationThreshold(long durationThreshold) {
                 this.durationThreshold = durationThreshold;
                 return this;
             }
 
-            public Builder setMaxTemplateCount(int maxTemplateCount) {
+            public Builder withMaxTemplateCount(int maxTemplateCount) {
                 this.maxTemplateCount = maxTemplateCount;
                 return this;
             }
 
             public Config build() {
-                return new Config(durationThreshold, maxTemplateCount);
+                return new Config(this);
             }
         }
     }

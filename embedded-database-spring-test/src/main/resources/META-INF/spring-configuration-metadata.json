@@ -86,7 +86,13 @@
       "name": "zonky.test.database.prefetching.pipeline-cache-size",
       "type": "java.lang.Integer",
       "description": "Maximum number of prepared databases per pipeline (the pipeline is a queue of independent databases that contains the same initial data).",
-      "defaultValue": 3
+      "defaultValue": 5
+    },
+    {
+      "name": "zonky.test.database.prefetching.max-prepared-templates",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of prepared database templates.",
+      "defaultValue": 10
     },
     {
       "name": "zonky.test.database.postgres.client.properties",

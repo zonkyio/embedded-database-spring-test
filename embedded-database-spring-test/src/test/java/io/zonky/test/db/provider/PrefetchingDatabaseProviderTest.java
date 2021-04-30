@@ -23,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.mock.env.MockEnvironment;
 
 import java.util.HashSet;
 import java.util.List;
@@ -52,7 +51,7 @@ public class PrefetchingDatabaseProviderTest {
 
     @Before
     public void setUp() {
-        prefetchingProvider = new PrefetchingDatabaseProvider(databaseProvider, new MockEnvironment());
+        prefetchingProvider = new PrefetchingDatabaseProvider(databaseProvider);
     }
 
     @Test

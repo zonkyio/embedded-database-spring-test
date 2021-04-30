@@ -21,10 +21,6 @@ import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
-import io.zonky.test.db.provider.TemplatableDatabaseProvider;
-import io.zonky.test.db.provider.common.OptimizingDatabaseProvider;
-import io.zonky.test.db.provider.common.PrefetchingDatabaseProvider;
-import io.zonky.test.db.provider.common.TemplatingDatabaseProvider;
 import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
@@ -36,134 +32,142 @@ import io.zonky.test.db.support.DatabaseProviders;
 import io.zonky.test.db.support.DefaultProviderResolver;
 import io.zonky.test.db.support.ProviderResolver;
 import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
-import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
 @Configuration
-public class EmbeddedDatabaseAutoConfiguration implements EnvironmentAware, BeanClassLoaderAware, BeanFactoryAware {
+public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
 
-    private Environment environment;
     private ClassLoader classLoader;
-    private AutowireCapableBeanFactory beanFactory;
-
-    @Override
-    public void setEnvironment(Environment environment) {
-        this.environment = environment;
-    }
 
     @Override
     public void setBeanClassLoader(ClassLoader classLoader) {
         this.classLoader = classLoader;
     }
 
-    @Override
-    public void setBeanFactory(BeanFactory beanFactory) {
-        this.beanFactory = (AutowireCapableBeanFactory) beanFactory;
-    }
-
     @Bean
     @Provider(type = "docker", database = "postgres")
     @ConditionalOnMissingBean(name = "dockerPostgresDatabaseProvider")
-    public DatabaseProvider dockerPostgresDatabaseProvider() {
+    public DatabaseProvider dockerPostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {
         checkDependency("org.testcontainers", "postgresql", "org.testcontainers.containers.PostgreSQLContainer");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
-        TemplatableDatabaseProvider provider = beanFactory.createBean(DockerPostgresDatabaseProvider.class);
-        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return postgresDatabaseProviderFactory.createProvider(DockerPostgresDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "zonky", database = "postgres")
     @ConditionalOnMissingBean(name = "zonkyPostgresDatabaseProvider")
-    public DatabaseProvider zonkyPostgresDatabaseProvider() {
+    public DatabaseProvider zonkyPostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {
         checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
-        TemplatableDatabaseProvider provider = beanFactory.createBean(ZonkyPostgresDatabaseProvider.class);
-        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return postgresDatabaseProviderFactory.createProvider(ZonkyPostgresDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "opentable", database = "postgres")
     @ConditionalOnMissingBean(name = "openTablePostgresDatabaseProvider")
-    public DatabaseProvider openTablePostgresDatabaseProvider() {
+    public DatabaseProvider openTablePostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {
         checkDependency("com.opentable.components", "otj-pg-embedded", "com.opentable.db.postgres.embedded.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
-        TemplatableDatabaseProvider provider = beanFactory.createBean(OpenTablePostgresDatabaseProvider.class);
-        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return postgresDatabaseProviderFactory.createProvider(OpenTablePostgresDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "yandex", database = "postgres")
     @ConditionalOnMissingBean(name = "yandexPostgresDatabaseProvider")
-    public DatabaseProvider yandexPostgresDatabaseProvider() {
+    public DatabaseProvider yandexPostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {
         checkDependency("ru.yandex.qatools.embed", "postgresql-embedded", "ru.yandex.qatools.embed.postgresql.EmbeddedPostgres");
         checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
-        TemplatableDatabaseProvider provider = beanFactory.createBean(YandexPostgresDatabaseProvider.class);
-        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return postgresDatabaseProviderFactory.createProvider(YandexPostgresDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "docker", database = "mssql")
     @ConditionalOnMissingBean(name = "dockerMsSqlDatabaseProvider")
-    public DatabaseProvider dockerMsSqlDatabaseProvider() {
+    public DatabaseProvider dockerMsSqlDatabaseProvider(DatabaseProviderFactory msSqlDatabaseProviderFactory) {
         checkDependency("org.testcontainers", "mssqlserver", "org.testcontainers.containers.MSSQLServerContainer");
         checkDependency("com.microsoft.sqlserver", "mssql-jdbc", "com.microsoft.sqlserver.jdbc.SQLServerDataSource");
-        DockerMSSQLDatabaseProvider provider = beanFactory.createBean(DockerMSSQLDatabaseProvider.class);
-        return optimizingDatabaseProvider(prefetchingDatabaseProvider(templatingDatabaseProvider(provider)));
+        return msSqlDatabaseProviderFactory.createProvider(DockerMSSQLDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "docker", database = "mysql")
     @ConditionalOnMissingBean(name = "dockerMySqlDatabaseProvider")
-    public DatabaseProvider dockerMySqlDatabaseProvider() {
+    public DatabaseProvider dockerMySqlDatabaseProvider(DatabaseProviderFactory mySqlDatabaseProviderFactory) {
         checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
         checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
-        DockerMySQLDatabaseProvider provider = beanFactory.createBean(DockerMySQLDatabaseProvider.class);
-        return optimizingDatabaseProvider(provider);
+        return mySqlDatabaseProviderFactory.createProvider(DockerMySQLDatabaseProvider.class);
     }
 
     @Bean
     @Provider(type = "docker", database = "mariadb")
     @ConditionalOnMissingBean(name = "dockerMariaDbDatabaseProvider")
-    public DatabaseProvider dockerMariaDbDatabaseProvider() {
+    public DatabaseProvider dockerMariaDbDatabaseProvider(DatabaseProviderFactory mariaDbDatabaseProviderFactory) {
         checkDependency("org.testcontainers", "mariadb", "org.testcontainers.containers.MariaDBContainer");
         checkDependency("org.mariadb.jdbc", "mariadb-java-client", "org.mariadb.jdbc.MariaDbDataSource");
-        DockerMariaDBDatabaseProvider provider = beanFactory.createBean(DockerMariaDBDatabaseProvider.class);
-        return optimizingDatabaseProvider(provider);
+        return mariaDbDatabaseProviderFactory.createProvider(DockerMariaDBDatabaseProvider.class);
     }
 
     @Bean
-    @Scope("prototype")
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnMissingBean(name = "optimizingDatabaseProvider")
-    public OptimizingDatabaseProvider optimizingDatabaseProvider(DatabaseProvider provider) {
-        return new OptimizingDatabaseProvider(provider);
-    }
-
-    // TODO: consider using a factory bean instead (also consider using pipeline factories aimed for specific provider types)
-    @Bean
-    @Scope("prototype")
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnMissingBean(name = "prefetchingDatabaseProvider")
-    public PrefetchingDatabaseProvider prefetchingDatabaseProvider(DatabaseProvider provider) {
-        return new PrefetchingDatabaseProvider(provider, environment);
+    @ConditionalOnMissingBean(name = "postgresDatabaseProviderFactory")
+    public DatabaseProviderFactory postgresDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(
+                        builder.prefetchingProvider(
+                                builder.templatingProvider(provider))));
     }
 
     @Bean
-    @Scope("prototype")
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnMissingBean(name = "templatingDatabaseProvider")
-    public TemplatingDatabaseProvider templatingDatabaseProvider(TemplatableDatabaseProvider provider) {
-        return new TemplatingDatabaseProvider(provider);
+    @ConditionalOnMissingBean(name = "msSqlDatabaseProviderFactory")
+    public DatabaseProviderFactory msSqlDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(
+                        builder.prefetchingProvider(
+                                builder.templatingProvider(provider))));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "mySqlDatabaseProviderFactory")
+    public DatabaseProviderFactory mySqlDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(provider));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "mariaDbDatabaseProviderFactory")
+    public DatabaseProviderFactory mariaDbDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(provider));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "defaultDatabaseProviderFactory")
+    public DatabaseProviderFactory defaultDatabaseProviderFactory(AutowireCapableBeanFactory beanFactory, Environment environment) {
+        String threadNamePrefix = environment.getProperty("zonky.test.database.prefetching.thread-name-prefix", "prefetching-");
+        int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
+        int pipelineCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 5);
+        int maxPreparedTemplates = environment.getProperty("zonky.test.database.prefetching.max-prepared-templates", int.class, 10);
+        int maxPreparedDatabases = (maxPreparedTemplates * 2/3 * 2) + pipelineCacheSize;
+
+        return new DatabaseProviderFactory(beanFactory)
+                .customizeTemplating(builder -> builder
+                        .withMaxTemplateCount(maxPreparedTemplates))
+                .customizePrefetching(builder -> builder
+                        .withThreadNamePrefix(threadNamePrefix)
+                        .withConcurrency(concurrency)
+                        .withPipelineMaxCacheSize(pipelineCacheSize)
+                        .withMaxPreparedDatabases(maxPreparedDatabases));
     }
 
     @Bean

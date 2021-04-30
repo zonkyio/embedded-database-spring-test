@@ -648,7 +648,8 @@ The database prefetching feature is used to speed up the initialization and refr
 ```properties
 zonky.test.database.prefetching.thread-name-prefix=prefetching- # Prefix to use for the names of database prefetching threads.
 zonky.test.database.prefetching.concurrency=3                   # Maximum number of concurrently running database prefetching threads.
-zonky.test.database.prefetching.pipeline-cache-size=3           # Maximum number of prepared databases per pipeline.
+zonky.test.database.prefetching.pipeline-cache-size=5           # Maximum number of prepared databases per pipeline.
+zonky.test.database.prefetching.max-prepared-templates=10       # Maximum number of prepared database templates.
 ```
 
 ### Disabling auto-configuration
