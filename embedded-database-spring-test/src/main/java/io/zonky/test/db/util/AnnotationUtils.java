@@ -17,9 +17,8 @@
 package io.zonky.test.db.util;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
-import io.zonky.test.db.AutoConfigureEmbeddedDatabases;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.util.ClassUtils;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -27,15 +26,34 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static io.zonky.test.db.util.ReflectionUtils.invokeStaticMethod;
 import static java.util.stream.Collectors.toCollection;
 
 public class AnnotationUtils {
 
+    private static final Class<?> testContextAnnotationUtilsClass;
+
+    static {
+        Class<?> targetClass;
+        try {
+            ClassLoader classLoader = AnnotationUtils.class.getClassLoader();
+            targetClass = ClassUtils.forName("org.springframework.test.context.TestContextAnnotationUtils", classLoader);
+        } catch (ClassNotFoundException e) {
+            targetClass = null;
+        }
+        testContextAnnotationUtilsClass = targetClass;
+    }
+
     private AnnotationUtils() {}
 
     public static Set<AutoConfigureEmbeddedDatabase> getDatabaseAnnotations(Class<?> annotatedElement) {
-        Set<AutoConfigureEmbeddedDatabase> annotations = AnnotatedElementUtils.getMergedRepeatableAnnotations(
-                annotatedElement, AutoConfigureEmbeddedDatabase.class, AutoConfigureEmbeddedDatabases.class);
+        Set<AutoConfigureEmbeddedDatabase> annotations;
+
+        if (testContextAnnotationUtilsClass != null) {
+            annotations = invokeStaticMethod(testContextAnnotationUtilsClass, "getMergedRepeatableAnnotations", annotatedElement, AutoConfigureEmbeddedDatabase.class);
+        } else {
+            annotations = AnnotatedElementUtils.getMergedRepeatableAnnotations(annotatedElement, AutoConfigureEmbeddedDatabase.class);
+        }
 
         return annotations.stream()
                 .filter(distinctByKey(AutoConfigureEmbeddedDatabase::beanName))
