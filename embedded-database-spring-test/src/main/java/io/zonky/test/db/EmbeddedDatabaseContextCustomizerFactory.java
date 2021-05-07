@@ -38,9 +38,12 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DeferredImportSelector;
 import org.springframework.context.annotation.Import;
@@ -55,7 +58,9 @@ import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.util.LinkedHashSet;
@@ -101,12 +106,21 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
         @Override
         public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
-            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(databaseDefinitions, context.getEnvironment()));
+            context.addBeanFactoryPostProcessor(new EnvironmentPostProcessor(context.getEnvironment()));
 
             BeanDefinitionRegistry registry = getBeanDefinitionRegistry(context);
 
-            RootBeanDefinition configDefinition = new RootBeanDefinition(EmbeddedDatabaseConfiguration.class);
-            registry.registerBeanDefinition(EmbeddedDatabaseConfiguration.BEAN_NAME, configDefinition);
+            // these configurations are necessary only for auto-configuration phase
+            if (databaseDefinitions.size() == 1) {
+                RootBeanDefinition preConfigDefinition = new RootBeanDefinition(SingleDatabaseConfiguration.class);
+                registry.registerBeanDefinition(SingleDatabaseConfiguration.BEAN_NAME, preConfigDefinition);
+            } else if (databaseDefinitions.size() > 1) {
+                RootBeanDefinition preConfigDefinition = new RootBeanDefinition(MultipleDatabasesConfiguration.class);
+                registry.registerBeanDefinition(MultipleDatabasesConfiguration.BEAN_NAME, preConfigDefinition);
+            }
+
+            RootBeanDefinition mainConfigDefinition = new RootBeanDefinition(EmbeddedDatabaseConfiguration.class);
+            registry.registerBeanDefinition(EmbeddedDatabaseConfiguration.BEAN_NAME, mainConfigDefinition);
 
             RootBeanDefinition registrarDefinition = new RootBeanDefinition(EmbeddedDatabaseRegistrar.class);
             registrarDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, databaseDefinitions);
@@ -132,27 +146,81 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
 
     protected static class EnvironmentPostProcessor implements BeanDefinitionRegistryPostProcessor {
 
-        private final Set<DatabaseDefinition> databaseDefinitions;
         private final ConfigurableEnvironment environment;
 
-        public EnvironmentPostProcessor(Set<DatabaseDefinition> databaseDefinitions, ConfigurableEnvironment environment) {
-            this.databaseDefinitions = databaseDefinitions;
+        public EnvironmentPostProcessor(ConfigurableEnvironment environment) {
             this.environment = environment;
         }
 
         @Override
         public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
-            Replace zonkyDatabaseReplace = getDatabaseReplaceMode(environment, databaseDefinitions);
-            String springDatabaseReplace = zonkyDatabaseReplace == Replace.NONE ? "NONE" : "AUTO_CONFIGURED";
-
             environment.getPropertySources().addFirst(new MapPropertySource(
                     EmbeddedDatabaseContextCustomizer.class.getSimpleName(),
-                    ImmutableMap.of("spring.test.database.replace", springDatabaseReplace)));
+                    ImmutableMap.of("spring.test.database.replace", "NONE")));
         }
 
         @Override
         public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             // nothing to do
+        }
+    }
+
+    @Configuration
+    @Import(PreAutoConfigurationImportSelector.class)
+    protected static class SingleDatabaseConfiguration {
+
+        protected static final String BEAN_NAME = SingleDatabaseConfiguration.class.getName();
+
+    }
+
+    @Configuration
+    @Import(PreAutoConfigurationImportSelector.class)
+    protected static class MultipleDatabasesConfiguration {
+
+        protected static final String BEAN_NAME = MultipleDatabasesConfiguration.class.getName();
+
+    }
+
+    protected static class PreAutoConfigurationImportSelector implements DeferredImportSelector, Ordered {
+
+        @Override
+        public String[] selectImports(AnnotationMetadata annotationMetadata) {
+            if (!ClassUtils.isPresent("org.springframework.boot.autoconfigure.condition.ConditionalOnBean", null)) {
+                return new String[0];
+            }
+            String className = annotationMetadata.getClassName();
+            if (SingleDatabaseConfiguration.BEAN_NAME.equals(className)) {
+                return new String[] { PrimaryDataSourceAutoConfiguration.class.getName() };
+            }
+            if (MultipleDatabasesConfiguration.BEAN_NAME.equals(className)) {
+                return new String[] { PrimaryDataSourceAutoConfiguration.class.getName(), SecondaryDataSourceAutoConfiguration.class.getName() };
+            }
+            throw new IllegalStateException("Unexpected selector configuration class: " + className);
+        }
+
+        @Override
+        public int getOrder() {
+            return Ordered.LOWEST_PRECEDENCE - 3;
+        }
+    }
+
+    @Configuration
+    protected static class PrimaryDataSourceAutoConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DataSource embeddedDataSource1() {
+            return null;
+        }
+    }
+
+    @Configuration
+    protected static class SecondaryDataSourceAutoConfiguration {
+
+        @Bean
+        @ConditionalOnSingleCandidate
+        public DataSource embeddedDataSource2() {
+            return null;
         }
     }
 
@@ -198,6 +266,13 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
             Assert.isInstanceOf(ConfigurableListableBeanFactory.class, registry,
                     "Embedded Database Auto-configuration can only be used with a ConfigurableListableBeanFactory");
             ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
+
+            if (registry.containsBeanDefinition("embeddedDataSource1")) {
+                registry.removeBeanDefinition("embeddedDataSource1");
+            }
+            if (registry.containsBeanDefinition("embeddedDataSource2")) {
+                registry.removeBeanDefinition("embeddedDataSource2");
+            }
 
             Replace replace = getDatabaseReplaceMode(environment, databaseDefinitions);
             if (replace == Replace.NONE) {
