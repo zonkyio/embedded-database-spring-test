@@ -28,7 +28,7 @@ public class EmbeddedDatabaseReporter {
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedDatabaseReporter.class);
 
     public static void reportDataSource(String beanName, EmbeddedDatabase database, AnnotatedElement element) {
-        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, database.getUrl(), getElementName(element));
+        logger.info("JDBC URL to connect to '{}': url='{}', scope='{}'", beanName, database.getJdbcUrl(), getElementName(element));
     }
 
     private static String getElementName(AnnotatedElement element) {

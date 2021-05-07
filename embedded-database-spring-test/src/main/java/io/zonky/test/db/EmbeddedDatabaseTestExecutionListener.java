@@ -4,12 +4,12 @@ import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.util.AnnotationUtils;
 import io.zonky.test.db.util.PropertyUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Conventions;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -112,11 +112,11 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
     }
 
     private DatabaseContext getDatabaseContext(ApplicationContext applicationContext, String beanName) {
-        if (StringUtils.isBlank(beanName)) {
-            return applicationContext.getBean(DatabaseContext.class);
-        } else {
+        if (StringUtils.hasText(beanName)) {
             String databaseContextBeanName = beanName + "Context";
             return applicationContext.getBean(databaseContextBeanName, DatabaseContext.class);
+        } else {
+            return applicationContext.getBean(DatabaseContext.class);
         }
     }
 

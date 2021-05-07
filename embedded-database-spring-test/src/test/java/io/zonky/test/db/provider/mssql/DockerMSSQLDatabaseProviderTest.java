@@ -82,7 +82,7 @@ public class DockerMSSQLDatabaseProviderTest {
         DockerMSSQLDatabaseProvider provider = new DockerMSSQLDatabaseProvider(new MockEnvironment(), containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
-        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getUrl()).contains("password=test_Str0ng_Required_Password");
+        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).contains("password=test_Str0ng_Required_Password");
     }
 
     @Test

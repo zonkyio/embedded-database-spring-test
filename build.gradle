@@ -3,6 +3,7 @@ import java.util.regex.Matcher
 plugins {
     id 'net.researchgate.release' version '2.8.1'
     id 'nebula.optional-base' version '5.0.1'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 ext {
@@ -188,6 +189,8 @@ project(':embedded-database-spring-test-autoconfigure') {
 }
 
 project(':embedded-database-spring-test') {
+    apply plugin: 'com.github.johnrengelman.shadow'
+
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
@@ -212,10 +215,8 @@ project(':embedded-database-spring-test') {
 
         compile 'org.springframework:spring-context:5.0.13.RELEASE'
         compile 'org.springframework:spring-test:5.0.13.RELEASE'
-        compile 'com.google.guava:guava:23.0'
 
-        compile 'org.apache.commons:commons-lang3:3.4' // TODO
-        compile 'commons-io:commons-io:2.4' // TODO
+        compile 'com.google.guava:guava:23.0'
 
         compile('com.cedarsoftware:java-util:1.34.0') {
             exclude group: 'org.apache.logging.log4j'
@@ -347,6 +348,31 @@ project(':embedded-database-spring-test') {
                 }
             }
         }
+    }
+
+    def installer = install.repositories.mavenInstaller
+    def deployer = uploadArchives.repositories.mavenDeployer
+
+    [installer, deployer]*.pom*.whenConfigured { pom ->
+        pom.dependencies = pom.dependencies.findAll {
+            it.groupId != 'com.google.guava' && it.artifactId != 'guava'
+        }
+    }
+
+    shadowJar {
+        archiveClassifier.set('')
+
+        dependencies {
+            include(dependency('com.google.guava:guava'))
+        }
+
+        relocate 'com.google.common', 'io.zonky.test.db.shaded.com.google.common'
+        minimize()
+    }
+
+    jar {
+        enabled = false
+        dependsOn shadowJar
     }
 
     test {

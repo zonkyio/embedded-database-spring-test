@@ -29,7 +29,6 @@ import io.zonky.test.db.support.ProviderDescriptor;
 import io.zonky.test.db.support.ProviderResolver;
 import io.zonky.test.db.util.AnnotationUtils;
 import io.zonky.test.db.util.PropertyUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
@@ -263,7 +262,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
     }
 
     protected static BeanDefinitionHolder getDataSourceBeanDefinition(ConfigurableListableBeanFactory beanFactory, DatabaseDefinition databaseDefinition) {
-        if (StringUtils.isNotBlank(databaseDefinition.getBeanName())) {
+        if (StringUtils.hasText(databaseDefinition.getBeanName())) {
             if (beanFactory.containsBean(databaseDefinition.getBeanName())) {
                 BeanDefinition beanDefinition = beanFactory.getBeanDefinition(databaseDefinition.getBeanName());
                 return new BeanDefinitionHolder(beanDefinition, databaseDefinition.getBeanName());

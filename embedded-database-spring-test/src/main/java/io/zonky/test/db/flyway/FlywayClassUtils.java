@@ -16,11 +16,11 @@
 
 package io.zonky.test.db.flyway;
 
-import org.apache.commons.io.IOUtils;
 import org.flywaydb.core.Flyway;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.StreamUtils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -34,7 +34,7 @@ public class FlywayClassUtils {
         try {
             ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayClassUtils.class.getClassLoader());
             if (versionResource.exists()) {
-                return Integer.parseInt(IOUtils.readLines(versionResource.getInputStream(), UTF_8).get(0).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
+                return Integer.parseInt(StreamUtils.copyToString(versionResource.getInputStream(), UTF_8).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
             } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
                 return 32;
             } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {

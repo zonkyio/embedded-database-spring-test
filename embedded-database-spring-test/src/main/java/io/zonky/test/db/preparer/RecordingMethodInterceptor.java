@@ -24,15 +24,16 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AtomicLongMap;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -468,8 +469,7 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         private final byte[] data;
 
         public InputStreamArgumentProvider(InputStream stream) throws IOException {
-            data = IOUtils.toByteArray(stream);
-            stream.close();
+            data = FileCopyUtils.copyToByteArray(stream);
         }
 
         @Override
@@ -496,8 +496,9 @@ public class RecordingMethodInterceptor implements MethodInterceptor {
         private final char[] data;
 
         public ReaderArgumentProvider(Reader reader) throws IOException {
-            data = IOUtils.toCharArray(reader);
-            reader.close();
+            CharArrayWriter writer = new CharArrayWriter();
+            FileCopyUtils.copy(reader, writer);
+            data = writer.toCharArray();
         }
 
         @Override

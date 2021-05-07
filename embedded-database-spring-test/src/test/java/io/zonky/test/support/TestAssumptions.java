@@ -1,8 +1,6 @@
 package io.zonky.test.support;
 
 import io.zonky.test.db.flyway.FlywayClassUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.springframework.util.ClassUtils;
 
 import static org.junit.Assume.assumeTrue;
@@ -32,11 +30,19 @@ public class TestAssumptions {
     }
 
     public static void assumeYandexSupportsCurrentPostgresVersion() {
-        if (SystemUtils.IS_OS_LINUX) {
+        if (isLinux()) {
             String postgresVersion = System.getenv("ZONKY_TEST_DATABASE_POSTGRES_YANDEX-PROVIDER_POSTGRES-VERSION");
             assumeTrue(postgresVersion != null);
-            int majorVersion = Integer.parseInt(StringUtils.substringBefore(postgresVersion, "."));
-            assumeTrue(majorVersion < 11);
+            String majorVersion = postgresVersion.substring(0, postgresVersion.indexOf("."));
+            assumeTrue(Integer.parseInt(majorVersion) < 11);
         }
+    }
+
+    private static boolean isLinux() {
+        String osName = System.getProperty("os.name");
+        if (osName == null) {
+            return false;
+        }
+        return osName.startsWith("Linux") || osName.startsWith("LINUX");
     }
 }

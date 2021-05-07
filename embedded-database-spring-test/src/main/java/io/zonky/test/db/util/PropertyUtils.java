@@ -16,7 +16,6 @@
 
 package io.zonky.test.db.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
@@ -32,13 +31,14 @@ public class PropertyUtils {
     private PropertyUtils() {}
 
     public static Map<String, String> extractAll(Environment environment, String prefix) {
+        prefix += ".";
         Map<String, String> properties = new HashMap<>();
         if (environment instanceof ConfigurableEnvironment) {
             for (PropertySource<?> propertySource : ((ConfigurableEnvironment) environment).getPropertySources()) {
                 if (propertySource instanceof EnumerablePropertySource) {
                     for (String key : ((EnumerablePropertySource) propertySource).getPropertyNames()) {
                         if (key.startsWith(prefix)) {
-                            properties.put(StringUtils.removeStart(key, prefix + "."), String.valueOf(propertySource.getProperty(key)));
+                            properties.put(key.substring(prefix.length()), String.valueOf(propertySource.getProperty(key)));
                         }
                     }
                 }

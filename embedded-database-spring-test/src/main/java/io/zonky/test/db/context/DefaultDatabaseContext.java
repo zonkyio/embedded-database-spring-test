@@ -28,7 +28,6 @@ import io.zonky.test.db.preparer.RecordingDataSource;
 import io.zonky.test.db.preparer.ReplayableDatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.AopProxyUtils;
@@ -174,7 +173,7 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
             refreshDatabase();
         }
 
-        String databaseBeanName = StringUtils.substringBeforeLast(beanName, "Context");
+        String databaseBeanName = beanName.substring(0, beanName.length() - "Context".length());
         EmbeddedDatabaseReporter.reportDataSource(databaseBeanName, awaitDatabase(), event.getTestMethod());
 
         logger.trace("Execution phase has been changed to {} - context={}", executionPhase, beanName);

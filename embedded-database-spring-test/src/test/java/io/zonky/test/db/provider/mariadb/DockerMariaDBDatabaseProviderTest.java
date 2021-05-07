@@ -138,7 +138,7 @@ public class DockerMariaDBDatabaseProviderTest {
         DockerMariaDBDatabaseProvider provider = new DockerMariaDBDatabaseProvider(new MockEnvironment(), containerCustomizers);
         DataSource dataSource = provider.createDatabase(preparer);
 
-        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getUrl()).contains("password=test");
+        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).contains("password=test");
     }
 
     @Test

@@ -17,8 +17,8 @@
 package io.zonky.test.db.provider.mariadb;
 
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
-import org.apache.commons.lang3.StringUtils;
 import org.mariadb.jdbc.MariaDbDataSource;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 
@@ -39,10 +39,10 @@ public class MariaDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
+    public String getJdbcUrl() {
         String url = String.format("jdbc:mariadb://%s:%s/%s?user=%s",
                 dataSource.getServerName(), dataSource.getPort(), dataSource.getDatabaseName(), dataSource.getUser());
-        if (StringUtils.isNotBlank(getPassword())) {
+        if (StringUtils.hasText(getPassword())) {
             url += String.format("&password=%s", getPassword());
         }
         return url;

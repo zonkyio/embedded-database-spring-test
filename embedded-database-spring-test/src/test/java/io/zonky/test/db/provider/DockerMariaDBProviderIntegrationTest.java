@@ -42,6 +42,6 @@ public class DockerMariaDBProviderIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getUrl()).contains("password=docker");
+        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).contains("password=docker");
     }
 }

@@ -1,10 +1,11 @@
 package io.zonky.test.db.preparer;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.util.FileCopyUtils;
+import org.springframework.util.StreamUtils;
 
 import javax.sql.DataSource;
 import javax.sql.rowset.serial.SerialBlob;
@@ -96,7 +97,7 @@ public class RecordingDataSourceTest {
         resultSet.getMetaData();
         resultSet.updateString(3, "string");
         resultSet.getBigDecimal(4);
-        resultSet.updateBinaryStream(5, IOUtils.toInputStream("input", UTF_8));
+        resultSet.updateBinaryStream(5, new ByteArrayInputStream("input".getBytes(UTF_8)));
         resultSet.getBytes(6);
         resultSet.getBlob(7);
         resultSet.updateBoolean(8, true);
@@ -296,7 +297,7 @@ public class RecordingDataSourceTest {
         PreparedStatement preparedStatement = targetDataSource.getConnection().prepareStatement(any());
         doAnswer(invocation -> {
             InputStream stream = invocation.getArgument(1, InputStream.class);
-            byte[] bytes = IOUtils.readFully(stream, 4);
+            byte[] bytes = StreamUtils.copyToByteArray(stream);
             checkState(Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 }));
             return null;
         }).when(preparedStatement).setBinaryStream(anyInt(), any());
@@ -320,7 +321,7 @@ public class RecordingDataSourceTest {
 
         doAnswer(invocation -> {
             InputStream stream = invocation.getArgument(1, InputStream.class);
-            byte[] bytes = IOUtils.readFully(stream, 4);
+            byte[] bytes = StreamUtils.copyToByteArray(stream);
             checkState(Arrays.equals(bytes, new byte[] { 0, 1, 2, 3 }));
             return null;
         }).when(mockStatement).setBinaryStream(eq(1), any());
@@ -337,7 +338,7 @@ public class RecordingDataSourceTest {
         PreparedStatement preparedStatement = targetDataSource.getConnection().prepareStatement(any());
         doAnswer(invocation -> {
             Reader reader = invocation.getArgument(1, Reader.class);
-            checkState("test".equals(IOUtils.toString(reader)));
+            checkState("test".equals(FileCopyUtils.copyToString(reader)));
             return null;
         }).when(preparedStatement).setCharacterStream(anyInt(), any());
 
@@ -360,7 +361,7 @@ public class RecordingDataSourceTest {
 
         doAnswer(invocation -> {
             Reader reader = invocation.getArgument(1, Reader.class);
-            checkState("test".equals(IOUtils.toString(reader)));
+            checkState("test".equals(FileCopyUtils.copyToString(reader)));
             return null;
         }).when(mockStatement).setCharacterStream(eq(1), any());
 

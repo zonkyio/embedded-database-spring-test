@@ -18,7 +18,7 @@ package io.zonky.test.db.provider.mysql;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 
@@ -37,9 +37,9 @@ public class MySQLEmbeddedDatabase extends AbstractEmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
+    public String getJdbcUrl() {
         String url = dataSource.getUrl() + String.format("?user=%s", dataSource.getUser());
-        if (StringUtils.isNotBlank(dataSource.getPassword())) {
+        if (StringUtils.hasText(dataSource.getPassword())) {
             url += String.format("&password=%s", dataSource.getPassword());
         }
         return url;

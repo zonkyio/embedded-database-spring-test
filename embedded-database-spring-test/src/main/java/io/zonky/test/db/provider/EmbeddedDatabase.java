@@ -21,7 +21,7 @@ import java.io.Closeable;
 
 public interface EmbeddedDatabase extends DataSource, Closeable {
 
-    String getUrl();
+    String getJdbcUrl();
 
     void close();
 

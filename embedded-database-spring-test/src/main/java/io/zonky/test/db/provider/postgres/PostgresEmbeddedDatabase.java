@@ -17,8 +17,8 @@
 package io.zonky.test.db.provider.postgres;
 
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
-import org.apache.commons.lang3.StringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 
@@ -37,9 +37,9 @@ public class PostgresEmbeddedDatabase extends AbstractEmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
+    public String getJdbcUrl() {
         String url = dataSource.getUrl() + String.format("?user=%s", dataSource.getUser());
-        if (StringUtils.isNotBlank(dataSource.getPassword())) {
+        if (StringUtils.hasText(dataSource.getPassword())) {
             url += String.format("&password=%s", dataSource.getPassword());
         }
         return url;

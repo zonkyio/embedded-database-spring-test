@@ -25,8 +25,7 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import io.zonky.test.db.util.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -35,6 +34,7 @@ import org.springframework.util.concurrent.ListenableFutureTask;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.google.common.collect.Maps.immutableEntry;
 import static io.zonky.test.db.provider.common.PrefetchingDatabaseProvider.DatabasePipeline.State.INITIALIZED;
 import static io.zonky.test.db.provider.common.PrefetchingDatabaseProvider.DatabasePipeline.State.INITIALIZING;
 import static io.zonky.test.db.provider.common.PrefetchingDatabaseProvider.DatabasePipeline.State.NEW;
@@ -161,7 +162,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
     protected PrefetchingTask prepareNewDatabase(PipelineKey key, int priority) {
         databaseCount.incrementAndGet();
 
-        Pair<PipelineKey, EmbeddedDatabase> databaseToRemove = findDatabaseToRemove().orElse(null);
+        Entry<PipelineKey, EmbeddedDatabase> databaseToRemove = findDatabaseToRemove().orElse(null);
         if (databaseToRemove != null) {
             databaseCount.decrementAndGet();
 
@@ -254,15 +255,15 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         return task;
     }
 
-    protected Optional<Pair<PipelineKey, EmbeddedDatabase>> findDatabaseToRemove() {
+    protected Optional<Entry<PipelineKey, EmbeddedDatabase>> findDatabaseToRemove() {
         while (databaseCount.get() > config.getMaxPreparedDatabases()) {
             long timestampThreshold = System.currentTimeMillis() - 10_000;
 
             PipelineKey key = pipelines.entrySet().stream()
-                    .map(e -> Pair.of(e.getKey(), e.getValue().results.peek()))
+                    .map(e -> immutableEntry(e.getKey(), e.getValue().results.peek()))
                     .filter(e -> e.getValue() != null && e.getValue().getTimestamp() < timestampThreshold)
                     .min(Comparator.comparing(e -> e.getValue().getTimestamp()))
-                    .map(Pair::getKey).orElse(null);
+                    .map(Entry::getKey).orElse(null);
 
             if (key == null) {
                 return Optional.empty();
@@ -273,7 +274,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
                 PreparedResult result = pipeline.results.poll();
                 if (result != null) {
                     if (result.hasResult()) {
-                        return Optional.of(Pair.of(key, result.get()));
+                        return Optional.of(immutableEntry(key, result.get()));
                     } else {
                         databaseCount.decrementAndGet();
                     }

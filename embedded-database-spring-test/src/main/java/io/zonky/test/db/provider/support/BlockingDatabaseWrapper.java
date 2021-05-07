@@ -111,8 +111,8 @@ public class BlockingDatabaseWrapper implements EmbeddedDatabase {
     }
 
     @Override
-    public String getUrl() {
-        return delegate.getUrl();
+    public String getJdbcUrl() {
+        return delegate.getJdbcUrl();
     }
 
     @Override

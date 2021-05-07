@@ -27,6 +27,6 @@ public class DockerMSSQLProviderIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(MsSQLEmbeddedDatabase.class).getUrl()).contains("password=A_Str0ng_Required_Password");
+        assertThat(dataSource.unwrap(MsSQLEmbeddedDatabase.class).getJdbcUrl()).contains("password=A_Str0ng_Required_Password");
     }
 }

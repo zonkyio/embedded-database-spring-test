@@ -59,7 +59,7 @@ public class DockerMariaDBProviderWithConfigurationIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getUrl()).contains("password=docker-mariadb");
+        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).contains("password=docker-mariadb");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);

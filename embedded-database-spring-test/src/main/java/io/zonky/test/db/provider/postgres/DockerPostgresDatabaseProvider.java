@@ -33,7 +33,7 @@ import io.zonky.test.db.provider.TemplatableDatabaseProvider;
 import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.util.PropertyUtils;
-import org.apache.commons.lang3.RandomStringUtils;
+import io.zonky.test.db.util.RandomStringUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.slf4j.Logger;

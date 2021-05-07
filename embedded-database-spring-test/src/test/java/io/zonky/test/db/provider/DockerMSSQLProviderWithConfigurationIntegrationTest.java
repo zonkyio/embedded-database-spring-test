@@ -44,7 +44,7 @@ public class DockerMSSQLProviderWithConfigurationIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(MsSQLEmbeddedDatabase.class).getUrl()).contains("password=docker_Str0ng_Required_Password");
+        assertThat(dataSource.unwrap(MsSQLEmbeddedDatabase.class).getJdbcUrl()).contains("password=docker_Str0ng_Required_Password");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
