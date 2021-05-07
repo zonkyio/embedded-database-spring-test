@@ -161,10 +161,10 @@ subprojects {
                     developers {
                         developer {
                             name 'Tomas Vanek'
-                            email 'tomas.vanek@zonky.cz'
+                            email 'tomix26@gmail.com'
                         }
                         developer {
-                            name 'Developers Zonky'
+                            name 'Zonky Developers'
                             email 'developers@zonky.cz'
                         }
                     }
