@@ -40,7 +40,12 @@ ext {
                     [name: '7.0.4',  flyway: '7.0.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: '7.1.1',  flyway: '7.1.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: '7.2.1',  flyway: '7.2.1',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
-                    [name: '7.3.0',  flyway: '7.3.0',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.3.2',  flyway: '7.3.2',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.4.0',  flyway: '7.4.0',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.5.4',  flyway: '7.5.4',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.6.0',  flyway: '7.6.0',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.7.3',  flyway: '7.7.3',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
+                    [name: '7.8.2',  flyway: '7.8.2',   'flyway-test': '7.0.0',    spring: '5.3.1',           'spring-boot': '2.4.0',           'zonky-postgres': 'default'],
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
@@ -199,7 +204,7 @@ project(':embedded-database-spring-test') {
         compile 'org.testcontainers:mysql:1.15.3'
         compile 'org.testcontainers:mariadb:1.15.3'
 
-        compile 'io.zonky.test:embedded-postgres:1.2.9', optional
+        compile 'io.zonky.test:embedded-postgres:1.2.10', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.3', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
 

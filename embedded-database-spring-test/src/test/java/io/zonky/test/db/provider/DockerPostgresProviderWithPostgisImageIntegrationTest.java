@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = DOCKER)
 @TestPropertySource(properties = {
-        "zonky.test.database.postgres.docker.image=mdillon/postgis:9.6-alpine"
+        "zonky.test.database.postgres.docker.image=postgis/postgis:9.6-3.1-alpine"
 })
 @ContextConfiguration
 public class DockerPostgresProviderWithPostgisImageIntegrationTest {
@@ -67,6 +67,6 @@ public class DockerPostgresProviderWithPostgisImageIntegrationTest {
 
         jdbcTemplate.update("create extension postgis");
         String postgisVersion = jdbcTemplate.queryForObject("select postgis_version()", String.class);
-        assertThat(postgisVersion).startsWith("2.5");
+        assertThat(postgisVersion).startsWith("3.1");
     }
 }
