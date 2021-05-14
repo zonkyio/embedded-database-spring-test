@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: tomix26
+      changes:
+        - sql:
+            sql: create schema test
+  - changeSet:
+      id: 2
+      author: tomix26
+      changes:
+        - createTable:
+            schemaName: test
+            tableName: person
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: first_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: surname
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 3
+      author: tomix26
+      changes:
+        - insert:
+            schemaName: test
+            tableName: person
+            columns:
+              - column:
+                  name: id
+                  value: 1
+              - column:
+                  name: first_name
+                  value: Dave
+              - column:
+                  name: surname
+                  value: Syer
+  - changeSet:
+      id: 4
+      author: tomix26
+      changes:
+        - renameColumn:
+            schemaName: test
+            tableName: person
+            oldColumnName: surname
+            newColumnName: last_name

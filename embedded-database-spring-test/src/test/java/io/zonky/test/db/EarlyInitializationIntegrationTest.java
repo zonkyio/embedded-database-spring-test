@@ -1,11 +1,12 @@
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayIntegrationTests;
+import com.google.common.collect.ImmutableList;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -17,13 +18,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 
-import static io.zonky.test.util.FlywayTestUtils.createFlyway;
-
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class EarlyInitializationIntegrationTest {
 
@@ -36,8 +36,11 @@ public class EarlyInitializationIntegrationTest {
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) throws Exception {
-            return createFlyway(dataSource, "test");
+        public Flyway flyway(DataSource dataSource) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
     }
 
@@ -57,7 +60,7 @@ public class EarlyInitializationIntegrationTest {
         }
 
         @Override
-        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
             beanFactory.getBeanNamesForType(DataSource.class, true, true);
         }
     }

@@ -17,20 +17,58 @@
       "description": "Additional configuration properties for PostgreSQL database running in a Docker container. Only available if database provider is set to Docker."
     },
     {
-      "name": "zonky.test.database.postgres.zonky-provider",
-      "description": "Additional configuration properties for Zonky Embedded Postgres. Only available if database provider is set to Zonky."
-    },
-    {
       "name": "zonky.test.database.postgres.yandex-provider",
       "description": "Additional configuration properties for Yandex's Embedded PostgreSQL Server. Only available if database provider is set to Yandex."
+    },
+    {
+      "name": "zonky.test.database.mssql",
+      "description": "Configuration properties to configure embedded MSSQL database."
+    },
+    {
+      "name": "zonky.test.database.mssql.docker",
+      "description": "Additional configuration properties for MSSQL database running in a Docker container. Only available if database provider is set to Docker."
+    },
+    {
+      "name": "zonky.test.database.mysql",
+      "description": "Configuration properties to configure embedded MySQL database."
+    },
+    {
+      "name": "zonky.test.database.mysql.docker",
+      "description": "Additional configuration properties for MySQL database running in a Docker container. Only available if database provider is set to Docker."
+    },
+    {
+      "name": "zonky.test.database.mariadb",
+      "description": "Configuration properties to configure embedded MariaDB database."
+    },
+    {
+      "name": "zonky.test.database.mariadb.docker",
+      "description": "Additional configuration properties for MariaDB database running in a Docker container. Only available if database provider is set to Docker."
     }
   ],
   "properties": [
     {
+      "name": "zonky.test.database.type",
+      "type": "java.lang.String",
+      "description": "The type of embedded database to be created when replacing the data source.",
+      "defaultValue": "auto"
+    },
+    {
       "name": "zonky.test.database.provider",
       "type": "java.lang.String",
-      "description": "Provider used to create the underlying embedded database, see the documentation for the comparision matrix.",
-      "defaultValue": "zonky"
+      "description": "Provider to be used to create the underlying embedded database, see the documentation for the comparison matrix.",
+      "defaultValue": "default"
+    },
+    {
+      "name": "zonky.test.database.refresh",
+      "type": "io.zonky.test.db.AutoConfigureEmbeddedDatabase$RefreshMode",
+      "description": "Determines the refresh mode of the embedded database.",
+      "defaultValue": "never"
+    },
+    {
+      "name": "zonky.test.database.replace",
+      "type": "io.zonky.test.db.AutoConfigureEmbeddedDatabase$Replace",
+      "description": "Determines what type of existing DataSource beans can be replaced.",
+      "defaultValue": "any"
     },
     {
       "name": "zonky.test.database.prefetching.thread-name-prefix",
@@ -47,29 +85,35 @@
     {
       "name": "zonky.test.database.prefetching.pipeline-cache-size",
       "type": "java.lang.Integer",
-      "description": "Maximum number of prepared databases per pipeline. Where pipeline is a queue of independent databases that contains the same initial data.",
-      "defaultValue": 3
+      "description": "Maximum number of prepared databases per pipeline (the pipeline is a queue of independent databases that contains the same initial data).",
+      "defaultValue": 5
+    },
+    {
+      "name": "zonky.test.database.prefetching.max-prepared-templates",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of prepared database templates.",
+      "defaultValue": 10
     },
     {
       "name": "zonky.test.database.postgres.client.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the test data source."
+      "description": "Additional PostgreSQL options used to configure the test data source."
     },
     {
       "name": "zonky.test.database.postgres.initdb.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties to pass to initdb command during the database initialization."
+      "description": "Additional PostgreSQL options to pass to initdb command during the database initialization."
     },
     {
       "name": "zonky.test.database.postgres.server.properties",
       "type": "java.util.Map<java.lang.String,java.lang.String>",
-      "description": "Additional properties used to configure the embedded PostgreSQL server."
+      "description": "Additional PostgreSQL options used to configure the embedded database server."
     },
     {
       "name": "zonky.test.database.postgres.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing PostgreSQL database.",
-      "defaultValue": "postgres:10.11-alpine"
+      "defaultValue": "postgres:11-alpine"
     },
     {
       "name": "zonky.test.database.postgres.docker.tmpfs.enabled",
@@ -84,25 +128,110 @@
       "defaultValue": "rw,noexec,nosuid"
     },
     {
-      "name": "zonky.test.database.postgres.zonky-provider.preparer-isolation",
-      "type": "io.zonky.test.db.provider.impl.ZonkyPostgresDatabaseProvider$PreparerIsolation",
-      "description": "Whether there should be one shared database cluster or multiple independent database clusters.",
-      "defaultValue": "database"
-    },
-    {
       "name": "zonky.test.database.postgres.yandex-provider.postgres-version",
       "type": "java.lang.String",
       "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
-      "defaultValue": "10.11-1"
+      "defaultValue": "11.10-1"
+    },
+    {
+      "name": "zonky.test.database.mssql.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional MSSQL options used to configure the test data source."
+    },
+    {
+      "name": "zonky.test.database.mssql.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing MSSQL database.",
+      "defaultValue": "mcr.microsoft.com/mssql/server:2017-latest"
+    },
+    {
+      "name": "zonky.test.database.mysql.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional MySQL options used to configure the test data source."
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing MySQL database.",
+      "defaultValue": "mysql:5.7"
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.tmpfs.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to mount database data directory as tmpfs.",
+      "defaultValue": false
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.tmpfs.options",
+      "type": "java.lang.String",
+      "description": "Mount options used to configure the tmpfs filesystem.",
+      "defaultValue": "rw,noexec,nosuid"
+    },
+    {
+      "name": "zonky.test.database.mariadb.client.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "Additional MariaDB options used to configure the test data source."
+    },
+    {
+      "name": "zonky.test.database.mariadb.docker.image",
+      "type": "java.lang.String",
+      "description": "Docker image containing MariaDB database.",
+      "defaultValue": "mariadb:10.4"
+    },
+    {
+      "name": "zonky.test.database.mariadb.docker.tmpfs.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to mount database data directory as tmpfs.",
+      "defaultValue": false
+    },
+    {
+      "name": "zonky.test.database.mariadb.docker.tmpfs.options",
+      "type": "java.lang.String",
+      "description": "Mount options used to configure the tmpfs filesystem.",
+      "defaultValue": "rw,noexec,nosuid"
     }
   ],
   "hints": [
     {
+      "name": "zonky.test.database.type",
+      "values": [
+        {
+          "value": "auto",
+          "description": "Database is detected automatically based on the classpath."
+        },
+        {
+          "value": "postgres",
+          "description": "PostgreSQL Database"
+        },
+        {
+          "value": "mssql",
+          "description": "Microsoft SQL Server"
+        },
+        {
+          "value": "mysql",
+          "description": "MySQL Database"
+        },
+        {
+          "value": "mariadb",
+          "description": "MariaDB Database"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
       "name": "zonky.test.database.provider",
       "values": [
         {
+          "value": "default",
+          "description": "Default typically equals to docker provider, unless a different default has been configured by configuration properties."
+        },
+        {
           "value": "docker",
-          "description": "Run the embedded database in a Docker container."
+          "description": "Run the embedded database in Docker as a container."
         },
         {
           "value": "zonky",
@@ -197,6 +326,66 @@
         },
         {
           "value": "postgis/postgis:9.5-3.0"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "zonky.test.database.mssql.docker.image",
+      "values": [
+        {
+          "value": "mcr.microsoft.com/mssql/server:2019-latest"
+        },
+        {
+          "value": "mcr.microsoft.com/mssql/server:2017-latest"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "zonky.test.database.mysql.docker.image",
+      "values": [
+        {
+          "value": "mysql:8.0"
+        },
+        {
+          "value": "mysql:5.7"
+        },
+        {
+          "value": "mysql:5.6"
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "zonky.test.database.mariadb.docker.image",
+      "values": [
+        {
+          "value": "mariadb:10.5"
+        },
+        {
+          "value": "mariadb:10.4"
+        },
+        {
+          "value": "mariadb:10.3"
+        },
+        {
+          "value": "mariadb:10.2"
+        },
+        {
+          "value": "mariadb:10.1"
         }
       ],
       "providers": [

@@ -26,3 +26,6 @@ hs_err_pid*
 
 # Gradle wrapper files
 !gradle/wrapper/gradle-wrapper.jar
+
+# Prevent license accepting file to get accidentially commited to git
+container-license-acceptance.txt

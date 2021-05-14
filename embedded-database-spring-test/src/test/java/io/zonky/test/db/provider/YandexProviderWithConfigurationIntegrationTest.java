@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,13 @@
 
 package io.zonky.test.db.provider;
 
+import io.zonky.test.category.PostgresTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,15 +35,20 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.YANDEX;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource", provider = YANDEX)
+@Category(PostgresTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = YANDEX)
 @TestPropertySource(properties = {
         "zonky.test.database.postgres.yandex-provider.postgres-version=9.6.11-1"
 })
 @ContextConfiguration
 public class YandexProviderWithConfigurationIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeYandexSupportsCurrentPostgresVersion);
 
     @Autowired
     private DataSource dataSource;

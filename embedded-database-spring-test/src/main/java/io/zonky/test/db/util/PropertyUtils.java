@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package io.zonky.test.db.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class PropertyUtils {
@@ -30,18 +31,37 @@ public class PropertyUtils {
     private PropertyUtils() {}
 
     public static Map<String, String> extractAll(Environment environment, String prefix) {
+        prefix += ".";
         Map<String, String> properties = new HashMap<>();
         if (environment instanceof ConfigurableEnvironment) {
             for (PropertySource<?> propertySource : ((ConfigurableEnvironment) environment).getPropertySources()) {
                 if (propertySource instanceof EnumerablePropertySource) {
                     for (String key : ((EnumerablePropertySource) propertySource).getPropertyNames()) {
                         if (key.startsWith(prefix)) {
-                            properties.put(StringUtils.removeStart(key, prefix + "."), String.valueOf(propertySource.getProperty(key)));
+                            properties.put(key.substring(prefix.length()), String.valueOf(propertySource.getProperty(key)));
                         }
                     }
                 }
             }
         }
         return properties;
+    }
+
+    public static <E extends Enum<E>> E getEnumProperty(Environment environment, String key, Class<E> enumType) {
+        return getEnumProperty(environment, key, enumType, null);
+    }
+
+    public static <E extends Enum<E>> E getEnumProperty(Environment environment, String key, Class<E> enumType, E defaultValue) {
+        String enumName = environment.getProperty(key, String.class);
+        if (enumName == null) {
+            return defaultValue;
+        }
+        String normalizedEnumName = enumName.trim().replaceAll("-", "_").toUpperCase(Locale.ENGLISH);
+        for (E candidate : EnumSet.allOf(enumType)) {
+            if (candidate.name().equals(normalizedEnumName)) {
+                return candidate;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant " + enumType.getCanonicalName() + "." + enumName);
     }
 }

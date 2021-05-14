@@ -1,31 +1,23 @@
 # <img src="zonky.jpg" height="100"> Embedded Database
 
-### :information_source: Embedded Database 2.0 Beta 1 release is available for testing
-
-Please read the [release notes](https://github.com/zonkyio/embedded-database-spring-test/wiki/Embedded-Database-2.0-Release-Notes-(Draft)) carefully before installing and testing this release.
-
-Updated documentation is available here: https://github.com/zonkyio/embedded-database-spring-test/tree/v2.0.0-beta1
-
-Thank you for your time and feedback.
-
 ## Introduction
 
-The primary goal of this project is to make it easier to write Spring-powered integration tests that rely on PostgreSQL database. This library is responsible for creating and managing isolated embedded databases for each test class or test method, based on test configuration.
+The primary goal of this project is to make it easier to write Spring-powered integration tests that rely on `PostgreSQL`, `MSSQL`, `MySQL` or `MariaDB` database. This library is responsible for creating and managing isolated embedded databases for each test class or test method, based on a test configuration.
 
 ## Features
 
-* Supports both `Spring` and `Spring Boot` frameworks
-    * Supported versions are Spring 4.3.0+ and Spring Boot 1.4.0+
 * Automatic integration with Spring TestContext framework
-    * Context caching is fully supported
-* Seamless integration with Flyway database migration tool
-    * Just place `@FlywayTest` annotation on test class or method
-* Optimized initialization and cleaning of embedded databases
-    * Database templates are used to reduce the loading time
-* Uses lightweight bundles of [PostgreSQL binaries](https://github.com/zonkyio/embedded-postgres-binaries) with reduced size
-    * Providing configurable version of PostgreSQL binaries
-    * Providing PostgreSQL 11+ binaries even for Linux platform
-* Support for running inside Docker, including Alpine Linux
+    * With a focus on context caching and database reuse
+* Supports both `Spring` and `Spring Boot` frameworks
+    * Supported versions are Spring 4.3.8+ and Spring Boot 1.4.6+
+* Supports multiple different databases
+    * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb)
+* Supports multiple database providers
+    * [Docker / Testcontainers](#using-docker-provider-default), [Zonky](#using-zonky-provider-previous-default), [OpenTable](#using-opentable-provider), [Yandex](#using-yandex-provider)
+* Supports various database migration tools
+    * [Flyway](#flyway), [Liquibase](#liquibase), [Spring `@Sql` annotation](#using-spring-sql-annotation) and others
+* Uses optimized refreshing of embedded databases between tests
+    * Database templates are used to reduce the refreshing time
 
 ## Quick Start
 
@@ -37,26 +29,26 @@ Add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>1.6.3</version>
+    <version>2.0.0-beta1</version>
     <scope>test</scope>
 </dependency>
 ```
 
-The default version of the embedded database is `PostgreSQL 10.11`, but you can change it by following the instructions described in [Changing the version of postgres binaries](#changing-the-version-of-postgres-binaries).
+Also, make sure your application contains a dependency with the database driver for one of the [supported databases](#supported-databases).
 
 ### Basic Usage
 
-The configuration of the embedded database is driven by `@AutoConfigureEmbeddedDatabase` annotation. Just place the annotation on a test class and that's it! The existing data source will be replaced by the testing one, or a new data source will be created.
+The configuration of the embedded database is driven by `@AutoConfigureEmbeddedDatabase` annotation. Just put the annotation on a test class and that's it! The existing data source will be replaced with the testing one, or a new data source will be created.
 
 ## Examples
 
-### Creating a new empty database with a specified bean name
+### Creating a new empty database
 
-A new data source with a specified name will be created and injected into all related components. You can also inject it into test class as shown below. 
+A new data source will be created and injected into all related components. You can also inject it into a test class as shown below. 
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@AutoConfigureEmbeddedDatabase
 public class EmptyDatabaseIntegrationTest {
     
     @Autowired
@@ -68,7 +60,8 @@ public class EmptyDatabaseIntegrationTest {
 
 ### Replacing an existing data source with an empty database
 
-In case the test class uses a spring context that already contains a data source bean, the data source bean will be automatically replaced by a testing data source. Please note that if the context contains multiple data sources the bean name must be specified by `@AutoConfigureEmbeddedDatabase(beanName = "dataSource")` to identify the data source that will be replaced. The newly created data source bean will be injected into all related components and you can also inject it into test class.
+In case the test class uses a spring context that already contains a data source bean, the data source bean will be automatically replaced with a testing data source.
+The newly created data source bean will be injected into all related components, and you can also inject it into a test class.
 
 ```java
 @RunWith(SpringRunner.class)
@@ -79,18 +72,18 @@ public class EmptyDatabaseIntegrationTest {
 }
 ```
 
+Please note that if the context contains multiple data sources the bean name must be specified using `@AutoConfigureEmbeddedDatabase(beanName = "dataSource")` to identify the data source that will be replaced.
+
 ### Creating multiple databases within a single test class
 
 The `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, so you can annotate a test class with multiple annotations to create multiple independent databases.
 Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
 
-Note that if multiple annotations on a single class are applied, some optimization techniques can not be used and database initialization may be slower.
-
 ```java
 @RunWith(SpringRunner.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource1")
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource2")
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource2", provider = ZONKY)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = YANDEX)
 public class MultipleDatabasesIntegrationTest {
     
     @Autowired
@@ -104,55 +97,34 @@ public class MultipleDatabasesIntegrationTest {
 }
 ```
 
-### Using `@FlywayTest` annotation on a test class
+Note that if multiple annotations on a single class are applied, some optimization techniques cannot be used and database initialization or refresh may be slower.
 
-The library supports the use of `@FlywayTest` annotation. If you use it, the embedded database will be automatically initialized and cleaned by Flyway database migration tool. If you don't specify any custom migration locations the default path `db/migration` will be applied.
+### Refreshing the database during tests
 
-Note that if you place the annotation on a class, all tests within the class share the same database. If you want all the tests to be isolated, you need to put the `@FlywayTest` annotation on each test method separately.
+The [refresh mode](#refresh-mode) feature allows you to reset the database to the initial state that existed before the test was being started.
+You can choose whether the database will be refreshed only between test classes or for each test method,
+and whether the refresh should take place before or after the test execution.
 
-```java
-@RunWith(SpringRunner.class)
-@FlywayTest
-@AutoConfigureEmbeddedDatabase
-@ContextConfiguration("path/to/application-config.xml")
-public class FlywayMigrationIntegrationTest {
-    // class body...
-}
-```
-
-### Using `@FlywayTest` annotation on a test method
-
-It is also possible to use `@FlywayTest` annotation on a test method. In such case, the isolated embedded database will be created and managed for the duration of the test method. If you don't specify any custom migration locations the default path `db/migration` will be applied.
+Please note that by default, if you do not specify refresh mode explicitly, all tests in the project share the same database. 
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase
-@ContextConfiguration("path/to/application-config.xml")
-public class FlywayMigrationIntegrationTest {
-    
-    @Test
-    @FlywayTest(locationsForMigrate = "test/db/migration")
-    public void testMethod() {
-        // method body...
-    }
+@AutoConfigureEmbeddedDatabase(refresh = AFTER_EACH_TEST_METHOD)
+public class EmptyDatabaseIntegrationTest {
+
+        @Test
+        public void testMethod1() {
+            // fresh database
+        }
+
+        @Test
+        public void testMethod2() {
+            // fresh database
+        }
 }
 ```
 
-### Using `@FlywayTest` annotation with additional options
-
-In case you want to apply migrations from some additional locations, you can use `@FlywayTest(locationsForMigrate = "path/to/migrations")` configuration. In that case, the sql scripts from the default location and also sql scripts from the additional locations will be applied. If you need to prevent the loading of the scripts from the default location you can use `@FlywayTest(overrideLocations = true, ...)` annotation configuration.
-
-See [Usage of Annotation FlywayTest](https://github.com/flyway/flyway-test-extensions/wiki/Usage-of-Annotation-FlywayTest) for more information about configuration options of `@FlywayTest` annotation.
-
-```java
-@RunWith(SpringRunner.class)
-@FlywayTest(locationsForMigrate = "test/db/migration")
-@AutoConfigureEmbeddedDatabase
-@ContextConfiguration("path/to/application-config.xml")
-public class FlywayMigrationIntegrationTest {
-    // class body...
-}
-```
+Note that refresh mode can be combined with `@FlywayTest`, Spring `@Sql` or Spring Boot's annotations without any negative impact on performance.
 
 ### Using `@DataJpaTest` or `@JdbcTest` annotation
 
@@ -160,7 +132,7 @@ Spring Boot provides several annotations to simplify writing integration tests.
 One of them is the `@DataJpaTest` annotation, which can be used when a test focuses only on JPA components.
 By default, tests annotated with this annotation use an in-memory database.
 But if the `@DataJpaTest` annotation is used together with the `@AutoConfigureEmbeddedDatabase` annotation,
-the in-memory database is automatically disabled and replaced by the embedded postgres database. 
+the in-memory database is automatically disabled and replaced with an embedded database. 
 
 ```java
 @RunWith(SpringRunner.class)
@@ -170,6 +142,7 @@ public class SpringDataJpaAnnotationTest {
     // class body...
 }
 ```
+
 You can also consider creating a custom [composed annotation](https://github.com/spring-projects/spring-framework/wiki/Spring-Annotation-Programming-Model#composed-annotations).
 
 <details>
@@ -181,7 +154,7 @@ You can also consider creating a custom [composed annotation](https://github.com
   @Target(ElementType.TYPE)
   @Retention(RetentionPolicy.RUNTIME)
   @DataJpaTest
-  @AutoConfigureEmbeddedDatabase
+  @AutoConfigureEmbeddedDatabase(type = POSTGRES)
   public @interface PostgresDataJpaTest {
   
       @AliasFor(annotation = DataJpaTest.class)
@@ -204,26 +177,186 @@ You can also consider creating a custom [composed annotation](https://github.com
 
 </details>
 
-## Advanced Topics
+### Using Spring `@Sql` annotation
 
-### Database Providers
+Spring provides the `@Sql` annotation that can be used to annotate a test class or test method to configure sql scripts to be run against an embedded database during tests.
+
+```java
+@RunWith(SpringRunner.class)
+@Sql({"/test-schema.sql", "/test-user-data.sql"})
+@AutoConfigureEmbeddedDatabase
+public class SpringSqlAnnotationTest {
+    // class body...
+}
+```
+
+Note that the `@Sql` annotation can be combined with [refresh mode](#refresh-mode).
+
+### Using `@FlywayTest` annotation
+
+The library supports the use of `@FlywayTest` annotation. If you use it, the embedded database will be automatically initialized or cleaned by Flyway. If you don't specify any custom migration locations the default path `db/migration` will be applied.
+
+Please note that if you put the annotation on a class, all tests within the class share the same database. If you want all the tests to be isolated, you have to put the `@FlywayTest` annotation on each test method separately.
+Alternatively, you can also use [refresh mode](#refresh-mode).
+
+```java
+@RunWith(SpringRunner.class)
+@FlywayTest
+@AutoConfigureEmbeddedDatabase
+@ContextConfiguration("path/to/application-config.xml")
+public class FlywayMigrationIntegrationTest {
+    // class body...
+}
+```
+
+See [Usage of Annotation FlywayTest](https://github.com/flyway/flyway-test-extensions/wiki/Usage-of-Annotation-FlywayTest) for more information about configuration options of `@FlywayTest` annotation.
+
+## Supported Databases
+
+### PostgreSQL
+
+Before you use PostgreSQL database, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.2.18</version>
+</dependency>
+```
+
+Note that the associated database providers support all available features
+such as template databases and database prefetching, which provides maximum performance.
+
+### Microsoft SQL Server
+
+Before you use Microsoft SQL Server, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>com.microsoft.sqlserver</groupId>
+    <artifactId>mssql-jdbc</artifactId>
+    <version>8.4.1.jre8</version>
+</dependency>
+```
+
+**In the next step, you will need to accept an EULA for using the docker image.**
+See the instructions here: https://www.testcontainers.org/modules/databases/mssqlserver.
+
+Note that the associated database provider supports all available features
+such as template databases and database prefetching.
+But because Microsoft SQL Server supports only a single template database per database instance,
+the template databases are emulated using backup and restore operations.
+However, this should have a minimal impact on the resulting performance.
+
+### MySQL
+
+Before you use MySQL database, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>8.0.22</version>
+</dependency>
+```
+
+**Note that the associated database provider supports only basic features**
+**that are required to work the embedded database properly.**
+**So you may notice some performance degradation compared to other database providers.**
+It's because in MySQL, `database` is only synonymous with `schema`,
+which makes it hard to implement database prefetching.
+Template databases are also not supported,
+and cannot be easily emulated because MySQL does not support fast binary backups.
+
+### MariaDB
+
+Before you use MariaDB database, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.mariadb.jdbc</groupId>
+    <artifactId>mariadb-java-client</artifactId>
+    <version>2.7.0</version>
+</dependency>
+```
+
+**Note that the associated database provider supports only basic features**
+**that are required to work the embedded database properly.**
+**So you may notice some performance degradation compared to other database providers.**
+It's because in MariaDB, `database` is only synonymous with `schema`,
+which makes it hard to implement database prefetching.
+Template databases are also not supported,
+and cannot be easily emulated because MariaDB does not support fast binary backups.
+
+## Supported Migration Tools
+
+Note that although any migration tool is supported,
+Flyway and Liquibase provide the best performance
+because the embedded database includes extra optimizations for them.
+
+### Flyway
+
+Before you use Flyway, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+    <version>7.3.0</version>
+</dependency>
+```
+
+Optionally, you may also add the dependency for Flyway test extensions, which allows you to use the `@FlywayTest` annotation.
+
+```xml
+<dependency>
+    <groupId>org.flywaydb.flyway-test-extensions</groupId>
+    <artifactId>flyway-spring-test</artifactId>
+    <version>7.0.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+Note that the processing of the `@FlywayTest` annotation is internally optimized and, if possible,
+database prefetching and template databases are used to speed up applying new migrations after cleaning the database.
+This operation is internally identical to the use of [refresh mode](#refresh-mode),
+which can be used to replace or can be combined with the `@FlywayTest` annotation without any negative impact on performance.
+
+### Liquibase
+
+Before you use Liquibase, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.liquibase</groupId>
+    <artifactId>liquibase-core</artifactId>
+    <version>3.10.3</version>
+</dependency>
+```
+
+Given that Liquibase does not offer an analogy to `@FlywayTest` annotation,
+you may consider using [refresh mode](#refresh-mode) to refresh an embedded database during tests.
+
+## Database Providers
 
 The library can be combined with different database providers.
 Each of them has its advantages and disadvantages summarized in the table below.
 
 Docker provides the greatest flexibility, but it can be slightly slower than the native versions.
-However, the change of database providers is really easy, so you can try them all.
+However, the change of the database provider is really easy, so you can try them all.
 
-You can either configure a provider for each class separately by `@AutoConfigureEmbeddedDatabase(provider = ...)` annotation,
-or through `zonky.test.database.provider` property globally.
+You can either configure a provider for each class separately via `@AutoConfigureEmbeddedDatabase(provider = ...)` annotation,
+or using `zonky.test.database.provider` configuration property globally.
 
 |                                   |       [Docker][docker-provider]      |             [Zonky][zonky-provider]             | [OpenTable][opentable-provider] | [Yandex][yandex-provider] |
 |:---------------------------------:|:------------------------------------:|:-----------------------------------------------:|:-------------------------------:|:-------------------------:|
 |          **Startup Time**         |            Slightly slower           |                       Fast                      |               Fast              | Slow, depends on platform |
 |          **Performance**          | Slightly slower, depends on platform |                      Native                     |              Native             |           Native          |
+|      **Supported Databases**      |   PostgreSQL, MSSQL, MySQL, MariaDB  |                    PostgreSQL                   |            PostgreSQL           |         PostgreSQL        |
 |      **Supported Platforms**      |        All supported by Docker       |       Mac OS, Windows, Linux, Alpine Linux      |      Mac OS, Windows, Linux     |   Mac OS, Windows, Linux  |
 |    **Supported Architectures**    |            Based on image            | amd64, i386, arm32v6, arm32v7, arm64v8, ppc64le |              amd64              |           amd64           |
-| **Configurable Postgres Version** |            Yes, at runtime           |               Yes, at compile time              |                No               |      Yes, at runtime      |
+| **Configurable Database Version** |            Yes, at runtime           |               Yes, at compile time              |                No               |      Yes, at runtime      |
 |      **Alpine Linux Support**     |                  Yes                 |                       Yes                       |                No               |             No            |
 |       **Extension Support**       |                  Yes                 |                        No                       |                No               |             No            |
 |       **In-Memory Support**       |                  Yes                 |                        No                       |                No               |             No            |
@@ -236,16 +369,29 @@ or through `zonky.test.database.provider` property globally.
 ### Common Configuration
 
 The `@AutoConfigureEmbeddedDatabase` annotation can be used for some basic configuration, advanced configuration requires properties or yaml files.
-The following configuration keys are honored by all providers:
 
 ```properties
-zonky.test.database.provider=zonky # Provider used to create the underlying embedded database, see the documentation for the comparision matrix.
-zonky.test.database.postgres.client.properties.*= # Additional properties used to configure the test data source.
-zonky.test.database.postgres.initdb.properties.*= # Additional properties to pass to initdb command during the database initialization.
-zonky.test.database.postgres.server.properties.*= # Additional properties used to configure the embedded PostgreSQL server.
+zonky.test.database.type=auto                     # The type of embedded database to be created when replacing the data source.
+zonky.test.database.provider=default              # Provider to be used to create the underlying embedded database.
+zonky.test.database.refresh=never                 # Determines the refresh mode of the embedded database.
+zonky.test.database.replace=any                   # Determines what type of existing DataSource beans can be replaced.
+
+zonky.test.database.postgres.client.properties.*= # Additional PostgreSQL options used to configure the test data source.
+zonky.test.database.mssql.client.properties.*=    # Additional MSSQL options used to configure the test data source.
+zonky.test.database.mysql.client.properties.*=    # Additional MySQL options used to configure the test data source.
+zonky.test.database.mariadb.client.properties.*=  # Additional MariaDB options used to configure the test data source.
 ```
 
 Note that the library includes [configuration metadata](embedded-database-spring-test/src/main/resources/META-INF/spring-configuration-metadata.json) that offer contextual help and code completion as users are working with Spring Boot's `application.properties` or `application.yml` files.
+
+### PostgreSQL Configuration
+
+The following configuration keys are honored by all postgres providers:
+
+```properties
+zonky.test.database.postgres.initdb.properties.*= # Additional PostgreSQL options to pass to initdb command during the database initialization.
+zonky.test.database.postgres.server.properties.*= # Additional PostgreSQL options used to configure the embedded database server.
+```
 
 **Example configuration:**
 ```properties
@@ -257,10 +403,10 @@ zonky.test.database.postgres.server.properties.shared_buffers=512MB
 zonky.test.database.postgres.server.properties.max_connections=100
 ```
 
-### Using Zonky Provider (default)
+### Using Docker Provider (default)
 
 This is the default provider, so you do not have to do anything special,
-just use the `@AutoConfigureEmbeddedDatabase` annotation in its basic form without any provider.
+just use the `@AutoConfigureEmbeddedDatabase` annotation in its basic form without specifying any provider.
 
 ```java
 @RunWith(SpringRunner.class)
@@ -270,147 +416,33 @@ public class DefaultProviderIntegrationTest {
 }
 ```
 
-#### Changing the version of postgres binaries [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
-
-The version of the binaries can be managed by importing `embedded-postgres-binaries-bom` in a required version into your dependency management section.
-
-```xml
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>io.zonky.test.postgres</groupId>
-            <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>11.6.0</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-```
-
-<details>
-  <summary>Using Maven BOMs in Gradle</summary>
-  
-  In Gradle, there are several ways how to import a Maven BOM.
-  
-  1. You can define a resolution strategy to check and change the version of transitive dependencies manually:
-  
-         configurations.all {
-              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-                  if (details.requested.group == 'io.zonky.test.postgres') {
-                     details.useVersion '11.6.0'
-                 }
-             }
-         }
-  
-  2. If you use Gradle 5+, [Maven BOMs are supported out of the box](https://docs.gradle.org/current/userguide/managing_transitive_dependencies.html#sec:bom_import), so you can import the bom:
-  
-         dependencies {
-              implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:11.6.0')
-         }
-  
-  3. Or, you can use [Spring's dependency management plugin](https://docs.spring.io/dependency-management-plugin/docs/current-SNAPSHOT/reference/html5/#dependency-management-configuration-bom-import) that provides Maven-like dependency management to Gradle:
-  
-         plugins {
-             id "io.spring.dependency-management" version "1.0.6.RELEASE"
-         }
-         
-         dependencyManagement {
-              imports {
-                   mavenBom 'io.zonky.test.postgres:embedded-postgres-binaries-bom:11.6.0'
-              }
-         }
-
-</details><br/>
-
-A list of all available versions of postgres binaries is here: https://mvnrepository.com/artifact/io.zonky.test.postgres/embedded-postgres-binaries-bom
-
-Note that the release cycle of the postgres binaries is independent of the release cycle of this library, so you can upgrade to a new version of postgres binaries immediately after it is released.
-
-#### Enabling support for additional architectures [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
-
-By default, only the support for `amd64` architecture is enabled.
-Support for other architectures can be enabled by adding the corresponding Maven dependencies as shown in the example below.
-
-```xml
-<dependency>
-    <groupId>io.zonky.test.postgres</groupId>
-    <artifactId>embedded-postgres-binaries-linux-i386</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
-**Supported platforms:** `Darwin`, `Windows`, `Linux`, `Alpine Linux`  
-**Supported architectures:** `amd64`, `i386`, `arm32v6`, `arm32v7`, `arm64v8`, `ppc64le`
-
-Note that not all architectures are supported by all platforms, look here for an exhaustive list of all available artifacts: https://mvnrepository.com/artifact/io.zonky.test.postgres
-  
-Since `PostgreSQL 10.0`, there are additional artifacts with `alpine-lite` suffix. These artifacts contain postgres binaries for Alpine Linux with disabled [ICU support](https://blog.2ndquadrant.com/icu-support-postgresql-10/) for further size reduction.
-
-#### Zonky-provider specific configuration [![zonky-provider only](https://img.shields.io/badge/-zonky--provider%20only-3399ff.svg)](#database-providers)
-
-The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
-The obtained builder provides methods to change the configuration before the database is started.
-
-```java
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
-
-@Configuration
-public class EmbeddedPostgresConfiguration {
-    
-    @Bean
-    public Consumer<EmbeddedPostgres.Builder> embeddedPostgresCustomizer() {
-        return builder -> builder.setPGStartupWait(Duration.ofSeconds(60L));
-    }
-}
-```
-
-```java
-@RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase
-@ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
-public class EmbeddedPostgresIntegrationTest {
-    // class body...
-}
-```
-
-### Using Docker Provider
-
-Docker provider is especially useful if you need some PostgreSQL extension.
-You can use any docker image that is compatible with the [official Postgres image](https://hub.docker.com/_/postgres).
-
-Before you use Docker provider, you must add the following Maven dependency:
-
-```xml
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>1.10.6</version>
-    <scope>test</scope>
-</dependency>
-```
-
-Then, you can use `@AutoConfigureEmbeddedDatabase` annotation to set up the `DatabaseProvider.DOCKER` provider.
-
-```java
-@RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = DOCKER)
-public class DockerProviderIntegrationTest {
-    // class body...
-}
-```
+Note that Docker provider is especially useful if you need to use some database extensions.
+Or if you want to prepare a custom docker image containing some test data.
+In such cases, you can use any docker image that's compatible with the official docker images of the supported databases.
 
 #### Docker-provider specific configuration
 
-The provider configuration can be controlled by properties in the `zonky.test.database.postgres.docker` group.
+The provider configuration can be managed via properties in the
+`zonky.test.database.postgres.docker`, `zonky.test.database.mysql.docker`, `zonky.test.database.mariadb.docker`
+and `zonky.test.database.mssql.docker` groups as shown below.
 
 ```properties
-zonky.test.database.postgres.docker.image=postgres:10.11-alpine # Docker image containing PostgreSQL database.
-zonky.test.database.postgres.docker.tmpfs.enabled=false # Whether to mount postgres data directory as tmpfs.
-zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid # Mount options used to configure the tmpfs filesystem.
+zonky.test.database.postgres.docker.image=postgres:11-alpine        # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.tmpfs.enabled=false             # Whether to mount postgres data directory as tmpfs.
+zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid  # Mount options used to configure the tmpfs filesystem.
+
+zonky.test.database.mysql.docker.image=mysql:5.7                    # Docker image containing MySQL database.
+zonky.test.database.mysql.docker.tmpfs.enabled=false                # Whether to mount database data directory as tmpfs.
+zonky.test.database.mysql.docker.tmpfs.options=rw,noexec,nosuid     # Mount options used to configure the tmpfs filesystem.
+
+zonky.test.database.mariadb.docker.image=mariadb:10.4               # Docker image containing MariaDB database.
+zonky.test.database.mariadb.docker.tmpfs.enabled=false              # Whether to mount database data directory as tmpfs.
+zonky.test.database.mariadb.docker.tmpfs.options=rw,noexec,nosuid   # Mount options used to configure the tmpfs filesystem.
+
+zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-latest # Docker image containing MSSQL database.
 ``` 
 
-Or, the provider configuration can be also customized with bean implementing `PostgreSQLContainerCustomizer` interface.
+Or, the provider configuration can also be customized with bean implementing `PostgreSQLContainerCustomizer` interface.
 
 ```java
 import io.zonky.test.db.config.PostgreSQLContainerCustomizer;
@@ -427,7 +459,86 @@ public class EmbeddedPostgresConfiguration {
 
 ```java
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase(provider = DOCKER)
+@AutoConfigureEmbeddedDatabase
+@ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
+public class EmbeddedPostgresIntegrationTest {
+    // class body...
+}
+```
+
+### Using Zonky Provider (previous default)
+
+Before you use Zonky provider, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>io.zonky.test</groupId>
+    <artifactId>embedded-postgres</artifactId>
+    <version>1.2.9</version>
+    <scope>test</scope>
+</dependency>
+```
+
+Then, you can use `@AutoConfigureEmbeddedDatabase` annotation to set up the `DatabaseProvider.ZONKY` provider.
+
+```java
+@RunWith(SpringRunner.class)
+@AutoConfigureEmbeddedDatabase(provider = ZONKY)
+public class ZonkyProviderIntegrationTest {
+    // class body...
+}
+```
+
+Note that Zonky provider can be useful as an alternative if you can't use Docker for some reason,
+and in version `1.x.x` it used to be the default provider.
+
+#### Changing the version of postgres binaries
+
+The version of the binaries is configurable at compile time by importing `embedded-postgres-binaries-bom` in a required version into your dependency management section.
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.zonky.test.postgres</groupId>
+            <artifactId>embedded-postgres-binaries-bom</artifactId>
+            <version>11.6.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+More information about this topic here: https://github.com/zonkyio/embedded-postgres#postgres-version
+
+#### Enabling support for additional architectures
+
+By default, only the support for `amd64` architecture is enabled.
+Support for other architectures can be enabled using the following instructions:
+https://github.com/zonkyio/embedded-postgres#additional-architectures
+
+#### Zonky-provider specific configuration
+
+The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
+The obtained builder provides methods to change the configuration before the database is being started.
+
+```java
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+
+@Configuration
+public class EmbeddedPostgresConfiguration {
+    
+    @Bean
+    public Consumer<EmbeddedPostgres.Builder> embeddedPostgresCustomizer() {
+        return builder -> builder.setPGStartupWait(Duration.ofSeconds(60L));
+    }
+}
+```
+
+```java
+@RunWith(SpringRunner.class)
+@AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
 public class EmbeddedPostgresIntegrationTest {
     // class body...
@@ -436,7 +547,7 @@ public class EmbeddedPostgresIntegrationTest {
 
 ### Using OpenTable Provider
 
-Before you use OpenTable provider, you must add the following Maven dependency:
+Before you use OpenTable provider, you have to add the following Maven dependency:
 
 ```xml
 <dependency>
@@ -460,7 +571,7 @@ public class OpenTableProviderIntegrationTest {
 #### OpenTable-provider specific configuration
 
 The provider configuration can be customized with bean implementing `Consumer<EmbeddedPostgres.Builder>` interface.
-The obtained builder provides methods to change the configuration before the database is started.
+The obtained builder provides methods to change the configuration before the database is being started.
 
 ```java
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
@@ -486,7 +597,7 @@ public class EmbeddedPostgresIntegrationTest {
 
 ### Using Yandex Provider
 
-Before you use Yandex provider, you must add the following Maven dependency:
+Before you use Yandex provider, you have to add the following Maven dependency:
 
 ```xml
 <dependency>
@@ -509,20 +620,36 @@ public class YandexProviderIntegrationTest {
 
 #### Yandex-provider specific configuration
 
-The provider configuration can be controlled by properties in the `zonky.test.database.postgres.yandex-provider` group.
+The provider configuration can be managed via properties in the `zonky.test.database.postgres.yandex-provider` group.
 
 ```properties
-zonky.test.database.postgres.yandex-provider.postgres-version=10.11-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+zonky.test.database.postgres.yandex-provider.postgres-version=11.10-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
+
+## Advanced Topics
+
+### Refresh Mode
+
+This feature allows for reset the database to the initial state that existed before the test was being started.
+It's based on the use of template databases and does not rely on the rollback of the current transaction.
+So it's possible to save and commit data within the test without any consequences.
+
+Due to the use of the template databases, the refresh operation can be relatively fast and efficient.
+If database prefetching is used and tuned properly, the refresh operation can take only a few milliseconds.
+
+Note that the refresh mode can be combined with `@FlywayTest` annotation without any negative impact on performance.
+
+Example of using the refresh mode: [Refreshing the database during tests](#refreshing-the-database-during-tests)
 
 ### Database Prefetching
 
-Database prefetching is used to speed up the database initialization. It can be customized by properties in the `zonky.test.database.prefetching` group.
+The database prefetching feature is used to speed up the initialization and refreshing of the embedded databases. It can be customized by properties in the `zonky.test.database.prefetching` group.
 
 ```properties
 zonky.test.database.prefetching.thread-name-prefix=prefetching- # Prefix to use for the names of database prefetching threads.
-zonky.test.database.prefetching.concurrency=3 # Maximum number of concurrently running database prefetching threads.
-zonky.test.database.prefetching.pipeline-cache-size=3 # Maximum number of prepared databases per pipeline.
+zonky.test.database.prefetching.concurrency=3                   # Maximum number of concurrently running database prefetching threads.
+zonky.test.database.prefetching.pipeline-cache-size=5           # Maximum number of prepared databases per pipeline.
+zonky.test.database.prefetching.max-prepared-templates=10       # Maximum number of prepared database templates.
 ```
 
 ### Disabling auto-configuration
@@ -534,7 +661,7 @@ If this behavior is inappropriate for some reason, you can deactivate it by excl
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>1.6.3</version>
+    <version>2.0.0-beta1</version>
     <scope>test</scope>
     <exclusions>
         <exclusion>
@@ -547,49 +674,22 @@ If this behavior is inappropriate for some reason, you can deactivate it by excl
 
 ### Background bootstrapping mode
 
-Using this feature causes that the initialization of the data source and the execution of Flyway database migrations are performed in background bootstrap mode.
-In such case, a `DataSource` proxy is immediately returned for injection purposes instead of waiting for the Flyway's bootstrapping to complete.
-However, note that the first actual call to a data source method will then block until the Flyway's bootstrapping completed, if not ready by then.
+This feature is enabled out of the box and causes that the initialization of the data source and the execution of Flyway or Liquibase migrations are performed in background bootstrap mode.
+In such case, a `DataSource` proxy is immediately returned for injection purposes instead of waiting for the bootstrapping to complete.
+However, note that the first actual call to a data source method will then block until the bootstrapping completed, if not ready by then.
 For maximum benefit, make sure to avoid early data source calls in init methods of related beans.
-
-```java
-@Configuration
-public class BootstrappingConfiguration {
-    
-    @Bean
-    public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
-        DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
-        dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
-        return dataSourceContext;
-    }
-
-    @Bean
-    public TaskExecutor bootstrapExecutor() {
-        return new SimpleAsyncTaskExecutor("bootstrapExecutor-");
-    }
-}
-```
-
-```java
-@RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase
-@ContextConfiguration(classes = BootstrappingConfiguration.class)
-public class FlywayMigrationIntegrationTest {
-    // class body...
-}
-```
 
 ## Troubleshooting
 
-### Connecting to embedded database
+### Connecting to the embedded database
 
-When you use a breakpoint to pause the tests, you can connect to a temporary embedded database. Connection details can be found in the log as shown in the example below:
+When you use a breakpoint to pause the test, you can connect to the temporary embedded database. Connection details can be found in the log as shown in the example below:
 
 ```log
-i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to the embedded database: jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres, scope: TestClass#testMethod
+i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to 'dataSource1': url='jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres', scope='TestClass#testMethod'
 ```
 
-If you are using `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in such case multiple isolated databases may be created.
+If you are using [refresh mode](#refresh-mode) or the `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in such case multiple isolated databases may be created.
 
 ### Process [/tmp/embedded-pg/PG-XYZ/bin/initdb, ...] failed
 
@@ -642,22 +742,13 @@ Below are some examples of how to prepare a docker image running with a non-root
 ### Using Docker provider inside a Docker container
 
 This combination is supported, however, additional configuration is required.
-You need to add `-v /var/run/docker.sock:/var/run/docker.sock` mapping to the Docker command to map the Docker socket.
+You have to add `-v /var/run/docker.sock:/var/run/docker.sock` mapping to the Docker command to map the Docker socket.
 Detailed instructions are [here](https://www.testcontainers.org/supported_docker_environment/continuous_integration/dind_patterns/).
 
 ### Frequent and repeated initialization of the database
 
-Make sure that you do not use `org.flywaydb.test.junit.FlywayTestExecutionListener`. Because this library has its own test execution listener that can optimize database initialization.
-But this optimization has no effect if `FlywayTestExecutionListener` is also applied.
-
-### ERROR: role "..." already exists
-
-Since version [1.4.0](https://github.com/zonkyio/embedded-database-spring-test/releases/tag/v1.4.0), database prefetching has been improved. All databases are stored within a single database cluster.
-It speeds up the preparation of databases, but in some rare cases, if your database scripts use some global objects inappropriately, this change can cause problems. If necessary, you can change this behavior back by setting the following property:
-
-```properties
-zonky.test.database.postgres.zonky-provider.preparer-isolation=cluster
-```
+Make sure you do not use `org.flywaydb.test.junit.FlywayTestExecutionListener` or `org.flywaydb.test.FlywayTestExecutionListener` listener. Because this library has its own test execution listener that can optimize database initialization.
+But this optimization has no effect if any of these listeners is also applied.
 
 ## Building from Source
 The project uses a [Gradle](http://gradle.org)-based build system. In the instructions
@@ -679,10 +770,9 @@ extracted from the JDK download.
 
 ## Project dependencies
 
-* [PostgreSQL Binaries](https://github.com/zonkyio/embedded-postgres-binaries) (10.11)
-* [Embedded Postgres](https://github.com/zonkyio/embedded-postgres) (1.2.6) - a fork of [OpenTable Embedded PostgreSQL Component](https://github.com/opentable/otj-pg-embedded)
-* [Spring Framework](http://www.springsource.org/) (4.3.22) - `spring-test`, `spring-context` modules
-* [Flyway](https://github.com/flyway/) (5.0.7)
+* [Spring Framework](http://www.springsource.org/) (4.3.25) - `spring-test`, `spring-context` modules
+* [Testcontainers](https://www.testcontainers.org) (1.15.0)
+* [Cedarsoftware](https://github.com/jdereg/java-util) (1.34.0)
 * [Guava](https://github.com/google/guava) (23.0)
 
 ## License

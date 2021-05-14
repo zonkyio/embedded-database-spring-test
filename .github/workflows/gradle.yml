@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [8]
+        java: [8, 11, 15]
     steps:
     - name: Checkout project
       uses: actions/checkout@v1
@@ -23,5 +23,10 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
+    - name: Accept third party licence
+      env:
+        ACCEPT_LICENCE: ${{ secrets.ACCEPT_LICENCE }}
+      if: env.ACCEPT_LICENCE == 'true'
+      run: ./accept-third-party-license.sh
     - name: Build with Gradle
       run: ./gradlew build

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,7 @@ import java.lang.annotation.Target;
  * <p>
  * This annotation may be used as a <em>meta-annotation</em> to create custom <em>composed annotations</em>.
  *
- * @see io.zonky.test.db.postgres.EmbeddedPostgresContextCustomizerFactory
- * @see io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener
+ * @see EmbeddedDatabaseContextCustomizerFactory
  */
 @Documented
 @Inherited
@@ -42,38 +41,154 @@ import java.lang.annotation.Target;
 public @interface AutoConfigureEmbeddedDatabase {
 
     /**
-     * The bean name to be used to identify the data source that will be replaced.
-     * It is only necessary if there is no existing DataSource
-     * or the context contains multiple DataSource beans.
+     * The bean name to identify the data source to be associated with the embedded database.
      *
-     * @return the name to identify the DataSource bean
+     * <p>It is required only if the application context contains multiple DataSource beans.
+     *
+     * @return the bean name to identify the DataSource bean
      */
     String beanName() default "";
 
     /**
+     * Determines the refresh mode of the embedded database.
+     *
+     * <p>This feature allows for reset the database to its initial state that existed before the test began.
+     * It is based on the use of template databases and does not rely on the rollback of the current transaction,
+     * so it is possible to save and commit data within the test without any consequences.
+     *
+     * <p>The refresh mode may also be configured via the {@code zonky.test.database.refresh} configuration property.
+     *
+     * @return the type of refresh mode to be used for database reset
+     */
+    RefreshMode refresh() default RefreshMode.NEVER;
+
+    /**
+     * The type of embedded database to be created when {@link #replace() replacing} the data source.
+     * By default will attempt to detect the database type based on the classpath.
+     *
+     * <p>The database type may also be configured via the {@code zonky.test.database.type} configuration property.
+     *
+     * @return the type of embedded database
+     */
+    DatabaseType type() default DatabaseType.AUTO;
+
+    /**
+     * Provider to be used to create the underlying embedded database, see the documentation for the comparison matrix.
+     *
+     * <p>The provider may also be configured via the {@code zonky.test.database.provider} configuration property.
+     *
+     * @return the provider to create the embedded database
+     */
+    DatabaseProvider provider() default DatabaseProvider.DEFAULT;
+
+    /**
      * Determines what type of existing DataSource beans can be replaced.
+     *
+     * <p>It may also be configured via the {@code zonky.test.database.replace} configuration property.
      *
      * @return the type of existing DataSource to replace
      */
     Replace replace() default Replace.ANY;
 
     /**
-     * The type of an embedded database to be initialized
-     * when {@link #replace() replacing} the data source.
-     *
-     * @return the type of an embedded database
+     * The supported refresh modes.
      */
-    EmbeddedDatabaseType type() default EmbeddedDatabaseType.POSTGRES;
+    enum RefreshMode {
+
+        /**
+         * The database will not be reset at all.
+         */
+        NEVER,
+
+        /**
+         * The database will be reset to its initial state before the test class.
+         */
+        BEFORE_CLASS,
+
+        /**
+         * The database will be reset to its initial state before each test method in the class.
+         */
+        BEFORE_EACH_TEST_METHOD,
+
+        /**
+         * The database will be reset to its initial state after each test method in the class.
+         */
+        AFTER_EACH_TEST_METHOD,
+
+        /**
+         * The database will be reset to its initial state after the test class.
+         */
+        AFTER_CLASS
+
+    }
 
     /**
-     * Provider used to create the underlying embedded database,
-     * see the documentation for the comparision matrix.
-     * Note that the provider can also be configured
-     * through {@code zonky.test.database.provider} property.
-     *
-     * @return the provider of an embedded database
+     * The supported types of embedded databases.
      */
-    DatabaseProvider provider() default DatabaseProvider.DEFAULT;
+    enum DatabaseType {
+
+        /**
+         * Database is detected automatically based on the classpath.
+         */
+        AUTO,
+
+        /**
+         * PostgreSQL Database
+         */
+        POSTGRES,
+
+        /**
+         * Microsoft SQL Server
+         */
+        MSSQL,
+
+        /**
+         * MySQL Database
+         */
+        MYSQL,
+
+        /**
+         * MariaDB Database
+         */
+        MARIADB
+
+    }
+
+    /**
+     * The supported providers for creating embedded databases.
+     */
+    enum DatabaseProvider {
+
+        /**
+         * Default typically equals to {@link #DOCKER} provider,
+         * unless a different default has been configured by configuration properties.
+         */
+        DEFAULT,
+
+        /**
+         * Run the embedded database in Docker as a container.
+         */
+        DOCKER,
+
+        /**
+         * Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database
+         * (<a href="https://github.com/zonkyio/embedded-postgres">https://github.com/zonkyio/embedded-postgres</a>).
+         */
+        ZONKY,
+
+        /**
+         * Use OpenTable Embedded PostgreSQL Component to create the embedded database
+         * (<a href="https://github.com/opentable/otj-pg-embedded">https://github.com/opentable/otj-pg-embedded</a>).
+         */
+        OPENTABLE,
+
+        /**
+         * Use Yandex's Embedded PostgreSQL Server to create the embedded database
+         * (<a href="https://github.com/yandex-qatools/postgresql-embedded">https://github.com/yandex-qatools/postgresql-embedded</a>).
+         */
+        YANDEX,
+
+    }
 
     /**
      * What the test database can replace.
@@ -89,51 +204,6 @@ public @interface AutoConfigureEmbeddedDatabase {
          * Don't replace the application default DataSource.
          */
         NONE
-
-    }
-
-    /**
-     * The supported types of embedded databases.
-     */
-    enum EmbeddedDatabaseType {
-
-        /**
-         * PostgreSQL Database
-         */
-        POSTGRES
-
-    }
-
-    /**
-     * The supported providers of embedded databases.
-     */
-    enum DatabaseProvider {
-
-        /**
-         * Default typically equals to {@link #ZONKY} provider,
-         * unless a different default has been configured by externalized configuration.
-         */
-        DEFAULT,
-
-        /**
-         * Run the embedded database in a Docker container.
-         */
-        DOCKER,
-
-        /**
-         * Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/zonkyio/embedded-postgres).
-         */
-        ZONKY,
-
-        /**
-         * Use OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/opentable/otj-pg-embedded).
-         */
-        OPENTABLE,
-
-        /**
-         * Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded).
-         */
-        YANDEX,
 
     }
 }

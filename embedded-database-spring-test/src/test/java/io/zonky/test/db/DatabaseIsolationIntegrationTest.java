@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.FlywayIntegrationTests;
+import com.google.common.collect.ImmutableList;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.Test;
@@ -33,13 +35,12 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
-import static io.zonky.test.util.FlywayTestUtils.createFlyway;
-
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class DatabaseIsolationIntegrationTest {
 
@@ -50,8 +51,11 @@ public class DatabaseIsolationIntegrationTest {
     static class Config {
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway(DataSource dataSource) throws Exception {
-            return createFlyway(dataSource, "test");
+        public Flyway flyway(DataSource dataSource) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean

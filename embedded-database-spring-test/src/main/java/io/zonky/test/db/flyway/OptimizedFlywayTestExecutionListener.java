@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,408 +16,240 @@
 
 package io.zonky.test.db.flyway;
 
-import com.google.common.collect.ObjectArrays;
-import io.zonky.test.db.logging.EmbeddedDatabaseReporter;
-import org.aopalliance.intercept.MethodInterceptor;
-import org.apache.commons.lang3.ArrayUtils;
+import com.google.common.collect.ImmutableList;
+import io.zonky.test.db.util.ReflectionUtils;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.FlywayException;
-import org.flywaydb.core.api.MigrationVersion;
-import org.flywaydb.core.api.resolver.MigrationResolver;
-import org.flywaydb.core.api.resolver.ResolvedMigration;
-import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.flywaydb.test.junit.FlywayTestExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.beans.BeansException;
+import org.springframework.asm.AnnotationVisitor;
+import org.springframework.asm.ClassReader;
+import org.springframework.asm.ClassVisitor;
+import org.springframework.asm.ClassWriter;
+import org.springframework.asm.MethodVisitor;
+import org.springframework.asm.Opcodes;
+import org.springframework.asm.Type;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.Ordered;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.test.context.TestContext;
+import org.springframework.test.context.TestExecutionListener;
+import org.springframework.test.context.support.AbstractTestExecutionListener;
 import org.springframework.util.ClassUtils;
 
-import javax.sql.DataSource;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
+import java.io.IOException;
 import java.lang.reflect.Method;
-import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.List;
+import java.util.function.Function;
 
-import static io.zonky.test.db.util.ReflectionUtils.getField;
-import static io.zonky.test.db.util.ReflectionUtils.invokeConstructor;
-import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static org.springframework.asm.Opcodes.ASM6;
+import static org.springframework.util.ReflectionUtils.findMethod;
 
-/**
- * Optimized implementation of the {@link org.flywaydb.test.junit.FlywayTestExecutionListener}
- * that takes advantage of the fact that the reloading of the database through the
- * <code>FlywayDataSourceContext#reload(org.flywaydb.core.Flyway)</code> method can be quick and cheap operation.
- * However, it is necessary to fulfill the condition that the same data has already been loaded.
- * In such cases the {@link FlywayDataSourceContext} utilizes a special template database
- * to effective copy data into multiple independent databases.
- *
- * @see <a href="https://www.postgresql.org/docs/9.6/static/manage-ag-templatedbs.html">Template Databases</a>
- */
-public class OptimizedFlywayTestExecutionListener extends FlywayTestExecutionListener implements Ordered {
+public class OptimizedFlywayTestExecutionListener implements TestExecutionListener, Ordered {
 
-    private static final Logger logger = LoggerFactory.getLogger(OptimizedFlywayTestExecutionListener.class);
-
-    private static final ClassLoader classLoader = OptimizedFlywayTestExecutionListener.class.getClassLoader();
-    private static final boolean flywayNameAttributePresent = FlywayClassUtils.isFlywayNameAttributePresent();
-    private static final boolean flywayBaselineAttributePresent = FlywayClassUtils.isFlywayBaselineAttributePresent();
-    private static final boolean repeatableAnnotationPresent = FlywayClassUtils.isRepeatableFlywayTestAnnotationPresent();
-    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
-
-    /**
-     * The order value must be less than {@link org.springframework.test.context.transaction.TransactionalTestExecutionListener}.
-     * Otherwise, the flyway initialization can result in non-deterministic behavior related to transaction isolation.
-     */
-    private int order = 3900;
+    private static final TestExecutionListener listener = initListener();
 
     @Override
     public int getOrder() {
-        return order;
-    }
-
-    @Override
-    public void setOrder(int order) {
-        this.order = order;
+        return 3900;
     }
 
     @Override
     public void beforeTestClass(TestContext testContext) throws Exception {
-        Class<?> testClass = testContext.getTestClass();
+        listener.beforeTestClass(testContext);
+        processPendingFlywayOperations(testContext);
+    }
 
-        FlywayTest[] annotations = findFlywayTestAnnotations(testClass);
-        if (annotations.length > 1) {
-            logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
-        }
-        for (FlywayTest annotation : annotations) {
-            optimizedDbReset(testContext, testClass, annotation);
-        }
+    @Override
+    public void prepareTestInstance(TestContext testContext) throws Exception {
+        listener.prepareTestInstance(testContext);
+        processPendingFlywayOperations(testContext);
     }
 
     @Override
     public void beforeTestMethod(TestContext testContext) throws Exception {
-        Method testMethod = testContext.getTestMethod();
+        listener.beforeTestMethod(testContext);
+        processPendingFlywayOperations(testContext);
+    }
 
-        FlywayTest[] annotations = findFlywayTestAnnotations(testMethod);
-        if (annotations.length > 1) {
-            logger.warn("Optimized database loading is not supported when using multiple flyway test annotations");
+    @Override
+    public void beforeTestExecution(TestContext testContext) throws Exception {
+        listener.beforeTestExecution(testContext);
+        processPendingFlywayOperations(testContext);
+    }
+
+    @Override
+    public void afterTestExecution(TestContext testContext) throws Exception {
+        listener.afterTestExecution(testContext);
+        processPendingFlywayOperations(testContext);
+    }
+
+    @Override
+    public void afterTestMethod(TestContext testContext) throws Exception {
+        listener.afterTestMethod(testContext);
+        processPendingFlywayOperations(testContext);
+    }
+
+    @Override
+    public void afterTestClass(TestContext testContext) throws Exception {
+        listener.afterTestClass(testContext);
+        processPendingFlywayOperations(testContext);
+    }
+
+    private static void processPendingFlywayOperations(TestContext testContext) {
+        if (listener instanceof NoOpTestExecutionListener) {
+            return;
         }
-        for (FlywayTest annotation : annotations) {
-            optimizedDbReset(testContext, testMethod, annotation);
+
+        ApplicationContext applicationContext = testContext.getApplicationContext();
+
+        if (applicationContext.getBeanNamesForType(FlywayDatabaseExtension.class, false, false).length > 0) {
+            FlywayDatabaseExtension flywayDatabaseExtension = applicationContext.getBean(FlywayDatabaseExtension.class);
+            flywayDatabaseExtension.processPendingOperations();
         }
     }
 
-    protected FlywayTest[] findFlywayTestAnnotations(AnnotatedElement element) {
-        if (repeatableAnnotationPresent) {
-            org.flywaydb.test.annotation.FlywayTests containerAnnotation = findAnnotation(element, org.flywaydb.test.annotation.FlywayTests.class);
-            if (containerAnnotation != null) {
-                return containerAnnotation.value();
-            }
-        }
-
-        FlywayTest annotation = findAnnotation(element, FlywayTest.class);
-        if (annotation != null) {
-            return new FlywayTest[] { annotation };
-        }
-
-        return new FlywayTest[0];
-    }
-
-    protected synchronized void optimizedDbReset(TestContext testContext, AnnotatedElement element, FlywayTest annotation) throws Exception {
+    private static TestExecutionListener initListener() {
         try {
-            if (annotation != null && annotation.invokeCleanDB() && annotation.invokeMigrateDB()
-                    && (!flywayBaselineAttributePresent || !annotation.invokeBaselineDB())) {
+            if (ClassUtils.isPresent("org.flywaydb.core.Flyway", null)) {
 
-                ApplicationContext applicationContext = testContext.getApplicationContext();
-                Flyway flywayBean = getFlywayBean(applicationContext, annotation);
-
-                if (flywayBean != null) {
-                    FlywayDataSourceContext dataSourceContext = getDataSourceContext(applicationContext, flywayBean);
-
-                    if (dataSourceContext != null) {
-
-                        dataSourceContext.getTarget(); // wait for completion of running flyway migration
-                        DataSource dataSource = reloadDataSource(dataSourceContext, flywayBean, annotation);
-                        EmbeddedDatabaseReporter.reportDataSource(dataSource, element);
-
-                        FlywayTest adjustedAnnotation = copyAnnotation(annotation, false, false, true);
-                        originalDbReset(testContext, adjustedAnnotation);
-
-                        return;
+                if (ClassUtils.isPresent("org.flywaydb.test.FlywayTestExecutionListener", null)) {
+                    Class<?> listener = ClassUtils.forName("org.flywaydb.test.FlywayTestExecutionListener", null);
+                    Method listenerMethod = findMethod(listener, "locationsMigrationHandling", FlywayTest.class, Flyway.class, String.class);
+                    if (listenerMethod != null) {
+                        Class<?> modifiedListener = replaceMethod(listenerMethod, LocationsMigrationHandlingMethodReplacer::new);
+                        return ReflectionUtils.invokeConstructor(modifiedListener);
+                    } else {
+                        throw new IllegalStateException("org.flywaydb.test.FlywayTestExecutionListener#locationsMigrationHandling method not found");
                     }
                 }
-            }
 
-            originalDbReset(testContext, annotation);
-        } catch (NoSuchMethodError e) {
-            logger.error("\n\nHINT: Check that you are using compatible versions of org.flywaydb:flyway-core and org.flywaydb.flyway-test-extensions:flyway-spring-test dependencies!!!\n");
-            throw e;
-        }
-    }
-
-    protected void originalDbReset(TestContext testContext, FlywayTest annotation) {
-        try {
-            String dbResetMethodName = repeatableAnnotationPresent ? "dbResetWithAnnotation" : "dbResetWithAnotation";
-            invokeMethod(this, dbResetMethodName, testContext, annotation);
-        } catch (FlywayException e) {
-            if (e.getCause() instanceof SQLException) {
-                String errorCode = ((SQLException) e.getCause()).getSQLState();
-                if (errorCode != null && errorCode.matches("(42723|42P06|42P07|42712|42710)")) {
-                    logger.error("\n\nHINT: Check that you have correctly set org.flywaydb.core.Flyway#schemaNames property!!!\n");
+                if (ClassUtils.isPresent("org.flywaydb.test.junit.FlywayTestExecutionListener", null)) {
+                    return ReflectionUtils.invokeConstructor("org.flywaydb.test.junit.FlywayTestExecutionListener");
                 }
             }
-            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return new NoOpTestExecutionListener();
     }
 
-    protected static DataSource reloadDataSource(FlywayDataSourceContext dataSourceContext, Flyway flywayBean, FlywayTest annotation) throws Exception {
-        if (isAppendable(flywayBean, annotation)) {
-            return dataSourceContext.reload(flywayBean).get();
-        } else {
-            String[] oldLocations = getFlywayLocations(flywayBean);
-            try {
-                if (annotation.overrideLocations()) {
-                    setFlywayLocations(flywayBean, annotation.locationsForMigrate());
-                } else {
-                    setFlywayLocations(flywayBean, ObjectArrays.concat(oldLocations, annotation.locationsForMigrate(), String.class));
-                }
-                return dataSourceContext.reload(flywayBean).get();
-            } finally {
-                setFlywayLocations(flywayBean, oldLocations);
+    private static class NoOpTestExecutionListener extends AbstractTestExecutionListener {}
+
+    private static Class<?> replaceMethod(Method method, Function<MethodVisitor, MethodVisitor> methodReplacer) throws IOException {
+        Class<?> declaringClass = method.getDeclaringClass();
+        ClassReader cr = new ClassReader(declaringClass.getResourceAsStream(declaringClass.getSimpleName() + ".class"));
+        ClassWriter cw = new ClassWriter(cr, 0);
+        cr.accept(new ClassTransformer(cw, method, methodReplacer), 0);
+        byte[] code = cw.toByteArray();
+
+        return new ClassLoader() {
+            Class<?> get() {
+                return defineClass(null, code, 0, code.length);
             }
+        }.get();
+    }
+
+    private static class ClassTransformer extends ClassVisitor {
+
+        private final String methodName;
+        private final String methodDescriptor;
+        private final Function<MethodVisitor, MethodVisitor> methodReplacer;
+
+        private ClassTransformer(ClassWriter cw, Method method, Function<MethodVisitor, MethodVisitor> methodReplacer) {
+            super(ASM6, cw);
+            this.methodName = method.getName();
+            this.methodDescriptor = Type.getMethodDescriptor(method);
+            this.methodReplacer = methodReplacer;
+        }
+
+        // invoked for every method
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+            if (!name.equals(methodName) || !desc.equals(methodDescriptor)) {
+                // reproduce the methods we're not interested in, unchanged
+                return super.visitMethod(access, name, desc, signature, exceptions);
+            }
+            // alter the behavior for the specific method
+            return methodReplacer.apply(super.visitMethod(access, name, desc, signature, exceptions));
         }
     }
 
-    /**
-     * Checks if test migrations are appendable to core migrations.
-     */
-    protected static boolean isAppendable(Flyway flyway, FlywayTest annotation) throws ClassNotFoundException {
-        if (annotation.overrideLocations()) {
-            return false;
+    private static class LocationsMigrationHandlingMethodReplacer extends MethodVisitor {
+
+        private final MethodVisitor writer;
+
+        private LocationsMigrationHandlingMethodReplacer(MethodVisitor writer) {
+            // now, we're not passing the writer to the superclass for our radical changes
+            super(ASM6);
+            this.writer = writer;
         }
 
-        if (ArrayUtils.isEmpty(annotation.locationsForMigrate())) {
-            return true;
+        @Override
+        public void visitMaxs(int maxStack, int maxLocals) {
+            writer.visitMaxs(3, 4);
         }
 
-        MigrationVersion testVersion = findFirstVersion(flyway, annotation.locationsForMigrate());
-        if (testVersion == MigrationVersion.EMPTY) {
-            return true;
+        @Override
+        public void visitCode() {
+            writer.visitCode();
+            writer.visitVarInsn(Opcodes.ALOAD, 1);
+            writer.visitVarInsn(Opcodes.ALOAD, 2);
+            writer.visitVarInsn(Opcodes.ALOAD, 3);
+            writer.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    "io/zonky/test/db/flyway/OptimizedFlywayTestExecutionListener",
+                    "optimizedLocationsMigrationHandling",
+                    "(Lorg/flywaydb/test/annotation/FlywayTest;Lorg/flywaydb/core/Flyway;Ljava/lang/String;)V",
+                    false);
+            writer.visitInsn(Opcodes.RETURN);
         }
 
-        MigrationVersion coreVersion = findLastVersion(flyway, getFlywayLocations(flyway));
-        return coreVersion.compareTo(testVersion) < 0;
-    }
+        @Override
+        public void visitEnd() {
+            writer.visitEnd();
+        }
 
-    protected static MigrationVersion findFirstVersion(Flyway flyway, String... locations) throws ClassNotFoundException {
-        Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
-        return migrations.stream()
-                .filter(migration -> migration.getVersion() != null)
-                .findFirst()
-                .map(ResolvedMigration::getVersion)
-                .orElse(MigrationVersion.EMPTY);
-    }
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            return writer.visitAnnotation(desc, visible);
+        }
 
-    protected static MigrationVersion findLastVersion(Flyway flyway, String... locations) throws ClassNotFoundException {
-        Collection<ResolvedMigration> migrations = resolveMigrations(flyway, locations);
-        return migrations.stream()
-                .filter(migration -> migration.getVersion() != null)
-                .reduce((first, second) -> second) // finds last item
-                .map(ResolvedMigration::getVersion)
-                .orElse(MigrationVersion.EMPTY);
-    }
-
-    protected static Collection<ResolvedMigration> resolveMigrations(Flyway flyway, String... locations) throws ClassNotFoundException {
-        MigrationResolver resolver = createMigrationResolver(flyway, locations);
-
-        if (flywayVersion >= 52) {
-            Object configInstance = getField(flyway, "configuration");
-            Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
-            Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
-                    "getConfiguration".equals(invocation.getMethod().getName()) ? configInstance : invocation.proceed());
-            return invokeMethod(resolver, "resolveMigrations", contextInstance);
-        } else {
-            return resolver.resolveMigrations();
+        @Override
+        public void visitParameter(String name, int access) {
+            writer.visitParameter(name, access);
         }
     }
 
-    protected static MigrationResolver createMigrationResolver(Flyway flyway, String... locations) throws ClassNotFoundException {
-        String[] oldLocations = getFlywayLocations(flyway);
+    private static final Logger flywayLogger = LoggerFactory.getLogger("org.flywaydb.test.FlywayTestExecutionListener");
+
+    public static void optimizedLocationsMigrationHandling(FlywayTest annotation, Flyway flyway, String executionInfo) {
+        String[] locations = annotation.locationsForMigrate();
+        // now migration handling for locations support
+        FlywayWrapper wrapper = FlywayWrapper.forBean(flyway);
+        List<String> oldLocations = wrapper.getLocations();
+        boolean override = annotation.overrideLocations();
         try {
-            setFlywayLocations(flyway, locations);
-
-            if (flywayVersion >= 63) {
-                Object scanner = createScanner(flyway);
-                Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
-                Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
-                Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
-                return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
-            } else if (flywayVersion >= 60) {
-                Object scanner = createScanner(flyway);
-                Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
-                Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
-                return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
-            } else if (flywayVersion >= 52) {
-                Object scanner = createScanner(flyway);
-                Object placeholderReplacer = createMock("org.flywaydb.core.internal.placeholder.PlaceholderReplacer");
-                Object factory = invokeConstructor("org.flywaydb.core.internal.database.postgresql.PostgreSQLSqlStatementBuilderFactory", placeholderReplacer);
-                return invokeMethod(flyway, "createMigrationResolver", null, scanner, scanner, factory);
-            } else if (flywayVersion >= 51) {
-                Object scanner = createScanner(flyway);
-                Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
-                return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
-            } else if (flywayVersion >= 40) {
-                Scanner scanner = new Scanner(flyway.getClassLoader());
-                return invokeMethod(flyway, "createMigrationResolver", null, scanner);
+            List<String> useLocations;
+            if (override) {
+                useLocations = ImmutableList.copyOf(locations);
             } else {
-                return invokeMethod(flyway, "createMigrationResolver", (Object) null);
+                // Fill the locations
+                useLocations = ImmutableList.<String>builder()
+                        .addAll(oldLocations)
+                        .addAll(Arrays.asList(locations))
+                        .build();
             }
+            if (flywayLogger.isDebugEnabled()) {
+                flywayLogger.debug(String
+                        .format("******** Start migration from locations directories '%s'  for  '%s'.",
+                                useLocations, executionInfo));
+
+            }
+            wrapper.setLocations(useLocations);
+            wrapper.migrate();
         } finally {
-            setFlywayLocations(flyway, oldLocations);
+            // reset the flyway bean to original configuration.
+            wrapper.setLocations(oldLocations);
         }
-    }
-
-    protected static Object createScanner(Flyway flyway) throws ClassNotFoundException {
-        Object configuration = getField(flyway, "configuration");
-
-        if (flywayVersion >= 70) {
-            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                    invokeMethod(configuration, "getClassLoader"),
-                    invokeMethod(configuration, "getEncoding"),
-                    false,
-                    getField(flyway, "resourceNameCache"),
-                    getField(flyway, "locationScannerCache"));
-        }
-        if (flywayVersion >= 63) {
-            try {
-                // this code is only for version 6.3.3 and above
-                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                        invokeMethod(configuration, "getClassLoader"),
-                        invokeMethod(configuration, "getEncoding"),
-                        getField(flyway, "resourceNameCache"),
-                        getField(flyway, "locationScannerCache"));
-            } catch (RuntimeException ex) {
-                if (flywayVersion > 63) {
-                    throw ex;
-                }
-                // try next branch
-            }
-        }
-        if (flywayVersion >= 61) {
-            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                    invokeMethod(configuration, "getClassLoader"),
-                    invokeMethod(configuration, "getEncoding"),
-                    getField(flyway, "resourceNameCache"));
-        }
-        if (flywayVersion >= 60) {
-            try {
-                // this code is only for version 6.0.7 and above
-                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                        invokeMethod(configuration, "getClassLoader"),
-                        invokeMethod(configuration, "getEncoding"));
-            } catch (RuntimeException ex) {
-                // try next branch
-            }
-        }
-        if (flywayVersion >= 52) {
-            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                    Arrays.asList((Object[]) invokeMethod(configuration, "getLocations")),
-                    invokeMethod(configuration, "getClassLoader"),
-                    invokeMethod(configuration, "getEncoding"));
-        }
-        if (flywayVersion >= 51) {
-            return invokeConstructor(Scanner.class, configuration);
-        }
-
-        throw new IllegalStateException("Unsupported flyway version: " + flywayVersion);
-    }
-
-    protected static Object createMock(String className) throws ClassNotFoundException {
-        Class<?> proxyInterface = ClassUtils.forName(className, classLoader);
-        return ProxyFactory.getProxy(proxyInterface, (MethodInterceptor) invocation -> null);
-    }
-
-    protected Flyway getFlywayBean(ApplicationContext applicationContext, FlywayTest annotation) {
-        if (flywayNameAttributePresent) {
-            return invokeMethod(this, "getBean", applicationContext, Flyway.class, annotation.flywayName());
-        } else {
-            return invokeMethod(this, "getBean", applicationContext, Flyway.class);
-        }
-    }
-
-    protected static String[] getFlywayLocations(Flyway flyway) {
-        if (flywayVersion >= 51) {
-            Object configuration = getField(flyway, "configuration");
-            return Arrays.stream((Object[]) invokeMethod(configuration, "getLocations"))
-                    .map(location -> invokeMethod(location, "getDescriptor"))
-                    .toArray(String[]::new);
-        } else {
-            return flyway.getLocations();
-        }
-    }
-
-    protected static void setFlywayLocations(Flyway flyway, String[] locations) {
-        if (flywayVersion >= 51) {
-            Object configuration = getField(flyway, "configuration");
-            invokeMethod(configuration, "setLocationsAsStrings", (Object) locations);
-        } else {
-            flyway.setLocations(locations);
-        }
-    }
-
-    protected static FlywayDataSourceContext getDataSourceContext(ApplicationContext context, Flyway flywayBean) {
-        Map<String, Flyway> flywayBeans = context.getBeansOfType(Flyway.class);
-        String flywayBeanName = flywayBeans.entrySet().stream()
-                .filter(e -> e.getValue() == flywayBean)
-                .map(Map.Entry::getKey)
-                .findFirst().orElse("default");
-
-        try {
-            return context.getBean(flywayBeanName + "DataSourceContext", FlywayDataSourceContext.class);
-        } catch (BeansException e) {}
-
-        try {
-            return context.getBean(FlywayDataSourceContext.class);
-        } catch (BeansException e) {}
-
-        return null;
-    }
-
-    /**
-     * Customized implementation because {@link AnnotationUtils#findAnnotation(AnnotatedElement, Class)} method
-     * operates generically on annotated elements and not execute specialized search algorithms for classes and methods.
-     *
-     * @see AnnotationUtils#findAnnotation(AnnotatedElement, Class)
-     */
-    protected static <A extends Annotation> A findAnnotation(AnnotatedElement annotatedElement, Class<A> annotationType) {
-        if (annotatedElement instanceof Class<?>) {
-            return AnnotationUtils.findAnnotation((Class<?>) annotatedElement, annotationType);
-        } else if (annotatedElement instanceof Method) {
-            return AnnotationUtils.findAnnotation((Method) annotatedElement, annotationType);
-        } else {
-            return AnnotationUtils.findAnnotation(annotatedElement, annotationType);
-        }
-    }
-
-    private static FlywayTest copyAnnotation(FlywayTest annotation, boolean invokeCleanDB, boolean invokeBaselineDB, boolean invokeMigrateDB) {
-        Map<String, Object> attributes = AnnotationUtils.getAnnotationAttributes(annotation);
-        attributes.put("invokeCleanDB", invokeCleanDB);
-        attributes.put("invokeBaselineDB", invokeBaselineDB);
-        attributes.put("invokeMigrateDB", invokeMigrateDB);
-        return AnnotationUtils.synthesizeAnnotation(attributes, FlywayTest.class, null);
     }
 }

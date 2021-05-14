@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableList;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -26,27 +27,22 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import io.zonky.test.category.FlywayIntegrationTests;
-import io.zonky.test.db.flyway.DefaultFlywayDataSourceContext;
-import io.zonky.test.db.flyway.FlywayDataSourceContext;
-import static io.zonky.test.util.FlywayTestUtils.createFlyway;
-
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(FlywayIntegrationTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource")
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(type = POSTGRES)
 @ContextConfiguration
 public class AsyncFlywayInitializationIntegrationTest {
 
@@ -55,17 +51,13 @@ public class AsyncFlywayInitializationIntegrationTest {
     @Configuration
     static class Config {
 
-        @Bean
-        public Flyway flyway(DataSource dataSource) throws Exception {
-            List<String> locations = ImmutableList.of("db/migration", "db/test_migration/slow");
-            return createFlyway(dataSource, "test", locations);
-        }
-
-        @Bean
-        public FlywayDataSourceContext flywayDataSourceContext(TaskExecutor bootstrapExecutor) {
-            DefaultFlywayDataSourceContext dataSourceContext = new DefaultFlywayDataSourceContext();
-            dataSourceContext.setBootstrapExecutor(bootstrapExecutor);
-            return dataSourceContext;
+        @Bean(initMethod = "migrate")
+        public Flyway flyway(DataSource dataSource) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            wrapper.setLocations(ImmutableList.of("db/migration", "db/test_migration/slow"));
+            return wrapper.getFlyway();
         }
 
         @Bean
@@ -77,11 +69,6 @@ public class AsyncFlywayInitializationIntegrationTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
         }
-
-        @Bean
-        public TaskExecutor bootstrapExecutor() {
-            return new SimpleAsyncTaskExecutor("bootstrapExecutor-");
-        }
     }
 
     @Autowired
@@ -91,7 +78,7 @@ public class AsyncFlywayInitializationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test(timeout = 10000)
-    public void loadDefaultMigrations() {
+    public void testAsyncInitialization() {
         Duration duration = longTimeInitializingBean.getInitializationDuration();
         assertThat(duration).isGreaterThan(Duration.ofSeconds(1));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,14 @@
 
 package io.zonky.test.db;
 
-import io.zonky.test.category.MultiFlywayIntegrationTests;
+import com.google.common.collect.ImmutableList;
+import io.zonky.test.category.FlywayTestSuite;
+import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -37,19 +42,21 @@ import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
-import static io.zonky.test.util.FlywayTestUtils.createFlyway;
-
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
-@Category(MultiFlywayIntegrationTests.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource1", provider = ZONKY)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource2", provider = DOCKER)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = ZONKY)
+@Category(FlywayTestSuite.class)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource1", type = POSTGRES, provider = ZONKY)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource2", type = POSTGRES, provider = DOCKER)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", type = POSTGRES, provider = ZONKY)
 @ContextConfiguration
 public class MultipleDatabasesIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeFlywaySupportsRepeatableAnnotations);
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
 
@@ -57,18 +64,27 @@ public class MultipleDatabasesIntegrationTest {
     static class Config {
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway1(DataSource dataSource1) throws Exception {
-            return createFlyway(dataSource1, "test");
+        public Flyway flyway1(DataSource dataSource1) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource1);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway2(DataSource dataSource2) throws Exception {
-            return createFlyway(dataSource2, "test");
+        public Flyway flyway2(DataSource dataSource2) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource2);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean(initMethod = "migrate")
-        public Flyway flyway3(DataSource dataSource3) throws Exception {
-            return createFlyway(dataSource3, "test");
+        public Flyway flyway3(DataSource dataSource3) {
+            FlywayWrapper wrapper = FlywayWrapper.newInstance();
+            wrapper.setDataSource(dataSource3);
+            wrapper.setSchemas(ImmutableList.of("test"));
+            return wrapper.getFlyway();
         }
 
         @Bean
