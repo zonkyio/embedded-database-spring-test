@@ -150,8 +150,11 @@ public class TemplatingDatabaseProvider implements DatabaseProvider {
 
             if (templateCount() >= config.getMaxTemplateCount()) {
                 TemplateKey templateToRemove = findTemplateToRemove();
+                if (templateToRemove == null) {
+                    return null;
+                }
                 PreparerStats templateToRemoveStats = stats.get(templateToRemove);
-                if (templateToRemove == null || preparerStats.getTotalLoadTime() < templateToRemoveStats.getTotalLoadTime() + config.getDurationThreshold()) {
+                if (preparerStats.getTotalLoadTime() < templateToRemoveStats.getTotalLoadTime() + config.getDurationThreshold()) {
                     return null;
                 }
                 oldTemplate = templates.remove(templateToRemove);
