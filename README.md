@@ -19,6 +19,19 @@ The primary goal of this project is to make it easier to write Spring-powered in
 * Uses optimized refreshing of embedded databases between tests
     * Database templates are used to reduce the refreshing time
 
+## Upgrading from Embedded Database 1.x
+
+If you are upgrading from the `1.x` version, check the [release notes](https://github.com/zonkyio/embedded-database-spring-test/wiki/Embedded-Database-2.0-Release-Notes).
+You’ll find [upgrade instructions](https://github.com/zonkyio/embedded-database-spring-test/wiki/Embedded-Database-2.0-Release-Notes#upgrading-from-embedded-database-1x) along with a list of [new and noteworthy](https://github.com/zonkyio/embedded-database-spring-test/wiki/Embedded-Database-2.0-Release-Notes#new-and-noteworthy) features.
+
+The main changes in `2.0.0` include:
+
+- Docker as a default provider (but you can still switch to the previous [Zonky](#using-zonky-provider-previous-default) provider)
+- optional Flyway dependencies
+- upgrade to PostgreSQL 11
+- new refresh mode
+- and much more
+
 ## Quick Start
 
 ### Maven Configuration
@@ -29,7 +42,7 @@ Add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>2.0.0-beta1</version>
+    <version>2.0.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -474,7 +487,7 @@ Before you use Zonky provider, you have to add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-postgres</artifactId>
-    <version>1.2.9</version>
+    <version>1.2.10</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -502,7 +515,7 @@ The version of the binaries is configurable at compile time by importing `embedd
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>11.6.0</version>
+            <version>13.2.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -661,7 +674,7 @@ If this behavior is inappropriate for some reason, you can deactivate it by excl
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>2.0.0-beta1</version>
+    <version>2.0.0</version>
     <scope>test</scope>
     <exclusions>
         <exclusion>
