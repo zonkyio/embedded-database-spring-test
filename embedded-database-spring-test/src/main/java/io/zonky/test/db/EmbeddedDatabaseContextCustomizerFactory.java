@@ -19,6 +19,7 @@ package io.zonky.test.db;
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
 import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
+import io.zonky.test.db.config.EmbeddedDatabaseCondition;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DefaultDatabaseContext;
 import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
@@ -44,6 +45,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DeferredImportSelector;
 import org.springframework.context.annotation.Import;
@@ -205,6 +207,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
     }
 
     @Configuration
+    @Conditional(EmbeddedDatabaseCondition.class)
     protected static class PrimaryDataSourceAutoConfiguration {
 
         @Bean
@@ -215,6 +218,7 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
     }
 
     @Configuration
+    @Conditional(EmbeddedDatabaseCondition.class)
     protected static class SecondaryDataSourceAutoConfiguration {
 
         @Bean
