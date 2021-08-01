@@ -752,6 +752,20 @@ Below are some examples of how to prepare a docker image running with a non-root
 
 </details>
 
+<details>
+  <summary>Gitlab runner Docker executor</summary>
+
+  Configure Docker container to run in privileged mode as described [here](https://docs.gitlab.com/runner/executors/docker.html#use-docker-in-docker-with-privileged-mode).
+
+  ```
+  [[runners]]
+    executor = "docker"
+    [runners.docker]
+      privileged = true
+  ```
+
+</details>
+
 ### Using Docker provider inside a Docker container
 
 This combination is supported, however, additional configuration is required.
