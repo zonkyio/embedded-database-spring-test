@@ -136,6 +136,18 @@ public class FlywayWrapper {
     }
 
     private Object createScanner(Flyway flyway) throws ClassNotFoundException {
+        if (flywayVersion >= 79) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"),
+                    invokeMethod(config, "getDetectEncoding"),
+                    false,
+                    getField(flyway, "resourceNameCache"),
+                    getField(flyway, "locationScannerCache"),
+                    invokeMethod(config, "getFailOnMissingLocations"));
+        }
         if (flywayVersion >= 70) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
