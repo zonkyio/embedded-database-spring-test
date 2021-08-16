@@ -1,6 +1,7 @@
 package io.zonky.test.db.support;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider;
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -9,11 +10,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DEFAULT;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.AUTO;
 
 public class DefaultProviderResolver implements ProviderResolver {
 
@@ -31,6 +27,15 @@ public class DefaultProviderResolver implements ProviderResolver {
     public ProviderDescriptor getDescriptor(DatabaseDefinition definition) {
         String providerName = getProviderName(definition.getProviderType());
         String databaseName = getDatabaseName(definition.getDatabaseType());
+
+        if (providerName == null) {
+            if (DatabaseType.H2.name().equalsIgnoreCase(databaseName)) {
+                providerName = DatabaseProvider.EMBEDDED.name();
+            } else {
+                providerName = DatabaseProvider.DOCKER.name();
+            }
+        }
+
         ProviderDescriptor descriptor = ProviderDescriptor.of(providerName, databaseName);
 
         if (StringUtils.hasText(definition.getBeanName())) {
@@ -43,25 +48,25 @@ public class DefaultProviderResolver implements ProviderResolver {
     }
 
     protected String getProviderName(DatabaseProvider providerType) {
-        if (providerType != DEFAULT) {
+        if (providerType != DatabaseProvider.DEFAULT) {
             return providerType.name();
         }
 
         String providerName = environment.getProperty("zonky.test.database.provider");
-        if (providerName != null && !providerName.equalsIgnoreCase(DEFAULT.name())) {
+        if (providerName != null && !providerName.equalsIgnoreCase(DatabaseProvider.DEFAULT.name())) {
             return providerName;
         }
 
-        return DOCKER.name();
+        return null;
     }
 
     protected String getDatabaseName(DatabaseType databaseType) {
-        if (databaseType != AUTO) {
+        if (databaseType != DatabaseType.AUTO) {
             return databaseType.name();
         }
 
         String databaseName = environment.getProperty("zonky.test.database.type");
-        if (databaseName != null && !databaseName.equalsIgnoreCase(AUTO.name())) {
+        if (databaseName != null && !databaseName.equalsIgnoreCase(DatabaseType.AUTO.name())) {
             return databaseName;
         }
 
@@ -78,6 +83,9 @@ public class DefaultProviderResolver implements ProviderResolver {
         }
         if (ClassUtils.isPresent("org.mariadb.jdbc.MariaDbDataSource", classLoader)) {
             detectedTypes.add(DatabaseType.MARIADB);
+        }
+        if (ClassUtils.isPresent("org.h2.Driver", classLoader)) {
+            detectedTypes.add(DatabaseType.H2);
         }
 
         if (detectedTypes.isEmpty()) {

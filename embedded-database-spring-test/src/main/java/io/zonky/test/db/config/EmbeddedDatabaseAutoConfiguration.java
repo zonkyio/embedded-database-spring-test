@@ -21,6 +21,7 @@ import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.h2.H2DatabaseProvider;
 import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
@@ -115,6 +116,14 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     }
 
     @Bean
+    @Provider(type = "embedded", database = "h2")
+    @ConditionalOnMissingBean(name = "h2DatabaseProvider")
+    public DatabaseProvider h2DatabaseProvider(DatabaseProviderFactory h2DatabaseProviderFactory) {
+        checkDependency("com.h2database", "h2", "org.h2.Driver");
+        return h2DatabaseProviderFactory.createProvider(H2DatabaseProvider.class);
+    }
+
+    @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "postgresDatabaseProviderFactory")
     public DatabaseProviderFactory postgresDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
@@ -148,6 +157,15 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     public DatabaseProviderFactory mariaDbDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
         return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
                 builder.optimizingProvider(provider));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "h2DatabaseProviderFactory")
+    public DatabaseProviderFactory h2DatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(
+                        builder.prefetchingProvider(provider)));
     }
 
     @Bean

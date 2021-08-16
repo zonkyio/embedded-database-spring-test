@@ -150,7 +150,12 @@ public @interface AutoConfigureEmbeddedDatabase {
         /**
          * MariaDB Database
          */
-        MARIADB
+        MARIADB,
+
+        /**
+         * H2 Database
+         */
+        H2
 
     }
 
@@ -171,6 +176,11 @@ public @interface AutoConfigureEmbeddedDatabase {
         DOCKER,
 
         /**
+         * Use an embedded database provider.
+         */
+        EMBEDDED,
+
+        /**
          * Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database
          * (<a href="https://github.com/zonkyio/embedded-postgres">https://github.com/zonkyio/embedded-postgres</a>).
          */
@@ -186,7 +196,7 @@ public @interface AutoConfigureEmbeddedDatabase {
          * Use Yandex's Embedded PostgreSQL Server to create the embedded database
          * (<a href="https://github.com/yandex-qatools/postgresql-embedded">https://github.com/yandex-qatools/postgresql-embedded</a>).
          */
-        YANDEX,
+        YANDEX
 
     }
 

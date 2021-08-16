@@ -12,15 +12,15 @@ ext {
 
     testSuites = [
             [name: 'default', versions: [
-                    [name: 'suite', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default']
+                    [name: 'suite', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default', 'h2': 'default']
             ]],
             [name: 'spring', versions: [
-                    [name: '4.3.8',   spring: '4.3.8.RELEASE',   'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
-                    [name: '4.3.29',  spring: '4.3.29.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
-                    [name: '5.0.19',  spring: '5.0.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
-                    [name: '5.1.19',  spring: '5.1.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
-                    [name: '5.2.11',  spring: '5.2.11.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default'],
-                    [name: '5.3.1',   spring: '5.3.1',           'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default']
+                    [name: '4.3.8',   spring: '4.3.8.RELEASE',   'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '4.3.29',  spring: '4.3.29.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '5.0.19',  spring: '5.0.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '5.1.19',  spring: '5.1.19.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '5.2.11',  spring: '5.2.11.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '5.3.1',   spring: '5.3.1',           'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default']
             ]],
             [name: 'flyway', versions: [
                     [name: '4.0.3',  flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.25.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
@@ -89,6 +89,10 @@ ext {
                     [name: '10.3',  'mariadb': '10.3',  'mariadb-driver': 'default'],
                     [name: '10.4',  'mariadb': '10.4',  'mariadb-driver': 'default'],
                     [name: '10.5',  'mariadb': '10.5',  'mariadb-driver': 'default']
+            ]],
+            [name: 'h2', versions: [
+                    [name: '1.3.176',  'h2': '1.3.176'],
+                    [name: '1.4.200',  'h2': '1.4.200']
             ]]
     ]
 }
@@ -219,6 +223,7 @@ project(':embedded-database-spring-test') {
         compile 'com.microsoft.sqlserver:mssql-jdbc:8.4.1.jre8', optional
         compile 'mysql:mysql-connector-java:8.0.22', optional
         compile 'org.mariadb.jdbc:mariadb-java-client:2.7.0', optional
+        compile 'com.h2database:h2:1.4.200', optional
 
         compile 'org.flywaydb:flyway-core:7.13.0', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
@@ -357,6 +362,16 @@ project(':embedded-database-spring-test') {
                                 }
                             }
                         }
+
+                        if (version.h2 == null) { // optional dependencies are implicitly excluded
+                            exclude group: 'com.h2database', module: 'h2'
+                        } else if (version.h2 != 'default') {
+                            eachDependency { details ->
+                                if (details.requested.group == 'com.h2database' && details.requested.name == 'h2') {
+                                    details.useVersion "${version.h2}"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -440,6 +455,8 @@ project(':embedded-database-spring-test') {
                         includeCategories 'io.zonky.test.category.MySQLTestSuite'
                     } else if (suite.name == 'mariadb') {
                         includeCategories 'io.zonky.test.category.MariaDBTestSuite'
+                    } else if (suite.name == 'h2') {
+                        includeCategories 'io.zonky.test.category.H2TestSuite'
                     }
                 }
             }
