@@ -15,7 +15,9 @@ jobs:
       with:
         java-version: ${{ matrix.java }}
     - name: Install language packs
-      run: sudo apt-get install language-pack-cs
+      run: |
+        sudo apt-get update
+        sudo apt-get install language-pack-cs
     - name: Cache Gradle repository
       uses: actions/cache@v1
       with:
