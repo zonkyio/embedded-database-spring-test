@@ -21,6 +21,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase.Replace;
 import io.zonky.test.db.config.EmbeddedDatabaseAutoConfiguration;
 import io.zonky.test.db.config.EmbeddedDatabaseCondition;
 import io.zonky.test.db.context.DatabaseContext;
+import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.context.DefaultDatabaseContext;
 import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -32,10 +33,12 @@ import io.zonky.test.db.util.AnnotationUtils;
 import io.zonky.test.db.util.PropertyUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
@@ -68,6 +71,7 @@ import javax.sql.DataSource;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toCollection;
 
@@ -302,11 +306,20 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
                         });
 
                 RootBeanDefinition dataSourceDefinition = new RootBeanDefinition();
-                dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
-                dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
-                dataSourceDefinition.getConstructorArgumentValues()
-                        .addIndexedArgumentValue(0, (ObjectFactory<DatabaseContext>) () ->
-                                beanFactory.getBean(contextBeanName, DatabaseContext.class));
+                if (ClassUtils.hasMethod(AbstractBeanDefinition.class, "setInstanceSupplier", Supplier.class)) {
+                    dataSourceDefinition.setBeanClass(DataSource.class);
+                    dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
+                    dataSourceDefinition.setInstanceSupplier(() -> {
+                        DatabaseContext databaseContext = beanFactory.getBean(contextBeanName, DatabaseContext.class);
+                        return ProxyFactory.getProxy(DataSource.class, new DatabaseTargetSource(databaseContext));
+                    });
+                } else {
+                    dataSourceDefinition.setBeanClass(EmbeddedDatabaseFactoryBean.class);
+                    dataSourceDefinition.setPrimary(dataSourceInfo.getBeanDefinition().isPrimary());
+                    dataSourceDefinition.getConstructorArgumentValues()
+                            .addIndexedArgumentValue(0, (ObjectFactory<DatabaseContext>) () ->
+                                    beanFactory.getBean(contextBeanName, DatabaseContext.class));
+                }
 
                 logger.info("Replacing '{}' DataSource bean with embedded version", dataSourceBeanName);
 

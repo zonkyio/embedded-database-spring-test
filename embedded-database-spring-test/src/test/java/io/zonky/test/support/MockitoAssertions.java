@@ -28,8 +28,8 @@ public class MockitoAssertions {
 
     private MockitoAssertions() {}
 
-    public static <T> Condition<T> mockWithName(String name) {
-        Condition<T> isMock = new Condition<T>("target object should be a mock") {
+    public static <T> Condition<T> mock() {
+        return new Condition<T>("target object should be a mock") {
             @Override
             public boolean matches(T object) {
                 try {
@@ -39,6 +39,9 @@ public class MockitoAssertions {
                 }
             }
         };
+    }
+
+    public static <T> Condition<T> mockWithName(String name) {
         Condition<T> hasName = new Condition<T>("mock should have a specified name") {
             @Override
             public boolean matches(T object) {
@@ -50,6 +53,6 @@ public class MockitoAssertions {
             }
         };
 
-        return allOf(isMock, hasName);
+        return allOf(mock(), hasName);
     }
 }

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener;
 import io.zonky.test.db.flyway.preparer.MigrateFlywayDatabasePreparer;
 import io.zonky.test.support.ConditionalTestRule;
 import io.zonky.test.support.SpyPostProcessor;
@@ -38,10 +39,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.BeforeTransaction;
+import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 
 import javax.sql.DataSource;
 
@@ -61,6 +65,11 @@ import static org.mockito.Mockito.times;
         "spring.liquibase.enabled=false"
 })
 @JdbcTest
+@TestExecutionListeners(listeners = {
+        DependencyInjectionTestExecutionListener.class,
+        OptimizedFlywayTestExecutionListener.class,
+        TransactionalTestExecutionListener.class
+})
 public class FlywayTransactionalIntegrationTest {
 
     @ClassRule
