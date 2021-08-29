@@ -1,7 +1,10 @@
 package io.zonky.test.support;
 
 import io.zonky.test.db.flyway.FlywayClassUtils;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.util.ClassUtils;
+
+import java.util.function.Supplier;
 
 import static org.junit.Assume.assumeTrue;
 
@@ -23,6 +26,10 @@ public class TestAssumptions {
 
     private static void assumeFlywayVersion(int minVersion) {
         assumeTrue(FlywayClassUtils.getFlywayVersion() >= minVersion);
+    }
+
+    public static void assumeSpringSupportsInstanceSupplier() {
+        assumeTrue(ClassUtils.hasMethod(AbstractBeanDefinition.class, "setInstanceSupplier", Supplier.class));
     }
 
     public static void assumeSpringBootSupportsJdbcTestAnnotation() {

@@ -27,7 +27,6 @@ import javax.sql.DataSource;
  * Implementation of the {@link org.springframework.beans.factory.FactoryBean} interface
  * that provides fully cacheable instances of the embedded postgres database.
  */
-// TODO: replace by using factory method (java configuration)
 public class EmbeddedDatabaseFactoryBean implements FactoryBean<DataSource>, Ordered {
 
     private final ObjectFactory<DatabaseContext> databaseContextProvider;
