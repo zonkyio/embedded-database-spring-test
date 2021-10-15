@@ -154,7 +154,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
                     .map(e -> String.format("-c %s=%s", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(" "));
 
-            container = createPostgreSQLContainer(config.dockerImage, container -> {
+            container = createContainer(config.dockerImage, container -> {
                 container.addEnv("POSTGRES_INITDB_ARGS", "--nosync " + initdbArgs);
                 container.setCommand("postgres " + postgresArgs);
             });
@@ -176,7 +176,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
             semaphore = new Semaphore(Integer.parseInt(serverProperties.get("max_connections")));
         }
 
-        private PostgreSQLContainer createPostgreSQLContainer(String dockerImage, Consumer<PostgreSQLContainer> configAction) {
+        private PostgreSQLContainer createContainer(String dockerImage, Consumer<PostgreSQLContainer> configAction) {
             if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
                 return new PostgreSQLContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("postgres")) {
                     @Override
