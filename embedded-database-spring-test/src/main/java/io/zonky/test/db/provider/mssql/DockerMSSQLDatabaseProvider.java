@@ -142,9 +142,19 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
 
         private MSSQLServerContainer createContainer(String dockerImage) {
             if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
-                return new MSSQLServerContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("mcr.microsoft.com/mssql/server"));
+                return new MSSQLServerContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("mcr.microsoft.com/mssql/server")) {
+                    @Override
+                    public String getUsername() {
+                        return "sa";
+                    }
+                };
             } else {
-                return new MSSQLServerContainer(dockerImage);
+                return new MSSQLServerContainer(dockerImage) {
+                    @Override
+                    public String getUsername() {
+                        return "sa";
+                    }
+                };
             }
         }
 
