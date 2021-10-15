@@ -19,17 +19,18 @@ package io.zonky.test.db.liquibase;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import io.zonky.test.db.preparer.DatabasePreparer;
+import io.zonky.test.db.util.ReflectionUtils;
 import liquibase.exception.ChangeLogParseException;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
-import liquibase.integration.spring.SpringLiquibase.SpringResourceOpener;
-import liquibase.resource.ResourceAccessor;
 import liquibase.util.StreamUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Objects;
@@ -50,12 +51,7 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
     public long estimatedDuration() {
         if (estimatedDuration == null) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-
-            SpringLiquibase springLiquibase = new SpringLiquibase();
-            springLiquibase.setResourceLoader(descriptor.getResourceLoader());
-            SpringResourceOpener resourceAccessor = springLiquibase.new SpringResourceOpener(descriptor.getChangeLog());
-            long linesCount = resolveChangeLogLines(descriptor.getChangeLog(), resourceAccessor);
-
+            long linesCount = resolveChangeLogLines(descriptor.getChangeLog());
             estimatedDuration = 100 + (linesCount * 2);
             logger.trace("Resolved {} changelog lines in {}", linesCount, stopwatch);
         }
@@ -100,10 +96,10 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
                 .toString();
     }
 
-    protected long resolveChangeLogLines(String path, ResourceAccessor resourceAccessor) {
+    protected long resolveChangeLogLines(String path) {
         try {
             String changeLogPath = path.replace('\\', '/');
-            InputStream changeLogStream = StreamUtil.singleInputStream(changeLogPath, resourceAccessor);
+            InputStream changeLogStream = openChangeLogStream(changeLogPath);
             if (changeLogStream == null) {
                 throw new ChangeLogParseException(changeLogPath + " does not exist");
             }
@@ -113,6 +109,21 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
         } catch (Exception e) {
             logger.warn("Unexpected error when resolving liquibase changelog", e);
             return 10000; // fallback value
+        }
+    }
+
+    protected InputStream openChangeLogStream(String changeLogPath) throws IOException, ClassNotFoundException {
+        SpringLiquibase springLiquibase = new SpringLiquibase();
+        springLiquibase.setResourceLoader(descriptor.getResourceLoader());
+        if (ClassUtils.isPresent("liquibase.integration.spring.SpringLiquibase$SpringResourceOpener", null)) {
+            SpringLiquibase.SpringResourceOpener resourceAccessor = springLiquibase.new SpringResourceOpener(descriptor.getChangeLog());
+            return StreamUtil.singleInputStream(changeLogPath, resourceAccessor);
+        } else if (ClassUtils.isPresent("liquibase.integration.spring.SpringLiquibase$SpringResourceAccessor", null)) {
+            Object resourceAccessor = ReflectionUtils.invokeConstructor("liquibase.integration.spring.SpringLiquibase$SpringResourceAccessor", springLiquibase);
+            return ReflectionUtils.invokeMethod(resourceAccessor, "openStream", null, changeLogPath);
+        } else {
+            Object resourceAccessor = ReflectionUtils.invokeConstructor("liquibase.integration.spring.SpringResourceAccessor", descriptor.getResourceLoader());
+            return ReflectionUtils.invokeMethod(resourceAccessor, "openStream", null, changeLogPath);
         }
     }
 }
