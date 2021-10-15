@@ -25,10 +25,10 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.util.PropertyUtils;
 import org.mariadb.jdbc.MariaDbDataSource;
 import org.slf4j.LoggerFactory;
@@ -36,9 +36,11 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.testcontainers.containers.Container.ExecResult;
 import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -142,7 +144,7 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
 
         private DatabaseInstance(DatabaseConfig config, DatabasePool pool) {
             databasePool = pool;
-            container = new MariaDBContainer(config.dockerImage);
+            container = createContainer(config.dockerImage);
 
             if (config.tmpfsEnabled) {
                 Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
@@ -159,6 +161,14 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerMariaDBDatabaseProvider.class)));
 
             semaphore = new Semaphore(150);
+        }
+
+        private MariaDBContainer createContainer(String dockerImage) {
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                return new MariaDBContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("mariadb"));
+            } else {
+                return new MariaDBContainer(dockerImage);
+            }
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabasePreparer preparer) throws SQLException {

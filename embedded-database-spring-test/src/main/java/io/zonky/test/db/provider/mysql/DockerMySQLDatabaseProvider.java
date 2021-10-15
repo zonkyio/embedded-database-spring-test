@@ -26,19 +26,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.util.PropertyUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.testcontainers.containers.Container.ExecResult;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -142,7 +144,7 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
 
         private DatabaseInstance(DatabaseConfig config, DatabasePool pool) {
             databasePool = pool;
-            container = new MySQLContainer(config.dockerImage);
+            container = createContainer(config.dockerImage);
 
             if (config.tmpfsEnabled) {
                 Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
@@ -159,6 +161,14 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerMySQLDatabaseProvider.class)));
 
             semaphore = new Semaphore(150);
+        }
+
+        private MySQLContainer createContainer(String dockerImage) {
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                return new MySQLContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("mysql"));
+            } else {
+                return new MySQLContainer(dockerImage);
+            }
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabasePreparer preparer) throws SQLException {

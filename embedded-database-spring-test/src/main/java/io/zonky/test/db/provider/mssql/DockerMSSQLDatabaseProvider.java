@@ -41,8 +41,10 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -129,13 +131,21 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
         private final Semaphore semaphore;
 
         private DatabaseInstance(DatabaseConfig config) {
-            container = new MSSQLServerContainer(config.dockerImage);
+            container = createContainer(config.dockerImage);
             config.customizers.forEach(c -> c.customize(container));
 
             container.start();
             container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(DockerMSSQLDatabaseProvider.class)));
 
             semaphore = new Semaphore(32767);
+        }
+
+        private MSSQLServerContainer createContainer(String dockerImage) {
+            if (ClassUtils.hasMethod(DockerImageName.class, "asCompatibleSubstituteFor", String.class)) {
+                return new MSSQLServerContainer(DockerImageName.parse(dockerImage).asCompatibleSubstituteFor("mcr.microsoft.com/mssql/server"));
+            } else {
+                return new MSSQLServerContainer(dockerImage);
+            }
         }
 
         public EmbeddedDatabase createDatabase(ClientConfig config, DatabaseRequest request) throws SQLException {
