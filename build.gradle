@@ -140,6 +140,12 @@ subprojects {
 
     signing {
         required { gradle.taskGraph.hasTask("uploadArchives") }
+
+        def signingKey = findProperty("signingKey")
+        def signingKeyId = findProperty("signingKeyId")
+        def signingPassword = findProperty("signingPassword")
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+
         sign configurations.archives
     }
 

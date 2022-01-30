@@ -1,0 +1,51 @@
+name: Release
+on:
+  milestone:
+    types: [closed]
+jobs:
+  build:
+    name: Release ${{ github.event.milestone.title }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Set up Git
+        run: |
+          git config user.name "Zonky Bot"
+          git config user.email "bot@zonky.com"
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: 8
+      - name: Install language packs
+        run: |
+          sudo apt-get update
+          sudo apt-get install language-pack-cs
+      - name: Accept third party licence
+        env:
+          ACCEPT_LICENCE: ${{ secrets.ACCEPT_LICENCE }}
+        if: env.ACCEPT_LICENCE == 'true'
+        run: ./accept-third-party-license.sh
+      - name: Rename cloned directory
+        run: |
+          mv /home/runner/work/embedded-database-spring-test/embedded-database-spring-test /home/runner/work/embedded-database-spring-test/embedded-database \
+            && mkdir /home/runner/work/embedded-database-spring-test/embedded-database-spring-test
+      - name: Release with Gradle
+        env:
+          RELEASE_VERSION: ${{ github.event.milestone.title }}
+          MAVEN_USER: ${{ secrets.MAVEN_USER }}
+          MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
+          ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_CERT }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASS }}
+        run: |
+          cd /home/runner/work/embedded-database-spring-test/embedded-database && \
+            ./gradlew release --full-stacktrace \
+            -Prelease.useAutomaticVersion=true \
+            -Prelease.releaseVersion=$RELEASE_VERSION \
+            -Possrh.username=$MAVEN_USER \
+            -Possrh.password=$MAVEN_PASS
