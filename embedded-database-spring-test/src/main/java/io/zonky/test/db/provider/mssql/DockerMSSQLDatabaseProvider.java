@@ -234,6 +234,8 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
             dataSource.setUser(container.getUsername());
             dataSource.setPassword(container.getPassword());
 
+            dataSource.setTrustServerCertificate(true);
+
             BeanWrapper dataSourceWrapper = new BeanWrapperImpl(dataSource);
             for (Map.Entry<String, String> entry : config.connectProperties.entrySet()) {
                 dataSourceWrapper.setPropertyValue(entry.getKey(), entry.getValue());
