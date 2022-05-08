@@ -20,9 +20,9 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
 import io.zonky.test.db.flyway.FlywayDescriptor;
 import io.zonky.test.db.flyway.FlywayWrapper;
+import io.zonky.test.db.util.StringUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.testcontainers.shaded.org.apache.commons.lang.StringUtils;
 
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -82,7 +82,7 @@ public class MigrateFlywayDatabasePreparer extends FlywayDatabasePreparer {
                     .filter(filename -> {
                         boolean isSqlMigration = StringUtils.startsWithAny(filename, migrationPrefixes)
                                 && StringUtils.endsWithAny(filename, migrationSuffixes);
-                        return isSqlMigration || StringUtils.endsWith(filename, ".class");
+                        return isSqlMigration || filename.endsWith(".class");
                     })
                     .count();
         } catch (Exception e) {

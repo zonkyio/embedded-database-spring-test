@@ -1,5 +1,6 @@
 package io.zonky.test.db.context;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.SpringTestSuite;
 import io.zonky.test.db.event.TestExecutionFinishedEvent;
 import io.zonky.test.db.event.TestExecutionStartedEvent;
@@ -22,7 +23,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.ReflectionUtils;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Method;

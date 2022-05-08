@@ -17,6 +17,7 @@
 package io.zonky.test.db;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import org.flywaydb.core.Flyway;
@@ -30,7 +31,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
 import java.time.Duration;
