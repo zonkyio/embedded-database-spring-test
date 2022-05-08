@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.flyway;
 
+import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DatabaseTargetSource;
@@ -33,7 +34,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.aop.framework.Advised;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
