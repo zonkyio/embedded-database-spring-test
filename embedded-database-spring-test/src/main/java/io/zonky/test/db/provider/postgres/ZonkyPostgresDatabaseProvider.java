@@ -34,6 +34,7 @@ import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.provider.support.SimpleDatabaseTemplate;
 import io.zonky.test.db.util.PropertyUtils;
 import io.zonky.test.db.util.RandomStringUtils;
+import io.zonky.test.db.util.ReflectionUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -56,8 +58,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import static io.zonky.test.db.util.ReflectionUtils.getField;
 import static java.util.Collections.emptyList;
 
 public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvider {
@@ -133,6 +137,7 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             config.applyTo(builder);
 
             postgres = builder.start();
+            registerShutdownHook(postgres);
 
             DataSource dataSource = postgres.getDatabase("postgres", "postgres");
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
@@ -189,6 +194,29 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
         private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) {
             PGSimpleDataSource dataSource = (PGSimpleDataSource) postgres.getDatabase("postgres", dbName, config.connectProperties);
             return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+        }
+
+        protected void registerShutdownHook(EmbeddedPostgres postgres) {
+            try {
+                AtomicBoolean closed = getField(postgres, "closed");
+
+                Runnable shutdownHandler = () -> {
+                    try {
+                        closed.set(false);
+                        postgres.close();
+                    } catch (IOException e) {
+                        logger.error("Unexpected IOException when closing PostgreSQL server", e);
+                    }
+                };
+
+                Class<?> applicationType = ClassUtils.forName("org.springframework.boot.SpringApplication", null);
+                Object shutdownHandlers = ReflectionUtils.invokeStaticMethod(applicationType, "getShutdownHandlers");
+                ReflectionUtils.invokeMethod(shutdownHandlers, "add", shutdownHandler);
+
+                closed.set(true);
+            } catch (Throwable ex) {
+                // ClassNotFoundException or NoClassDefFoundError...
+            }
         }
     }
 
