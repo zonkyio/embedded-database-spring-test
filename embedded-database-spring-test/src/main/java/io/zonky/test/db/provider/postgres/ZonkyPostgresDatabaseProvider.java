@@ -170,15 +170,17 @@ public class ZonkyPostgresDatabaseProvider implements TemplatableDatabaseProvide
             }
         }
 
-        private void dropDatabase(ClientConfig config, String dbName)  {
+        private void dropDatabase(ClientConfig config, String dbName) {
             CompletableFuture.runAsync(() -> {
                 try {
                     executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
-                } catch (Exception e) {
-                    if (logger.isTraceEnabled()) {
-                        logger.warn("Unable to release '{}' database", dbName, e);
-                    } else {
-                        logger.warn("Unable to release '{}' database", dbName);
+                } catch (SQLException e) {
+                    if ("55006".equals(e.getSQLState())) { // postgres error code for object_in_use condition
+                        if (logger.isTraceEnabled()) {
+                            logger.warn("Unable to release '{}' database", dbName, e);
+                        } else {
+                            logger.warn("Unable to release '{}' database", dbName);
+                        }
                     }
                 }
             });
