@@ -197,11 +197,13 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
             CompletableFuture.runAsync(() -> {
                 try {
                     executeStatement(config, String.format("DROP DATABASE IF EXISTS %s", dbName));
-                } catch (Exception e) {
-                    if (logger.isTraceEnabled()) {
-                        logger.warn("Unable to release '{}' database", dbName, e);
-                    } else {
-                        logger.warn("Unable to release '{}' database", dbName);
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 3702) { // mssql server error code for database in use condition
+                        if (logger.isTraceEnabled()) {
+                            logger.warn("Unable to release '{}' database", dbName, e);
+                        } else {
+                            logger.warn("Unable to release '{}' database", dbName);
+                        }
                     }
                 }
             });

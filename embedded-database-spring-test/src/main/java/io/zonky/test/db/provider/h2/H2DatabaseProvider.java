@@ -20,10 +20,12 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
+import io.zonky.test.db.util.ReflectionUtils;
 import org.h2.tools.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -41,10 +43,20 @@ public class H2DatabaseProvider implements DatabaseProvider {
     private static Server startServer() {
         try {
             Server server = Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "0").start();
-            Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
+            registerShutdownHook(server);
             return server;
         } catch (SQLException e) {
             return null;
+        }
+    }
+
+    private static void registerShutdownHook(Server server) {
+        try {
+            Class<?> applicationType = ClassUtils.forName("org.springframework.boot.SpringApplication", null);
+            Object shutdownHandlers = ReflectionUtils.invokeStaticMethod(applicationType, "getShutdownHandlers");
+            ReflectionUtils.invokeMethod(shutdownHandlers, "add", (Runnable) server::shutdown);
+        } catch (Throwable ex) {
+            Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
         }
     }
 
@@ -86,12 +98,13 @@ public class H2DatabaseProvider implements DatabaseProvider {
         CompletableFuture.runAsync(() -> {
             try {
                 executeStatement(dataSource, "SHUTDOWN");
-            } catch (Exception e) {
-                if (logger.isTraceEnabled()) {
-                    logger.warn("Unable to release '{}' database", dbName, e);
-                } else {
-                    logger.warn("Unable to release '{}' database", dbName);
-                }
+            } catch (SQLException e) {
+                // it seems that there is no error for database in use condition
+//                if (logger.isTraceEnabled()) {
+//                    logger.warn("Unable to release '{}' database", dbName, e);
+//                } else {
+//                    logger.warn("Unable to release '{}' database", dbName);
+//                }
             }
         });
     }
