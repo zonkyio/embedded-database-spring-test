@@ -79,6 +79,13 @@ public class ReflectionUtils {
         }
     }
 
+    public static <T> T invokeStaticMethod(String className, String name, Object... args) throws ClassNotFoundException {
+        Assert.notNull(className, "Target class must not be null");
+
+        Class<?> targetClass = ClassUtils.forName(className, null);
+        return invokeStaticMethod(targetClass, name, args);
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> T invokeStaticMethod(Class<?> targetClass, String name, Object... args) {
         Assert.notNull(targetClass, "Target class must not be null");

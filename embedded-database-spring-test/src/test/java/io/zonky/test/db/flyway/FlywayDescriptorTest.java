@@ -33,7 +33,7 @@ public class FlywayDescriptorTest {
         wrapper1.setSqlMigrationSeparator("---");
         wrapper1.setSqlMigrationSuffixes(ImmutableList.of(".xql"));
         wrapper1.setIgnoreMissingMigrations(flywayVersion >= 41);
-        wrapper1.setIgnoreFutureMigrations(flywayVersion < 40);
+        wrapper1.setIgnoreFutureMigrations(flywayVersion < 40 || flywayVersion >= 90);
         wrapper1.setValidateOnMigrate(false);
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
@@ -45,7 +45,7 @@ public class FlywayDescriptorTest {
         wrapper2.setSqlMigrationSeparator("---");
         wrapper2.setSqlMigrationSuffixes(ImmutableList.of(".xql"));
         wrapper2.setIgnoreMissingMigrations(flywayVersion >= 41);
-        wrapper2.setIgnoreFutureMigrations(flywayVersion < 40);
+        wrapper2.setIgnoreFutureMigrations(flywayVersion < 40 || flywayVersion >= 90);
         wrapper2.setValidateOnMigrate(false);
 
         FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
