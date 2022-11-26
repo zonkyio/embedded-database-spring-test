@@ -34,7 +34,7 @@ public class FlywayClassUtils {
         try {
             ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayClassUtils.class.getClassLoader());
             if (versionResource.exists()) {
-                return Integer.parseInt(StreamUtils.copyToString(versionResource.getInputStream(), UTF_8).replaceAll("^(\\d+)\\.(\\d+).*", "$1$2"));
+                return Integer.parseInt(StreamUtils.copyToString(versionResource.getInputStream(), UTF_8).replaceAll("^(\\d+)\\.\\d{2,}", "$1.9").replaceAll("^(\\d+)\\.(\\d).*", "$1$2"));
             } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
                 return 32;
             } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {

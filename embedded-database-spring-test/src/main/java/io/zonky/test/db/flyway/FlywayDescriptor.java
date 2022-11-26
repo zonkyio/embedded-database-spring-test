@@ -50,7 +50,7 @@ public class FlywayDescriptor {
     );
 
     private static final Set<String> EXCLUDED_FIELDS = ImmutableSet.of(
-            "dbConnectionInfoPrinted", "classScanner"
+            "cleanDisabled", "dbConnectionInfoPrinted", "classScanner", "pluginRegister"
     );
 
     private static final Set<Class<?>> EXCLUDED_TYPES = ImmutableSet.of(

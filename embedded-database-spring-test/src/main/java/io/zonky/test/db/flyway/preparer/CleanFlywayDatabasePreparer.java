@@ -32,6 +32,7 @@ public class CleanFlywayDatabasePreparer extends FlywayDatabasePreparer {
 
     @Override
     protected Object doOperation(FlywayWrapper wrapper) {
+        wrapper.setCleanDisabled(false);
         return wrapper.clean();
     }
 }
