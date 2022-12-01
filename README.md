@@ -797,7 +797,7 @@ extracted from the JDK download.
 
 ## Project dependencies
 
-* [Spring Framework](http://www.springsource.org/) (4.3.25) - `spring-test`, `spring-context` modules
+* [Spring Framework](https://spring.io/) (5.3.24) - `spring-test`, `spring-context` modules
 * [Testcontainers](https://www.testcontainers.org) (1.15.0)
 * [Cedarsoftware](https://github.com/jdereg/java-util) (1.34.0)
 * [Guava](https://github.com/google/guava) (23.0)
