@@ -68,7 +68,7 @@ ext {
                     [name: '8.0',  'mysql': '8.0',  'mysql-driver': 'default']
             ]],
             [name: 'mariadb', versions: [
-                    [name: '10.2',  'mariadb': '10.2',  'mariadb-driver': 'default'],
+                    [name: '10.2',  'mariadb': '10.2',  'mariadb-driver': '2.7.7'],
                     [name: '10.8',  'mariadb': '10.8',  'mariadb-driver': 'default']
             ]],
             [name: 'h2', versions: [
@@ -210,7 +210,7 @@ project(':embedded-database-spring-test') {
         compile 'org.postgresql:postgresql:42.4.2', optional
         compile 'com.microsoft.sqlserver:mssql-jdbc:11.2.0.jre8', optional
         compile 'mysql:mysql-connector-java:8.0.30', optional
-        compile 'org.mariadb.jdbc:mariadb-java-client:2.7.6', optional
+        compile 'org.mariadb.jdbc:mariadb-java-client:3.1.0', optional
         compile 'com.h2database:h2:2.1.214', optional
 
         compile 'org.flywaydb:flyway-core:9.8.2', optional

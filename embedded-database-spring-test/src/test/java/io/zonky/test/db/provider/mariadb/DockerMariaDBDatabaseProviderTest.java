@@ -237,7 +237,7 @@ public class DockerMariaDBDatabaseProviderTest {
     }
 
     private static int getPort(DataSource dataSource) throws SQLException {
-        return dataSource.unwrap(MariaDbDataSource.class).getPortNumber();
+        return dataSource.unwrap(MariaDBEmbeddedDatabase.class).getPortNumber();
     }
 
     private static MariaDBContainerCustomizer mariadbContainerCustomizer(long timeout) {
