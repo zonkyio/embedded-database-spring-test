@@ -61,7 +61,8 @@ ext {
             ]],
             [name: 'mssql', versions: [
                     [name: '2017',  'mssql': '2017-latest',  'mssql-driver': 'default'],
-                    [name: '2019',  'mssql': '2019-latest',  'mssql-driver': 'default']
+                    [name: '2019',  'mssql': '2019-latest',  'mssql-driver': 'default'],
+                    [name: '2022',  'mssql': '2022-latest',  'mssql-driver': 'default']
             ]],
             [name: 'mysql', versions: [
                     [name: '5.7',  'mysql': '5.7',  'mysql-driver': 'default'],
