@@ -18,19 +18,29 @@ package io.zonky.test.db.provider.mariadb;
 
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
 import org.mariadb.jdbc.MariaDbDataSource;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 
 public class MariaDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
     private final MariaDbDataSource dataSource;
+    private final Object conf;
 
     public MariaDBEmbeddedDatabase(MariaDbDataSource dataSource, Runnable closeCallback) {
         super(closeCallback);
         this.dataSource = dataSource;
+
+        if (ClassUtils.hasMethod(MariaDbDataSource.class, "getUrl")) {
+            conf = getField(dataSource, "conf");
+        } else {
+            conf = null;
+        }
     }
 
     @Override
@@ -41,14 +51,46 @@ public class MariaDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
     @Override
     public String getJdbcUrl() {
         String url = String.format("jdbc:mariadb://%s:%s/%s?user=%s",
-                dataSource.getServerName(), dataSource.getPort(), dataSource.getDatabaseName(), dataSource.getUser());
+                getServerName(), getPortNumber(), getDatabaseName(), dataSource.getUser());
         if (StringUtils.hasText(getPassword())) {
             url += String.format("&password=%s", getPassword());
         }
         return url;
     }
 
+    public String getServerName() {
+        if (conf != null) {
+            return getField(getHostAddress(), "host");
+        } else {
+            return invokeMethod(dataSource, "getServerName");
+        }
+    }
+
+    public int getPortNumber() {
+        if (conf != null) {
+            return getField(getHostAddress(), "port");
+        } else {
+            return invokeMethod(dataSource, "getPortNumber");
+        }
+    }
+
+    public String getDatabaseName() {
+        if (conf != null) {
+            return getField(conf, "database");
+        } else {
+            return invokeMethod(dataSource, "getDatabaseName");
+        }
+    }
+
     private String getPassword() {
         return getField(dataSource, "password");
+    }
+
+    private Object getHostAddress() {
+        List<?> addresses = invokeMethod(conf, "addresses");
+        if (addresses != null && addresses.size() > 0) {
+            return addresses.get(0);
+        }
+        throw new IllegalStateException("Missing host address");
     }
 }

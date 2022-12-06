@@ -214,9 +214,8 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
         private EmbeddedDatabase getDatabase(ClientConfig config, String dbName) throws SQLException {
             MariaDbDataSource dataSource = new MariaDbDataSource();
 
-            dataSource.setServerName(container.getContainerIpAddress());
-            dataSource.setPortNumber(container.getMappedPort(MARIADB_PORT));
-            dataSource.setDatabaseName(dbName);
+            dataSource.setUrl(String.format("jdbc:mariadb://%s:%s/%s",
+                    container.getContainerIpAddress(), container.getMappedPort(MARIADB_PORT), dbName));
 
             if ("mysql".equals(dbName)) {
                 dataSource.setUser("root");
