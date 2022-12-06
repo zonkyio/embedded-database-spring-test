@@ -338,6 +338,9 @@
       "name": "zonky.test.database.mssql.docker.image",
       "values": [
         {
+          "value": "mcr.microsoft.com/mssql/server:2022-latest"
+        },
+        {
           "value": "mcr.microsoft.com/mssql/server:2019-latest"
         },
         {

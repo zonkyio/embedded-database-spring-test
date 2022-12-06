@@ -1,6 +1,7 @@
 #!/bin/sh
 
 {
+  echo "mcr.microsoft.com/mssql/server:2022-latest"
   echo "mcr.microsoft.com/mssql/server:2019-latest"
   echo "mcr.microsoft.com/mssql/server:2017-latest"
   echo "mcr.microsoft.com/mssql/server:2017-CU20"
