@@ -199,10 +199,10 @@ project(':embedded-database-spring-test') {
     dependencies {
         compile project(':embedded-database-spring-test-autoconfigure')
 
-        compile 'org.testcontainers:postgresql:1.15.3'
-        compile 'org.testcontainers:mssqlserver:1.15.3'
-        compile 'org.testcontainers:mysql:1.15.3'
-        compile 'org.testcontainers:mariadb:1.15.3'
+        compile 'org.testcontainers:postgresql:1.17.6'
+        compile 'org.testcontainers:mssqlserver:1.17.6'
+        compile 'org.testcontainers:mysql:1.17.6'
+        compile 'org.testcontainers:mariadb:1.17.6'
 
         compile 'io.zonky.test:embedded-postgres:2.0.1', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.4', optional
@@ -244,6 +244,12 @@ project(':embedded-database-spring-test') {
                 "testRuntime_${suite.name}_${version.name}" {
                     extendsFrom testRuntime
                     resolutionStrategy {
+
+                        eachDependency { details ->
+                            if (details.requested.group == 'junit') {
+                                details.useVersion "4.12"
+                            }
+                        }
 
                         if (version.spring == 'none') { // mandatory dependencies must be explicitly excluded
                             exclude group: 'org.springframework'
@@ -407,6 +413,7 @@ project(':embedded-database-spring-test') {
             excludeCategories 'io.zonky.test.category.MSSQLTestSuite'
             excludeCategories 'io.zonky.test.category.MySQLTestSuite'
             excludeCategories 'io.zonky.test.category.MariaDBTestSuite'
+            excludeCategories 'io.zonky.test.category.H2TestSuite'
         }
     }
 
