@@ -216,14 +216,14 @@ project(':embedded-database-spring-test') {
 
         compile 'org.flywaydb:flyway-core:9.8.2', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
-        compile('org.springframework.boot:spring-boot-starter-test:2.0.9.RELEASE') {
+        compile('org.springframework.boot:spring-boot-starter-test:2.7.6') {
             exclude group: 'org.mockito'
             optionalDeps << it // https://github.com/nebula-plugins/gradle-extra-configurations-plugin/issues/44
         }
         compile 'org.liquibase:liquibase-core:3.5.5', optional
 
-        compile 'org.springframework:spring-context:5.0.20.RELEASE'
-        compile 'org.springframework:spring-test:5.0.20.RELEASE'
+        compile 'org.springframework:spring-context:5.3.24'
+        compile 'org.springframework:spring-test:5.3.24'
 
         compile 'com.google.guava:guava:23.0'
 
@@ -231,7 +231,7 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.apache.logging.log4j'
         }
 
-        testCompile 'org.springframework:spring-jdbc:5.0.20.RELEASE'
+        testCompile 'org.springframework:spring-jdbc:5.3.24'
         testCompile 'ch.qos.logback:logback-classic:1.2.11'
         testCompile 'org.mockito:mockito-core:3.12.4'
         testCompile 'org.assertj:assertj-core:3.23.1'
