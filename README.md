@@ -735,7 +735,10 @@ When you use a breakpoint to pause the test, you can connect to the temporary em
 i.z.t.d.l.EmbeddedDatabaseReporter - JDBC URL to connect to 'dataSource1': url='jdbc:postgresql://localhost:55112/fynwkrpzfcyj?user=postgres', scope='TestClass#testMethod'
 ```
 
-If you are using the [refresh mode](#refreshing-the-database-during-tests) or the `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in this case multiple isolated databases may be created.
+**TIP:** You can use the following **IntelliJ IDEA plugin to automatically synchronize the database settings** according to the connection strings in the log produced by the library:
+https://gist.github.com/tomix26/9e1ea63353707ef3b5cf4869fc50eec2
+
+Note that if you are using the [refresh mode](#refreshing-the-database-during-tests) or the `@FlywayTest` annotation, there may be several similar records in the log but always with a different scope. That's because in this case multiple isolated databases may be created.
 
 ### Process [/tmp/embedded-pg/PG-XYZ/bin/initdb, ...] failed
 
