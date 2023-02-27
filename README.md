@@ -34,8 +34,9 @@ The first is that the creation of the second and any subsequent empty database i
 as the library can reuse the existing container instead of wasting time by starting another one.
 
 The second is that storing all databases in a single container makes it possible to efficiently transfer or share data across databases.
-This is a prerequisite for the [refresh mode](#refreshing-the-database-during-tests),
-which can make a fast binary copy of the database (using a [template database](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) if possible) before the test is started to isolate it from other tests.
+This is the main prerequisite for the [refresh mode](#refreshing-the-database-during-tests),
+which can make a fast binary copy of the database (using a [template database](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) if possible)
+before the test is started to make the test completely isolated from other tests, even if changes have been committed to the database.
 This approach effectively rolls back any changes made by the test and ensures that even refreshing larger databases takes only a few milliseconds.
 
 In addition, there are some other optimization techniques to increase overall performance,
