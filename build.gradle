@@ -19,8 +19,8 @@ ext {
                     [name: '4.3.30',  spring: '4.3.30.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
                     [name: '5.0.20',  spring: '5.0.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
                     [name: '5.1.20',  spring: '5.1.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.2.22',  spring: '5.2.22.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.3.23',  spring: '5.3.23',          'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default']
+                    [name: '5.2.23',  spring: '5.2.23.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
+                    [name: '5.3.26',  spring: '5.3.26',          'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default']
             ]],
             [name: 'flyway', versions: [
                     [name: '4.0.3',  flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.30.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
@@ -29,27 +29,27 @@ ext {
                     [name: '5.0.7',  flyway: '5.0.7',   'flyway-test': '5.0.0',    spring: '5.0.20.RELEASE',  'spring-boot': '2.0.9.RELEASE',   'zonky-postgres': 'default'],
                     [name: '5.1.4',  flyway: '5.1.4',   'flyway-test': '5.1.0',    spring: '5.0.20.RELEASE',  'spring-boot': '2.0.9.RELEASE',   'zonky-postgres': 'default'],
                     [name: '5.2.4',  flyway: '5.2.4',   'flyway-test': '5.2.4',    spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '6.0.7',  flyway: '6.0.6',   'flyway-test': '6.0.0',    spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '6.3.3',  flyway: '6.3.3',   'flyway-test': '6.3.3',    spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '6.5.7',  flyway: '6.5.7',   'flyway-test': '6.4.0',    spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
-                    [name: '7.6.0',  flyway: '7.6.0',   'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.4.13',          'zonky-postgres': 'default'],
-                    [name: '7.15.0', flyway: '7.15.0',  'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.5.14',          'zonky-postgres': 'default'],
-                    [name: '8.0.5',  flyway: '8.0.5',   'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.6.13',          'zonky-postgres': 'default'],
-                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.7.5',           'zonky-postgres': 'default'],
-                    [name: '9.0.4',  flyway: '9.0.4',   'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.7.5',           'zonky-postgres': 'default'],
-                    [name: '9.8.2',  flyway: '9.8.2',   'flyway-test': '7.0.0',    spring: '5.3.23',          'spring-boot': '2.7.5',           'zonky-postgres': 'default'],
+                    [name: '6.0.7',  flyway: '6.0.6',   'flyway-test': '6.0.0',    spring: '5.2.23.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.3.3',  flyway: '6.3.3',   'flyway-test': '6.3.3',    spring: '5.2.23.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '6.5.7',  flyway: '6.5.7',   'flyway-test': '6.4.0',    spring: '5.2.23.RELEASE',  'spring-boot': '2.2.13.RELEASE',  'zonky-postgres': 'default'],
+                    [name: '7.6.0',  flyway: '7.6.0',   'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.4.13',          'zonky-postgres': 'default'],
+                    [name: '7.15.0', flyway: '7.15.0',  'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.5.14',          'zonky-postgres': 'default'],
+                    [name: '8.0.5',  flyway: '8.0.5',   'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.6.14',          'zonky-postgres': 'default'],
+                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.7.10',          'zonky-postgres': 'default'],
+                    [name: '9.0.4',  flyway: '9.0.4',   'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.7.10',          'zonky-postgres': 'default'],
+                    [name: '9.8.2',  flyway: '9.8.2',   'flyway-test': '7.0.0',    spring: '5.3.26',          'spring-boot': '2.7.10',          'zonky-postgres': 'default'],
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
                     [name: '3.5.5',  liquibase: '3.5.5',  spring: '4.3.30.RELEASE',  'spring-boot': '1.5.22.RELEASE'],
                     [name: '3.6.3',  liquibase: '3.6.3',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
                     [name: '3.7.0',  liquibase: '3.7.0',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
-                    [name: '3.8.9',  liquibase: '3.8.9',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
-                    [name: '3.9.0',  liquibase: '3.9.0',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
-                    [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.23',          'spring-boot': '2.4.13'],
-                    [name: '4.4.3',  liquibase: '4.4.3',  spring: '5.3.23',          'spring-boot': '2.5.14'],
-                    [name: '4.5.0',  liquibase: '4.5.0',  spring: '5.3.23',          'spring-boot': '2.6.11'],
-                    [name: '4.9.1',  liquibase: '4.9.1',  spring: '5.3.23',          'spring-boot': '2.7.3'],
+                    [name: '3.8.9',  liquibase: '3.8.9',  spring: '5.2.23.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
+                    [name: '3.9.0',  liquibase: '3.9.0',  spring: '5.2.23.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
+                    [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.26',          'spring-boot': '2.4.13'],
+                    [name: '4.4.3',  liquibase: '4.4.3',  spring: '5.3.26',          'spring-boot': '2.5.14'],
+                    [name: '4.5.0',  liquibase: '4.5.0',  spring: '5.3.26',          'spring-boot': '2.6.14'],
+                    [name: '4.9.1',  liquibase: '4.9.1',  spring: '5.3.26',          'spring-boot': '2.7.10'],
                     [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
@@ -216,14 +216,14 @@ project(':embedded-database-spring-test') {
 
         compile 'org.flywaydb:flyway-core:9.8.2', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
-        compile('org.springframework.boot:spring-boot-starter-test:2.7.6') {
+        compile('org.springframework.boot:spring-boot-starter-test:2.7.10') {
             exclude group: 'org.mockito'
             optionalDeps << it // https://github.com/nebula-plugins/gradle-extra-configurations-plugin/issues/44
         }
         compile 'org.liquibase:liquibase-core:3.5.5', optional
 
-        compile 'org.springframework:spring-context:5.3.24'
-        compile 'org.springframework:spring-test:5.3.24'
+        compile 'org.springframework:spring-context:5.3.26'
+        compile 'org.springframework:spring-test:5.3.26'
 
         compile 'com.google.guava:guava:23.0'
 
@@ -231,7 +231,7 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.apache.logging.log4j'
         }
 
-        testCompile 'org.springframework:spring-jdbc:5.3.24'
+        testCompile 'org.springframework:spring-jdbc:5.3.26'
         testCompile 'ch.qos.logback:logback-classic:1.2.11'
         testCompile 'org.mockito:mockito-core:3.12.4'
         testCompile 'org.assertj:assertj-core:3.23.1'
