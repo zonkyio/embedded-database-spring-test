@@ -13,7 +13,7 @@ public class EventPublishingTestExecutionListener extends AbstractTestExecutionL
     private static final Logger logger = LoggerFactory.getLogger(EventPublishingTestExecutionListener.class);
 
     private static final boolean TEST_EXECUTION_METHODS_SUPPORTED = ClassUtils.getMethodIfAvailable(
-            TestExecutionListener.class, "beforeTestExecution", null) != null;
+            TestExecutionListener.class, "beforeTestExecution") != null;
 
     @Override
     public void beforeTestMethod(TestContext testContext) {
