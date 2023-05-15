@@ -63,6 +63,10 @@ public class FlywayDescriptor {
                     && !EXCLUDED_FIELDS.contains(field.getName())
                     && !EXCLUDED_TYPES.contains(field.getType());
 
+    private static final FieldFilter PLUGIN_FIELDS =
+            field -> !Modifier.isStatic(field.getModifiers())
+                    && !EXCLUDED_TYPES.contains(field.getType());
+
     private final List<String> locations;
     private final List<String> schemas;
     private final String table;
@@ -74,6 +78,7 @@ public class FlywayDescriptor {
     private final boolean ignoreFutureMigrations;
     private final boolean validateOnMigrate;
     private final Map<Field, Object> otherFields;
+    private final Map<Class<?>, Map<Field, Object>> pluginsFields;
 
     private FlywayDescriptor(FlywayWrapper wrapper) {
         this.locations = ImmutableList.copyOf(wrapper.getLocations());
@@ -87,27 +92,15 @@ public class FlywayDescriptor {
         this.ignoreFutureMigrations = wrapper.isIgnoreFutureMigrations();
         this.validateOnMigrate = wrapper.isValidateOnMigrate();
 
-        Map<Field, Object> otherFields = new HashMap<>();
-        Object config = wrapper.getConfig();
+        this.otherFields = getFields(wrapper.getConfig(), OTHER_FIELDS);
 
-        doWithFields(config.getClass(), field -> {
-            makeAccessible(field);
-            Object value = getField(field, config);
-
-            if (value != null) {
-                if (Collection.class.isAssignableFrom(field.getType())) {
-                    value = Lists.newArrayList((Collection<?>) value);
-                } else if (Map.class.isAssignableFrom(field.getType())) {
-                    value = Maps.newHashMap((Map<?, ?>) value);
-                } else if (field.getType().isArray()) {
-                    value = Lists.newArrayList((Object[]) value);
-                }
-            }
-
-            otherFields.put(field, value);
-        }, OTHER_FIELDS);
-
-        this.otherFields = otherFields;
+        Map<Class<?>, Map<Field, Object>> pluginsFields = new HashMap<>();
+        List<Object> plugins = wrapper.getConfigurationExtensions();
+        for (Object plugin : plugins) {
+            Map<Field, Object> pluginFields = getFields(plugin, PLUGIN_FIELDS);
+            pluginsFields.put(plugin.getClass(), pluginFields);
+        }
+        this.pluginsFields = pluginsFields;
     }
 
     public static FlywayDescriptor from(FlywayWrapper wrapper) {
@@ -128,21 +121,13 @@ public class FlywayDescriptor {
         wrapper.setIgnoreFutureMigrations(ignoreFutureMigrations);
         wrapper.setValidateOnMigrate(validateOnMigrate);
 
-        otherFields.forEach((field, value) -> {
-            makeAccessible(field);
+        setFields(config, otherFields);
 
-            if (value == null) {
-                setField(field, config, value);
-            } else if (Collection.class.isAssignableFrom(field.getType())) {
-                setCollection(field, config, (Collection<?>) value);
-            } else if (Map.class.isAssignableFrom(field.getType())) {
-                setMap(field, config, (Map<?, ?>) value);
-            } else if (field.getType().isArray()) {
-                setArray(field, config, (List<?>) value);
-            } else {
-                setField(field, config, value);
-            }
-        });
+        List<Object> plugins = wrapper.getConfigurationExtensions();
+        for (Object plugin : plugins) {
+            Map<Field, Object> pluginFields = pluginsFields.get(plugin.getClass());
+            setFields(plugin, pluginFields);
+        }
     }
 
     public List<String> getLocations() {
@@ -200,7 +185,8 @@ public class FlywayDescriptor {
                 && Objects.equals(repeatableSqlMigrationPrefix, that.repeatableSqlMigrationPrefix)
                 && Objects.equals(sqlMigrationSeparator, that.sqlMigrationSeparator)
                 && Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes)
-                && Objects.equals(otherFields, that.otherFields);
+                && Objects.equals(otherFields, that.otherFields)
+                && Objects.equals(pluginsFields, that.pluginsFields);
     }
 
     @Override
@@ -209,7 +195,7 @@ public class FlywayDescriptor {
                 sqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationSuffixes,
                 ignoreMissingMigrations, ignoreFutureMigrations,
-                validateOnMigrate, otherFields);
+                validateOnMigrate, otherFields, pluginsFields);
     }
 
     private static void setCollection(Field field, Object target, Collection<?> value) {
@@ -236,5 +222,47 @@ public class FlywayDescriptor {
         Class<?> componentType = field.getType().getComponentType();
         Object[] array = value.toArray((Object[]) Array.newInstance(componentType, 0));
         setField(field, config, array);
+    }
+
+    private static Map<Field, Object> getFields(Object targetObject, FieldFilter fieldFilter) {
+        Map<Field, Object> fieldValues = new HashMap<>();
+
+        Class<?> objectClass = targetObject.getClass();
+        doWithFields(objectClass, field -> {
+            makeAccessible(field);
+            Object value = getField(field, targetObject);
+
+            if (value != null) {
+                if (Collection.class.isAssignableFrom(field.getType())) {
+                    value = Lists.newArrayList((Collection<?>) value);
+                } else if (Map.class.isAssignableFrom(field.getType())) {
+                    value = Maps.newHashMap((Map<?, ?>) value);
+                } else if (field.getType().isArray()) {
+                    value = Lists.newArrayList((Object[]) value);
+                }
+            }
+
+            fieldValues.put(field, value);
+        }, fieldFilter);
+
+        return fieldValues;
+    }
+
+    private static void setFields(Object targetObject, Map<Field, Object> fieldValues) {
+        fieldValues.forEach((field, value) -> {
+            makeAccessible(field);
+
+            if (value == null) {
+                setField(field, targetObject, value);
+            } else if (Collection.class.isAssignableFrom(field.getType())) {
+                setCollection(field, targetObject, (Collection<?>) value);
+            } else if (Map.class.isAssignableFrom(field.getType())) {
+                setMap(field, targetObject, (Map<?, ?>) value);
+            } else if (field.getType().isArray()) {
+                setArray(field, targetObject, (List<?>) value);
+            } else {
+                setField(field, targetObject, value);
+            }
+        });
     }
 }

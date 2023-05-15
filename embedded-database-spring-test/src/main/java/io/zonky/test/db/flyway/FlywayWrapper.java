@@ -398,12 +398,30 @@ public class FlywayWrapper {
         setValue(config, "setCleanDisabled", cleanDisabled);
     }
 
-    private static <T> T getValue(Object target, String method) {
-        return invokeMethod(target, method);
+    public List<Object> getConfigurationExtensions() {
+        if (flywayVersion >= 90) {
+            try {
+                Object pluginRegister = getField(getConfig(), "pluginRegister");
+                Class<?> pluginType = ClassUtils.forName("org.flywaydb.core.extensibility.ConfigurationExtension", classLoader);
+                return ImmutableList.copyOf(getList(pluginRegister, "getPlugins", pluginType));
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException("Class not found: " + e.getMessage());
+            }
+        } else {
+            return ImmutableList.of();
+        }
     }
 
-    private static <E> E[] getArray(Object target, String method) {
-        return invokeMethod(target, method);
+    private static <T> T getValue(Object target, String method, Object... args) {
+        return invokeMethod(target, method, args);
+    }
+
+    private static <E> E[] getArray(Object target, String method, Object... args) {
+        return invokeMethod(target, method, args);
+    }
+
+    private static <E> List<E> getList(Object target, String method, Object... args) {
+        return invokeMethod(target, method, args);
     }
 
     private static void setValue(Object target, String method, Object value) {

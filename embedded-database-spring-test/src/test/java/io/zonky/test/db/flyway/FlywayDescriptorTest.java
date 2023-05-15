@@ -94,6 +94,30 @@ public class FlywayDescriptorTest {
     }
 
     @Test
+    public void testPluginFields() {
+        FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
+        wrapper1.getConfigurationExtensions().stream()
+                .filter(o -> o.getClass().getSimpleName().equals("PostgreSQLConfigurationExtension"))
+                .forEach(o -> invokeMethod(o, "setTransactionalLock", false));
+
+        FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
+        wrapper2.getConfigurationExtensions().stream()
+                .filter(o -> o.getClass().getSimpleName().equals("PostgreSQLConfigurationExtension"))
+                .forEach(o -> invokeMethod(o, "setTransactionalLock", false));
+
+        FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
+        FlywayDescriptor descriptor2 = FlywayDescriptor.from(wrapper2);
+
+        assertThat(descriptor1).isEqualTo(descriptor2);
+
+        FlywayWrapper wrapper3 = FlywayWrapper.newInstance();
+        descriptor1.applyTo(wrapper3);
+        FlywayDescriptor descriptor3 = FlywayDescriptor.from(wrapper3);
+
+        assertThat(descriptor1).isEqualTo(descriptor3);
+    }
+
+    @Test
     public void testExcludedFields() {
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
