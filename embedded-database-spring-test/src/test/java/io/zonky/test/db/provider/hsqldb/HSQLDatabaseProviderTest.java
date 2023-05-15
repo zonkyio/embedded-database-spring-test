@@ -17,7 +17,6 @@
 package io.zonky.test.db.provider.hsqldb;
 
 import io.zonky.test.db.preparer.DatabasePreparer;
-import io.zonky.test.db.provider.h2.H2EmbeddedDatabase;
 import io.zonky.test.db.support.TestDatabasePreparer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,16 +24,15 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HSQLDBDatabaseProviderTest {
+public class HSQLDatabaseProviderTest {
 
     @Test
     public void testGetDatabase() throws Exception {
-        HSQLDBDatabaseProvider provider = new HSQLDBDatabaseProvider();
+        HSQLDatabaseProvider provider = new HSQLDatabaseProvider();
 
         DatabasePreparer preparer1 = TestDatabasePreparer.of(dataSource -> {
             JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
@@ -50,12 +48,9 @@ public class HSQLDBDatabaseProviderTest {
         DataSource dataSource2 = provider.createDatabase(preparer1);
         DataSource dataSource3 = provider.createDatabase(preparer2);
 
-        assertThat(dataSource1).isNotNull().isExactlyInstanceOf(H2EmbeddedDatabase.class);
-        assertThat(dataSource2).isNotNull().isExactlyInstanceOf(H2EmbeddedDatabase.class);
-        assertThat(dataSource3).isNotNull().isExactlyInstanceOf(H2EmbeddedDatabase.class);
-
-        assertThat(getPort(dataSource1)).isEqualTo(getPort(dataSource2));
-        assertThat(getPort(dataSource2)).isEqualTo(getPort(dataSource3));
+        assertThat(dataSource1).isNotNull().isExactlyInstanceOf(HSQLEmbeddedDatabase.class);
+        assertThat(dataSource2).isNotNull().isExactlyInstanceOf(HSQLEmbeddedDatabase.class);
+        assertThat(dataSource3).isNotNull().isExactlyInstanceOf(HSQLEmbeddedDatabase.class);
 
         JdbcTemplate jdbcTemplate1 = new JdbcTemplate(dataSource1);
         jdbcTemplate1.update("insert into prime_number (number) values (?)", 2);
@@ -72,13 +67,9 @@ public class HSQLDBDatabaseProviderTest {
 
     @Test
     public void providersWithDefaultConfigurationShouldEquals() {
-        HSQLDBDatabaseProvider provider1 = new HSQLDBDatabaseProvider();
-        HSQLDBDatabaseProvider provider2 = new HSQLDBDatabaseProvider();
+        HSQLDatabaseProvider provider1 = new HSQLDatabaseProvider();
+        HSQLDatabaseProvider provider2 = new HSQLDatabaseProvider();
 
         assertThat(provider1).isEqualTo(provider2);
-    }
-
-    private static int getPort(DataSource dataSource) throws SQLException {
-        return dataSource.unwrap(HSQLDBEmbeddedDatabase.class).getPortNumber();
     }
 }

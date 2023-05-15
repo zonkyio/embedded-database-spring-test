@@ -5,7 +5,10 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.support.TestDatabasePreparer;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -27,6 +30,9 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DockerMSSQLDatabaseProviderTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeLicenceAcceptance);
 
     @Mock
     private ObjectProvider<List<MSSQLServerContainerCustomizer>> containerCustomizers;

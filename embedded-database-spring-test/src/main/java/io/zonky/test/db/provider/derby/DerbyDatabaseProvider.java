@@ -20,28 +20,26 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.derby.jdbc.EmbeddedDriver ;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class DerbyDatabaseProvider implements DatabaseProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(DerbyDatabaseProvider.class);
-    private static final String URL_TEMPLATE = "jdbc:derby:memory:%s";
+    private static final String URL_TEMPLATE = "jdbc:derby:memory:%s;%s";
 
     @Override
     public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
         String databaseName = UUID.randomUUID().toString();
 
-        dataSource.setDriverClass(org.h2.Driver.class);
-        dataSource.setUrl(String.format(URL_TEMPLATE + ";drop=true", databaseName));
+        dataSource.setDriverClass(EmbeddedDriver.class);
+        dataSource.setUrl(String.format(URL_TEMPLATE, databaseName, "create=true"));
         dataSource.setUsername("sa");
         dataSource.setPassword("");
 
@@ -71,14 +69,9 @@ public class DerbyDatabaseProvider implements DatabaseProvider {
     private static void shutdownDatabase(String dbName) {
         CompletableFuture.runAsync(() -> {
             try {
-                DriverManager.getConnection(String.format(URL_TEMPLATE + ";shutdown=true", dbName));
+                new EmbeddedDriver().connect(String.format(URL_TEMPLATE, dbName, "drop=true"), new Properties());
             } catch (SQLException e) {
-                // it seems that there is no error for database in use condition
-                if (logger.isTraceEnabled()) {
-                    logger.warn("Unable to release '{}' database", dbName, e);
-                } else {
-                    logger.warn("Unable to release '{}' database", dbName);
-                }
+                // nothing to do
             }
         });
     }

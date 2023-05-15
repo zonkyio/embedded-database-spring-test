@@ -22,8 +22,6 @@ import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
 import io.zonky.test.db.util.ReflectionUtils;
 import org.h2.tools.Server;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.util.ClassUtils;
 
@@ -37,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class H2DatabaseProvider implements DatabaseProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(H2DatabaseProvider.class);
     private static final Server server = startServer();
 
     private static Server startServer() {
@@ -85,8 +82,7 @@ public class H2DatabaseProvider implements DatabaseProvider {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return true;
+        return o != null && getClass() == o.getClass();
     }
 
     @Override
@@ -99,12 +95,7 @@ public class H2DatabaseProvider implements DatabaseProvider {
             try {
                 executeStatement(dataSource, "SHUTDOWN");
             } catch (SQLException e) {
-                // it seems that there is no error for database in use condition
-//                if (logger.isTraceEnabled()) {
-//                    logger.warn("Unable to release '{}' database", dbName, e);
-//                } else {
-//                    logger.warn("Unable to release '{}' database", dbName);
-//                }
+                // nothing to do
             }
         });
     }

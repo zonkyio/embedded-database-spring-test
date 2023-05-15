@@ -17,19 +17,16 @@
 package io.zonky.test.db.provider.hsqldb;
 
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
-import org.hsqldb.server.Server;
 
 import javax.sql.DataSource;
 
-public class HSQLDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
+public class HSQLEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
-    private final Server server;
     private final DataSource dataSource;
     private final String dbName;
 
-    public HSQLDBEmbeddedDatabase(Server server, DataSource dataSource, String dbName, Runnable closeCallback) {
+    public HSQLEmbeddedDatabase(DataSource dataSource, String dbName, Runnable closeCallback) {
         super(closeCallback);
-        this.server = server;
         this.dataSource = dataSource;
         this.dbName = dbName;
     }
@@ -41,22 +38,10 @@ public class HSQLDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
     @Override
     public String getJdbcUrl() {
-        if (server != null) {
-            return String.format("jdbc:hsqldb:hsql://localhost:%s/%s;USER=sa", server.getPort(), dbName);
-        } else {
-            return String.format("jdbc:hsqldb:mem:%s;USER=sa", dbName);
-        }
+        return String.format("jdbc:hsqldb:mem:%s;user=sa", dbName);
     }
 
     public String getDatabaseName() {
         return dbName;
-    }
-
-    public int getPortNumber() {
-        if (server != null) {
-            return server.getPort();
-        } else {
-            return 0;
-        }
     }
 }

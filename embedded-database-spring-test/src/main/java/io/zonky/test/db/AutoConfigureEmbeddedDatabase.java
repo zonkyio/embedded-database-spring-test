@@ -165,13 +165,8 @@ public @interface AutoConfigureEmbeddedDatabase {
         /**
          * Apache Derby
          */
-        DERBY;
+        DERBY
 
-        public static boolean canBeEmbedded(String databaseType) {
-            return DatabaseType.H2.name().equalsIgnoreCase(databaseType) ||
-                    DatabaseType.HSQL.name().equalsIgnoreCase(databaseType) ||
-                    DatabaseType.DERBY.name().equalsIgnoreCase(databaseType);
-        }
     }
 
     /**

@@ -16,7 +16,7 @@
 
 package io.zonky.test.db.provider;
 
-import io.zonky.test.category.HSQLDBTestSuite;
+import io.zonky.test.category.HSQLTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -32,7 +32,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.HSQL;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@Category(HSQLDBTestSuite.class)
+@Category(HSQLTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = HSQL)
 @ContextConfiguration
 public class HSQLProviderIntegrationTest {
@@ -42,6 +42,6 @@ public class HSQLProviderIntegrationTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).startsWith("jdbc:hsql:");
+        assertThat(dataSource.unwrap(EmbeddedDatabase.class).getJdbcUrl()).startsWith("jdbc:hsqldb:");
     }
 }

@@ -29,7 +29,7 @@ public class DefaultProviderResolver implements ProviderResolver {
         String databaseName = getDatabaseName(definition.getDatabaseType());
 
         if (providerName == null) {
-            if (DatabaseType.canBeEmbedded(databaseName)) {
+            if (isEmbeddedDatabase(databaseName)) {
                 providerName = DatabaseProvider.EMBEDDED.name();
             } else {
                 providerName = DatabaseProvider.DOCKER.name();
@@ -45,6 +45,12 @@ public class DefaultProviderResolver implements ProviderResolver {
         }
 
         return descriptor;
+    }
+
+    protected boolean isEmbeddedDatabase(String databaseType) {
+        return DatabaseType.H2.name().equalsIgnoreCase(databaseType) ||
+                DatabaseType.HSQL.name().equalsIgnoreCase(databaseType) ||
+                DatabaseType.DERBY.name().equalsIgnoreCase(databaseType);
     }
 
     protected String getProviderName(DatabaseProvider providerType) {

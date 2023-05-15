@@ -17,7 +17,6 @@
 package io.zonky.test.db.provider.derby;
 
 import io.zonky.test.db.provider.support.AbstractEmbeddedDatabase;
-import org.apache.derby.drda.NetworkServerControl;
 
 import javax.sql.DataSource;
 
@@ -39,7 +38,7 @@ public class DerbyEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
     @Override
     public String getJdbcUrl() {
-        return String.format("jdbc:derby:mem:%s;USER=sa", dbName);
+        return String.format("jdbc:derby:memory:%s;user=sa", dbName);
     }
 
     public String getDatabaseName() {

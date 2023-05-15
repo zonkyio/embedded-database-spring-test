@@ -66,7 +66,7 @@ Add the following Maven dependency:
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-database-spring-test</artifactId>
-    <version>2.3.0</version>
+    <version>2.2.0</version>
     <scope>test</scope>
 </dependency>
 ```

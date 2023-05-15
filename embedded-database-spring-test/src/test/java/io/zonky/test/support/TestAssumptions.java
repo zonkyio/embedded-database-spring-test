@@ -36,6 +36,10 @@ public class TestAssumptions {
         assumeTrue(ClassUtils.isPresent("org.springframework.boot.test.autoconfigure.jdbc.JdbcTest", TestAssumptions.class.getClassLoader()));
     }
 
+    public static void assumeLicenceAcceptance() {
+        assumeTrue(TestAssumptions.class.getResource("/container-license-acceptance.txt") != null);
+    }
+
     public static void assumeYandexSupportsCurrentPostgresVersion() {
         if (isLinux()) {
             String postgresVersion = System.getenv("ZONKY_TEST_DATABASE_POSTGRES_YANDEX-PROVIDER_POSTGRES-VERSION");

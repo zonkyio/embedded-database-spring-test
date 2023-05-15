@@ -20,13 +20,7 @@ import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.EmbeddedDatabase;
 import io.zonky.test.db.provider.ProviderException;
-import io.zonky.test.db.util.ReflectionUtils;
-import org.hsqldb.server.HsqlServerFactory;
-import org.hsqldb.server.Server;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
-import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -36,44 +30,19 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class HSQLDBDatabaseProvider implements DatabaseProvider {
-
-    private static final Logger logger = LoggerFactory.getLogger(HSQLDBDatabaseProvider.class);
-
-    private static final Server server = startServer();
-
-    private static Server startServer() {
-        try {
-            Server server = (Server) HsqlServerFactory.createHsqlServer("mem:testdb", true, false);
-            server.start();
-            registerShutdownHook(server);
-            return server;
-        } catch (SQLException e) {
-            return null;
-        }
-    }
-
-    private static void registerShutdownHook(Server server) {
-        try {
-            Class<?> applicationType = ClassUtils.forName("org.springframework.boot.SpringApplication", null);
-            Object shutdownHandlers = ReflectionUtils.invokeStaticMethod(applicationType, "getShutdownHandlers");
-            ReflectionUtils.invokeMethod(shutdownHandlers, "add", (Runnable) server::shutdown);
-        } catch (Throwable ex) {
-            Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
-        }
-    }
+public class HSQLDatabaseProvider implements DatabaseProvider {
 
     @Override
     public EmbeddedDatabase createDatabase(DatabasePreparer preparer) throws ProviderException {
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
         String databaseName = UUID.randomUUID().toString();
 
-        dataSource.setDriverClass(org.h2.Driver.class);
-        dataSource.setUrl(String.format("jdbc:hsqldb:mem:%s;DB_CLOSE_DELAY=-1", databaseName));
+        dataSource.setDriverClass(org.hsqldb.jdbcDriver.class);
+        dataSource.setUrl(String.format("jdbc:hsqldb:mem:%s", databaseName));
         dataSource.setUsername("sa");
         dataSource.setPassword("");
 
-        HSQLDBEmbeddedDatabase database = new HSQLDBEmbeddedDatabase(server, dataSource, databaseName,
+        HSQLEmbeddedDatabase database = new HSQLEmbeddedDatabase(dataSource, databaseName,
                 () -> shutdownDatabase(dataSource, databaseName));
         try {
             if (preparer != null) {
@@ -93,7 +62,7 @@ public class HSQLDBDatabaseProvider implements DatabaseProvider {
 
     @Override
     public int hashCode() {
-        return Objects.hash(HSQLDBDatabaseProvider.class);
+        return Objects.hash(HSQLDatabaseProvider.class);
     }
 
     private static void shutdownDatabase(DataSource dataSource, String dbName) {
@@ -101,12 +70,7 @@ public class HSQLDBDatabaseProvider implements DatabaseProvider {
             try {
                 executeStatement(dataSource, "SHUTDOWN");
             } catch (SQLException e) {
-                // it seems that there is no error for database in use condition
-                if (logger.isTraceEnabled()) {
-                    logger.warn("Unable to release '{}' database", dbName, e);
-                } else {
-                    logger.warn("Unable to release '{}' database", dbName);
-                }
+                // nothing to do
             }
         });
     }
