@@ -64,7 +64,7 @@ public @interface AutoConfigureEmbeddedDatabase {
 
     /**
      * The type of embedded database to be created when {@link #replace() replacing} the data source.
-     * By default will attempt to detect the database type based on the classpath.
+     * By default, will attempt to detect the database type based on the classpath.
      *
      * <p>The database type may also be configured via the {@code zonky.test.database.type} configuration property.
      *
@@ -155,7 +155,17 @@ public @interface AutoConfigureEmbeddedDatabase {
         /**
          * H2 Database
          */
-        H2
+        H2,
+
+        /**
+         * HSQL Database
+         */
+        HSQL,
+
+        /**
+         * Apache Derby
+         */
+        DERBY
 
     }
 
@@ -206,7 +216,7 @@ public @interface AutoConfigureEmbeddedDatabase {
     enum Replace {
 
         /**
-         * Replace any DataSource bean (auto-configured or manually defined).
+         * Replace any DataSource bean (autoconfigured or manually defined).
          */
         ANY,
 

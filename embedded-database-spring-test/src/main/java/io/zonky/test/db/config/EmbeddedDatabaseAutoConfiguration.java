@@ -21,7 +21,9 @@ import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
+import io.zonky.test.db.provider.derby.DerbyDatabaseProvider;
 import io.zonky.test.db.provider.h2.H2DatabaseProvider;
+import io.zonky.test.db.provider.hsqldb.HSQLDatabaseProvider;
 import io.zonky.test.db.provider.mariadb.DockerMariaDBDatabaseProvider;
 import io.zonky.test.db.provider.mssql.DockerMSSQLDatabaseProvider;
 import io.zonky.test.db.provider.mysql.DockerMySQLDatabaseProvider;
@@ -124,6 +126,26 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     }
 
     @Bean
+    @Provider(type = "embedded", database = "hsql")
+    @ConditionalOnMissingBean(name = "hsqlDatabaseProvider")
+    public DatabaseProvider hsqlDatabaseProvider(DatabaseProviderFactory hsqlDatabaseProviderFactory) {
+        checkDependency("org.hsqldb", "hsqldb", "org.hsqldb.jdbcDriver");
+        return hsqlDatabaseProviderFactory.createProvider(HSQLDatabaseProvider.class);
+    }
+
+    @Bean
+    @Provider(type = "embedded", database = "derby")
+    @ConditionalOnMissingBean(name = "derbyDatabaseProvider")
+    public DatabaseProvider derbyDatabaseProvider(DatabaseProviderFactory derbyDatabaseProviderFactory) {
+        if (!ClassUtils.isPresent("org.apache.derby.info.engine.DerbyModule", classLoader)) {
+            checkDependency("org.apache.derby", "derby", "org.apache.derby.jdbc.EmbeddedDriver");
+        } else {
+            checkDependency("org.apache.derby", "derbytools", "org.apache.derby.jdbc.EmbeddedDriver");
+        }
+        return derbyDatabaseProviderFactory.createProvider(DerbyDatabaseProvider.class);
+    }
+
+    @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "postgresDatabaseProviderFactory")
     public DatabaseProviderFactory postgresDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
@@ -163,6 +185,24 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "h2DatabaseProviderFactory")
     public DatabaseProviderFactory h2DatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(
+                        builder.prefetchingProvider(provider)));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "hsqlDatabaseProviderFactory")
+    public DatabaseProviderFactory hsqlDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
+        return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
+                builder.optimizingProvider(
+                        builder.prefetchingProvider(provider)));
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "derbyDatabaseProviderFactory")
+    public DatabaseProviderFactory derbyDatabaseProviderFactory(DatabaseProviderFactory defaultDatabaseProviderFactory) {
         return defaultDatabaseProviderFactory.customizeProvider((builder, provider) ->
                 builder.optimizingProvider(
                         builder.prefetchingProvider(provider)));

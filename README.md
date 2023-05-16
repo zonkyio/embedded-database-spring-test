@@ -10,7 +10,7 @@ The primary goal of this project is to make it easier to write Spring-powered in
   * Spring `4.3.8` - `6.0.x`
   * Spring Boot `1.4.6` - `3.0.x`
 * Supports multiple different databases
-  * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2)
+  * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb) and [Derby](#derby)
 * Supports multiple database providers
   * [Docker / Testcontainers](#using-docker-provider-default), [Zonky](#using-zonky-provider-previous-default), [OpenTable](#using-opentable-provider), [Yandex](#using-yandex-provider)
 * Supports various database migration tools
@@ -342,6 +342,46 @@ Before you use H2 database, you have to add the following Maven dependency:
     <groupId>com.h2database</groupId>
     <artifactId>h2</artifactId>
     <version>2.1.214</version>
+</dependency>
+```
+
+**Note that the associated database provider supports database prefetching, but not template databases.
+So you may notice some performance degradation compared to other database providers in some cases.**
+
+### HSQLDB
+
+This provider may be convenient if you have an application that supports multiple databases
+and you want to reuse the tests using the `@AutoConfigureEmbeddedDatabase` annotation for all these databases, including the HSQLDB database.
+In this case, you can override the `zonky.test.database.provider` property externally and change the used database provider for each run without changing the code.
+You can find more information about externalized configuration here: https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config
+
+Before you use HSQLDB database, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.hsqldb</groupId>
+    <artifactId>hsqldb</artifactId>
+    <version>2.7.1</version>
+</dependency>
+```
+
+**Note that the associated database provider supports database prefetching, but not template databases.
+So you may notice some performance degradation compared to other database providers in some cases.**
+
+### Derby
+
+This provider may be convenient if you have an application that supports multiple databases
+and you want to reuse the tests using the `@AutoConfigureEmbeddedDatabase` annotation for all these databases, including the Apache Derby database.
+In this case, you can override the `zonky.test.database.provider` property externally and change the used database provider for each run without changing the code.
+You can find more information about externalized configuration here: https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config
+
+Before you use Apache Derby database, you have to add the following Maven dependency:
+
+```xml
+<dependency>
+    <groupId>org.apache.derby</groupId>
+    <artifactId>derby</artifactId>
+    <version>10.16.1.1</version>
 </dependency>
 ```
 

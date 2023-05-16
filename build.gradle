@@ -12,15 +12,15 @@ ext {
 
     testSuites = [
             [name: 'default', versions: [
-                    [name: 'suite', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default', 'h2': 'default']
+                    [name: 'suite', 'zonky-postgres': 'default', opentable: 'default', yandex: 'default', 'mssql-driver': 'default', 'mysql-driver': 'default', 'mariadb-driver': 'default', 'h2': 'default', 'hsqldb': 'default', 'derby': 'default']
             ]],
             [name: 'spring', versions: [
-                    [name: '4.3.8',   spring: '4.3.8.RELEASE',   'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '4.3.30',  spring: '4.3.30.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.0.20',  spring: '5.0.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.1.20',  spring: '5.1.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.2.22',  spring: '5.2.22.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default'],
-                    [name: '5.3.23',  spring: '5.3.23',          'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default']
+                    [name: '4.3.8',   spring: '4.3.8.RELEASE',   'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default'],
+                    [name: '4.3.30',  spring: '4.3.30.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default'],
+                    [name: '5.0.20',  spring: '5.0.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default'],
+                    [name: '5.1.20',  spring: '5.1.20.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default'],
+                    [name: '5.2.22',  spring: '5.2.22.RELEASE',  'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default'],
+                    [name: '5.3.23',  spring: '5.3.23',          'zonky-postgres': 'default',  opentable: 'default',  yandex: 'default',  'mssql-driver': 'default',  'mysql-driver': 'default',  'mariadb-driver': 'default',  'h2': 'default',  'hsqldb': 'default',  'derby': 'default']
             ]],
             [name: 'flyway', versions: [
                     [name: '4.0.3',  flyway: '4.0.3',   'flyway-test': '4.0.1',    spring: '4.3.30.RELEASE',  'spring-boot': '1.5.22.RELEASE',  'zonky-postgres': 'default'],
@@ -77,8 +77,27 @@ ext {
                     [name: '1.4.200',  'h2': '1.4.200'],
                     [name: '2.0.206',  'h2': '2.0.206'],
                     [name: '2.1.214',  'h2': '2.1.214']
+            ]],
+            [name: 'hsqldb', versions: [
+                    [name: '2.3.6',  'hsqldb': '2.3.6'],
+                    [name: '2.4.1',  'hsqldb': '2.4.1'],
+                    [name: '2.5.2',  'hsqldb': '2.5.2']
+            ]],
+            [name: 'derby', versions: [
+                    [name: '10.13.1.1',  'derby': '10.13.1.1'],
+                    [name: '10.14.2.0',  'derby': '10.14.2.0']
             ]]
     ]
+}
+
+if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_11)) {
+    testSuites.find { it.name == 'hsqldb' }.versions << [name: '2.7.1',  'hsqldb': '2.7.1']
+}
+if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_1_9)) {
+    testSuites.find { it.name == 'derby' }.versions << [name: '10.15.2.0',  'derby': '10.15.2.0']
+}
+if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+    testSuites.find { it.name == 'derby' }.versions << [name: '10.16.1.1',  'derby': '10.16.1.1']
 }
 
 allprojects {
@@ -107,12 +126,12 @@ subprojects {
     }
 
     task sourcesJar(type: Jar) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from sourceSets.main.allSource
     }
 
     task javadocJar(type: Jar) {
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from javadoc
     }
 
@@ -213,6 +232,9 @@ project(':embedded-database-spring-test') {
         compile 'mysql:mysql-connector-java:8.0.30', optional
         compile 'org.mariadb.jdbc:mariadb-java-client:3.1.0', optional
         compile 'com.h2database:h2:2.1.214', optional
+        compile 'org.hsqldb:hsqldb:2.5.2', optional
+        compile 'org.apache.derby:derby:10.14.2.0', optional
+        compile 'org.apache.derby:derbytools:10.14.2.0', optional
 
         compile 'org.flywaydb:flyway-core:9.8.2', optional
         compile 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0', optional
@@ -370,6 +392,26 @@ project(':embedded-database-spring-test') {
                                 }
                             }
                         }
+
+                        if (version.hsqldb == null) { // optional dependencies are implicitly excluded
+                            exclude group: 'org.hsqldb', module: 'hsqldb'
+                        } else if (version.hsqldb != 'default') {
+                            eachDependency { details ->
+                                if (details.requested.group == 'org.hsqldb' && details.requested.name == 'hsqldb') {
+                                    details.useVersion "${version.hsqldb}"
+                                }
+                            }
+                        }
+
+                        if (version.derby == null) { // optional dependencies are implicitly excluded
+                            exclude group: 'org.apache.derby'
+                        } else if (version.derby != 'default') {
+                            eachDependency { details ->
+                                if (details.requested.group == 'org.apache.derby') {
+                                    details.useVersion "${version.derby}"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -414,6 +456,8 @@ project(':embedded-database-spring-test') {
             excludeCategories 'io.zonky.test.category.MySQLTestSuite'
             excludeCategories 'io.zonky.test.category.MariaDBTestSuite'
             excludeCategories 'io.zonky.test.category.H2TestSuite'
+            excludeCategories 'io.zonky.test.category.HSQLTestSuite'
+            excludeCategories 'io.zonky.test.category.DerbyTestSuite'
         }
     }
 
@@ -456,6 +500,10 @@ project(':embedded-database-spring-test') {
                         includeCategories 'io.zonky.test.category.MariaDBTestSuite'
                     } else if (suite.name == 'h2') {
                         includeCategories 'io.zonky.test.category.H2TestSuite'
+                    } else if (suite.name == 'hsqldb') {
+                        includeCategories 'io.zonky.test.category.HSQLTestSuite'
+                    } else if (suite.name == 'derby') {
+                        includeCategories 'io.zonky.test.category.DerbyTestSuite'
                     }
                 }
             }

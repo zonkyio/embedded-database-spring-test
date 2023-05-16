@@ -3,6 +3,9 @@ package io.zonky.test.db.provider;
 import io.zonky.test.category.MSSQLTestSuite;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import io.zonky.test.db.provider.mssql.MsSQLEmbeddedDatabase;
+import io.zonky.test.support.ConditionalTestRule;
+import io.zonky.test.support.TestAssumptions;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -21,6 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureEmbeddedDatabase(type = MSSQL)
 @ContextConfiguration
 public class DockerMSSQLProviderIntegrationTest {
+
+    @ClassRule
+    public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeLicenceAcceptance);
 
     @Autowired
     private DataSource dataSource;
