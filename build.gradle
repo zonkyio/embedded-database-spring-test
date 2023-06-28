@@ -247,7 +247,7 @@ project(':embedded-database-spring-test') {
         compile 'org.springframework:spring-context:5.3.24'
         compile 'org.springframework:spring-test:5.3.24'
 
-        compile 'com.google.guava:guava:23.0'
+        compile 'com.google.guava:guava:24.1.1-jre'
 
         compile('com.cedarsoftware:java-util:1.68.0') {
             exclude group: 'org.apache.logging.log4j'

@@ -876,7 +876,7 @@ extracted from the JDK download.
 * [Spring Framework](https://spring.io/) (5.3.24) - `spring-test`, `spring-context` modules
 * [Testcontainers](https://www.testcontainers.org) (1.17.6)
 * [Cedarsoftware](https://github.com/jdereg/java-util) (1.68.0)
-* [Guava](https://github.com/google/guava) (23.0)
+* [Guava](https://github.com/google/guava) (24.1.1-jre)
 
 ## License
 The project is released under version 2.0 of the [Apache License](http://www.apache.org/licenses/LICENSE-2.0.html).
