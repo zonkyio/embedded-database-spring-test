@@ -224,7 +224,7 @@ project(':embedded-database-spring-test') {
         compile 'org.testcontainers:mysql:1.17.6'
         compile 'org.testcontainers:mariadb:1.17.6'
 
-        compile 'io.zonky.test:embedded-postgres:2.0.4', optional
+        compile 'io.zonky.test:embedded-postgres:2.0.5', optional
         compile 'com.opentable.components:otj-pg-embedded:0.13.4', optional
         compile 'ru.yandex.qatools.embed:postgresql-embedded:2.10', optional
 
