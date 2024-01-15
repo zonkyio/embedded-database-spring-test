@@ -98,7 +98,7 @@ public class SpringBootCustomDatabaseIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @FlywayTest
+    @FlywayTest(invokeCleanDB = false)
     public void testJdbcTemplate() {
         assertThat(jdbcTemplate).isNotNull();
 

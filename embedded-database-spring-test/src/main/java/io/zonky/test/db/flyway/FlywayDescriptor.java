@@ -78,6 +78,7 @@ public class FlywayDescriptor {
     private final boolean ignoreFutureMigrations;
     private final boolean validateOnMigrate;
     private final Map<Field, Object> otherFields;
+    private final Map<Field, Object> envConfFields;
     private final Map<Class<?>, Map<Field, Object>> pluginsFields;
 
     private FlywayDescriptor(FlywayWrapper wrapper) {
@@ -93,6 +94,7 @@ public class FlywayDescriptor {
         this.validateOnMigrate = wrapper.isValidateOnMigrate();
 
         this.otherFields = getFields(wrapper.getConfig(), OTHER_FIELDS);
+        this.envConfFields = getFields(wrapper.getEnvConfig(), PLUGIN_FIELDS);
 
         Map<Class<?>, Map<Field, Object>> pluginsFields = new HashMap<>();
         List<Object> plugins = wrapper.getConfigurationExtensions();
@@ -108,8 +110,6 @@ public class FlywayDescriptor {
     }
 
     public void applyTo(FlywayWrapper wrapper) {
-        Object config = wrapper.getConfig();
-
         wrapper.setLocations(locations);
         wrapper.setSchemas(schemas);
         wrapper.setTable(table);
@@ -121,7 +121,8 @@ public class FlywayDescriptor {
         wrapper.setIgnoreFutureMigrations(ignoreFutureMigrations);
         wrapper.setValidateOnMigrate(validateOnMigrate);
 
-        setFields(config, otherFields);
+        setFields(wrapper.getConfig(), otherFields);
+        setFields(wrapper.getEnvConfig(), envConfFields);
 
         List<Object> plugins = wrapper.getConfigurationExtensions();
         for (Object plugin : plugins) {
@@ -186,6 +187,7 @@ public class FlywayDescriptor {
                 && Objects.equals(sqlMigrationSeparator, that.sqlMigrationSeparator)
                 && Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes)
                 && Objects.equals(otherFields, that.otherFields)
+                && Objects.equals(envConfFields, that.envConfFields)
                 && Objects.equals(pluginsFields, that.pluginsFields);
     }
 
@@ -195,27 +197,31 @@ public class FlywayDescriptor {
                 sqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationSuffixes,
                 ignoreMissingMigrations, ignoreFutureMigrations,
-                validateOnMigrate, otherFields, pluginsFields);
+                validateOnMigrate, otherFields, envConfFields, pluginsFields);
     }
 
     private static void setCollection(Field field, Object target, Collection<?> value) {
         Collection collection = (Collection) getField(field, target);
         if (collection != null) {
-            collection.clear();
-            collection.addAll(value);
-        } else {
-            setField(field, target, value);
+            try {
+                collection.clear();
+                collection.addAll(value);
+                return;
+            } catch (UnsupportedOperationException e) {}
         }
+        setField(field, target, Lists.newArrayList(value));
     }
 
     private static void setMap(Field field, Object target, Map<?, ?> value) {
         Map map = (Map) getField(field, target);
         if (map != null) {
-            map.clear();
-            map.putAll(value);
-        } else {
-            setField(field, target, value);
+            try {
+                map.clear();
+                map.putAll(value);
+                return;
+            } catch (UnsupportedOperationException e) {}
         }
+        setField(field, target, Maps.newHashMap(value));
     }
 
     private static void setArray(Field field, Object config, List<?> value) {
@@ -227,28 +233,34 @@ public class FlywayDescriptor {
     private static Map<Field, Object> getFields(Object targetObject, FieldFilter fieldFilter) {
         Map<Field, Object> fieldValues = new HashMap<>();
 
-        Class<?> objectClass = targetObject.getClass();
-        doWithFields(objectClass, field -> {
-            makeAccessible(field);
-            Object value = getField(field, targetObject);
+        if (targetObject != null) {
+            Class<?> objectClass = targetObject.getClass();
+            doWithFields(objectClass, field -> {
+                makeAccessible(field);
+                Object value = getField(field, targetObject);
 
-            if (value != null) {
-                if (Collection.class.isAssignableFrom(field.getType())) {
-                    value = Lists.newArrayList((Collection<?>) value);
-                } else if (Map.class.isAssignableFrom(field.getType())) {
-                    value = Maps.newHashMap((Map<?, ?>) value);
-                } else if (field.getType().isArray()) {
-                    value = Lists.newArrayList((Object[]) value);
+                if (value != null) {
+                    if (Collection.class.isAssignableFrom(field.getType())) {
+                        value = Lists.newArrayList((Collection<?>) value);
+                    } else if (Map.class.isAssignableFrom(field.getType())) {
+                        value = Maps.newHashMap((Map<?, ?>) value);
+                    } else if (field.getType().isArray()) {
+                        value = Lists.newArrayList((Object[]) value);
+                    }
                 }
-            }
 
-            fieldValues.put(field, value);
-        }, fieldFilter);
+                fieldValues.put(field, value);
+            }, fieldFilter);
+        }
 
         return fieldValues;
     }
 
     private static void setFields(Object targetObject, Map<Field, Object> fieldValues) {
+        if (targetObject == null) {
+            return;
+        }
+
         fieldValues.forEach((field, value) -> {
             makeAccessible(field);
 

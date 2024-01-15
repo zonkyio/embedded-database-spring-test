@@ -74,7 +74,24 @@ public class FlywayWrapper {
     }
 
     public Object getConfig() {
-        return config;
+        if (flywayVersion >= 99) {
+            Object modernConfig = getField(config, "modernConfig");
+            return getField(modernConfig, "flyway");
+        } else {
+            return config;
+        }
+    }
+
+    public Object getEnvConfig() {
+        if (flywayVersion >= 99) {
+            try {
+                return invokeMethod(config, "getCurrentResolvedEnvironment");
+            } catch (IllegalStateException e) {
+                return invokeMethod(config, "getCurrentEnvironment");
+            }
+        } else {
+            return null;
+        }
     }
 
     public Object clean() {
@@ -95,8 +112,7 @@ public class FlywayWrapper {
             MigrationResolver resolver = createMigrationResolver(flyway);
 
             if (flywayVersion >= 90) {
-                Object contextInstance = invokeConstructor("org.flywaydb.core.api.resolver.MigrationResolver.Context", config, null, null, null, null);
-                return invokeMethod(resolver, "resolveMigrations", contextInstance);
+                return invokeMethod(resolver, "resolveMigrations", config);
             } else if (flywayVersion >= 52) {
                 Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
                 Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
@@ -111,20 +127,19 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion >= 90) {
+        if (flywayVersion >= 80) {
             Object executor = getField(flyway, "flywayExecutor");
-            Object scanner = createScanner(flyway);
+            Object providers = invokeMethod(executor, "createResourceAndClassProviders", true);
+            Object resourceProvider = getField(providers, "left");
+            Object classProvider = getField(providers, "right");
             Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
             Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
             Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
-            return invokeMethod(executor, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext, null);
-        } else if (flywayVersion >= 80) {
-            Object executor = getField(flyway, "flywayExecutor");
-            Object scanner = createScanner(flyway);
-            Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
-            Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
-            Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
-            return invokeMethod(executor, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
+            if (flywayVersion >= 90) {
+                return invokeMethod(executor, "createMigrationResolver", resourceProvider, classProvider, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext, null);
+            } else {
+                return invokeMethod(executor, "createMigrationResolver", resourceProvider, classProvider, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
+            }
         } else if (flywayVersion >= 63) {
             Object scanner = createScanner(flyway);
             Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
@@ -154,19 +169,6 @@ public class FlywayWrapper {
     }
 
     private Object createScanner(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion >= 80) {
-            Object executor = getField(flyway, "flywayExecutor");
-            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                    invokeMethod(config, "getClassLoader"),
-                    invokeMethod(config, "getEncoding"),
-                    invokeMethod(config, "isDetectEncoding"),
-                    false,
-                    getField(executor, "resourceNameCache"),
-                    getField(executor, "locationScannerCache"),
-                    invokeMethod(config, "isFailOnMissingLocations"));
-        }
         if (flywayVersion >= 79) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
@@ -401,7 +403,7 @@ public class FlywayWrapper {
     public List<Object> getConfigurationExtensions() {
         if (flywayVersion >= 90) {
             try {
-                Object pluginRegister = getField(getConfig(), "pluginRegister");
+                Object pluginRegister = getField(config, "pluginRegister");
                 Class<?> pluginType = ClassUtils.forName("org.flywaydb.core.extensibility.ConfigurationExtension", classLoader);
                 return ImmutableList.copyOf(getList(pluginRegister, "getPlugins", pluginType));
             } catch (ClassNotFoundException e) {

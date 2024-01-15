@@ -68,18 +68,60 @@ public class FlywayDescriptorTest {
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
         invokeMethod(config1, "setOutOfOrder", true);
-        invokeMethod(config1, "setEncoding", flywayVersion < 51 ? "ISO-8859-1" : ISO_8859_1);
+        invokeMethod(config1, "setEncoding", flywayVersion < 51 || flywayVersion >= 99 ? "ISO-8859-1" : ISO_8859_1);
         invokeMethod(config1, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
-        invokeMethod(config1, "setResolvers", mockResolvers);
-        invokeMethod(config1, "setCallbacks", mockCallbacks);
+        if (flywayVersion < 99) {
+            invokeMethod(config1, "setResolvers", mockResolvers);
+            invokeMethod(config1, "setCallbacks", mockCallbacks);
+        } else {
+            invokeMethod(config1, "setMigrationResolvers", ImmutableList.of("resolver1", "resolver2", "resolver3"));
+            invokeMethod(config1, "setCallbacks", ImmutableList.of("callback1", "callback2", "callback3"));
+        }
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
         Object config2 = wrapper2.getConfig();
         invokeMethod(config2, "setOutOfOrder", true);
-        invokeMethod(config2, "setEncoding", flywayVersion < 51 ? "ISO-8859-1" : ISO_8859_1);
+        invokeMethod(config2, "setEncoding", flywayVersion < 51 || flywayVersion >= 99 ? "ISO-8859-1" : ISO_8859_1);
         invokeMethod(config2, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
-        invokeMethod(config2, "setResolvers", mockResolvers);
-        invokeMethod(config2, "setCallbacks", mockCallbacks);
+        if (flywayVersion < 99) {
+            invokeMethod(config2, "setResolvers", mockResolvers);
+            invokeMethod(config2, "setCallbacks", mockCallbacks);
+        } else {
+            invokeMethod(config2, "setMigrationResolvers", ImmutableList.of("resolver1", "resolver2", "resolver3"));
+            invokeMethod(config2, "setCallbacks", ImmutableList.of("callback1", "callback2", "callback3"));
+        }
+
+        FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
+        FlywayDescriptor descriptor2 = FlywayDescriptor.from(wrapper2);
+
+        assertThat(descriptor1).isEqualTo(descriptor2);
+
+        FlywayWrapper wrapper3 = FlywayWrapper.newInstance();
+        descriptor1.applyTo(wrapper3);
+        FlywayDescriptor descriptor3 = FlywayDescriptor.from(wrapper3);
+
+        assertThat(descriptor1).isEqualTo(descriptor3);
+    }
+
+    @Test
+    public void testEnvsFields() {
+        FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
+        Object envConfig1 = wrapper1.getEnvConfig();
+        if (envConfig1 != null) {
+            invokeMethod(envConfig1, "setUser", "user1");
+            invokeMethod(envConfig1, "setPassword", "pass1");
+            invokeMethod(envConfig1, "setSchemas", ImmutableList.of("schema1", "schema2", "schema3"));
+            invokeMethod(envConfig1, "setJdbcProperties", ImmutableMap.of("key1", "value1", "key2", "value2"));
+        }
+
+        FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
+        Object envConfig2 = wrapper2.getEnvConfig();
+        if (envConfig2 != null) {
+            invokeMethod(envConfig2, "setUser", "user1");
+            invokeMethod(envConfig2, "setPassword", "pass1");
+            invokeMethod(envConfig2, "setSchemas", ImmutableList.of("schema1", "schema2", "schema3"));
+            invokeMethod(envConfig2, "setJdbcProperties", ImmutableMap.of("key1", "value1", "key2", "value2"));
+        }
 
         FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
         FlywayDescriptor descriptor2 = FlywayDescriptor.from(wrapper2);
@@ -121,16 +163,20 @@ public class FlywayDescriptorTest {
     public void testExcludedFields() {
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
-        setField(config1, "classLoader",  mock(ClassLoader.class));
-        setField(config1, "dataSource", mock(DataSource.class));
+        if (flywayVersion < 99) {
+            setField(config1, "classLoader", mock(ClassLoader.class));
+            setField(config1, "dataSource", mock(DataSource.class));
+        }
         if (flywayVersion < 51) {
             setField(config1, "dbConnectionInfoPrinted", true);
         }
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
         Object config2 = wrapper2.getConfig();
-        setField(config2, "classLoader",  mock(ClassLoader.class));
-        setField(config2, "dataSource", mock(DataSource.class));
+        if (flywayVersion < 99) {
+            setField(config2, "classLoader", mock(ClassLoader.class));
+            setField(config2, "dataSource", mock(DataSource.class));
+        }
         if (flywayVersion < 51) {
             setField(config2, "dbConnectionInfoPrinted", false);
         }

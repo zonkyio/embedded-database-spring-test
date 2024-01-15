@@ -79,6 +79,14 @@ public class ReflectionUtils {
         }
     }
 
+    // TODO:
+    public static boolean hasField(String className, String name) throws ClassNotFoundException {
+        Assert.notNull(className, "Target class must not be null");
+
+        Class<?> targetClass = ClassUtils.forName(className, null);
+        return org.springframework.util.ReflectionUtils.findField(targetClass, name) != null;
+    }
+
     public static <T> T invokeStaticMethod(String className, String name, Object... args) throws ClassNotFoundException {
         Assert.notNull(className, "Target class must not be null");
 

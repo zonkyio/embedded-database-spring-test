@@ -19,6 +19,7 @@ package io.zonky.test.db;
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
+import io.zonky.test.db.flyway.FlywayClassUtils;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.support.SpyPostProcessor;
@@ -46,11 +47,11 @@ import java.util.List;
 import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
+import static io.zonky.test.db.util.ReflectionUtils.hasField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
@@ -66,6 +67,8 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
 public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListener {
 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
+
+    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     @Configuration
     static class Config {
@@ -102,14 +105,21 @@ public class FlywayMigrationIntegrationTest extends AbstractTestExecutionListene
     }
 
     @Override
-    public void afterTestClass(TestContext testContext) {
+    public void afterTestClass(TestContext testContext) throws ClassNotFoundException {
         ApplicationContext applicationContext = testContext.getApplicationContext();
         DatabaseContext databaseContext = applicationContext.getBean(DatabaseContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
         verify(databaseContext, times(4)).reset();
         verify(databaseContext, times(6)).apply(any());
-        verify(databaseProvider, atMost(5)).createDatabase(any());
+
+        // the additional call is caused by detecting the database type in ClassicConfiguration#setDataSource
+        // affected flyway versions: 9.20 - 10.1
+        if (flywayVersion < 99 || !hasField("org.flywaydb.core.api.configuration.ClassicConfiguration", "databaseType")) {
+            verify(databaseProvider, times(5)).createDatabase(any());
+        } else {
+            verify(databaseProvider, times(6)).createDatabase(any());
+        }
 
         Mockito.reset(databaseContext, databaseProvider);
     }
