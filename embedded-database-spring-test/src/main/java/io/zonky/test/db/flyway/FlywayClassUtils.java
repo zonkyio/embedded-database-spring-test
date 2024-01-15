@@ -26,29 +26,30 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FlywayClassUtils {
 
-    private static final int flywayVersion = loadFlywayVersion();
+    private static final FlywayVersion flywayVersion = loadFlywayVersion();
 
     private FlywayClassUtils() {}
 
-    private static int loadFlywayVersion() {
+    private static FlywayVersion loadFlywayVersion() {
         try {
             ClassPathResource versionResource = new ClassPathResource("org/flywaydb/core/internal/version.txt", FlywayClassUtils.class.getClassLoader());
             if (versionResource.exists()) {
-                return Integer.parseInt(StreamUtils.copyToString(versionResource.getInputStream(), UTF_8).replaceAll("^(\\d+)\\.\\d{2,}", "$1.9").replaceAll("^(\\d+)\\.(\\d).*", "$1$2"));
+                String version = StreamUtils.copyToString(versionResource.getInputStream(), UTF_8);
+                return FlywayVersion.parseVersion(version);
             } else if (ClassUtils.hasMethod(Flyway.class, "isPlaceholderReplacement")) {
-                return 32;
+                return FlywayVersion.parseVersion("3.2");
             } else if (ClassUtils.hasMethod(Flyway.class, "getBaselineVersion")) {
-                return 31;
+                return FlywayVersion.parseVersion("3.1");
             } else {
-                return 30;
+                return FlywayVersion.parseVersion("3.0");
             }
         } catch (Exception e) {
             LoggerFactory.getLogger(FlywayClassUtils.class).error("Unexpected error when resolving flyway version", e);
-            return 0;
+            return FlywayVersion.parseVersion("0");
         }
     }
 
-    public static int getFlywayVersion() {
+    public static FlywayVersion getFlywayVersion() {
         return flywayVersion;
     }
 }

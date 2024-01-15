@@ -3,6 +3,8 @@ package io.zonky.test.db;
 import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
+import io.zonky.test.db.flyway.FlywayClassUtils;
+import io.zonky.test.db.flyway.FlywayVersion;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.support.SpyPostProcessor;
@@ -52,6 +54,8 @@ public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionLis
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
     private static final String SQL_INSERT_PERSON = "insert into test.person (id, first_name, last_name) values (?, ?, ?);";
 
+    private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
+
     @Configuration
     static class Config {
 
@@ -84,14 +88,21 @@ public class FlywayMethodRefreshIntegrationTest extends AbstractTestExecutionLis
     }
 
     @Override
-    public void afterTestClass(TestContext testContext) {
+    public void afterTestClass(TestContext testContext) throws ClassNotFoundException {
         ApplicationContext applicationContext = testContext.getApplicationContext();
         DatabaseContext databaseContext = applicationContext.getBean(DatabaseContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
         verify(databaseContext, times(5)).reset();
         verify(databaseContext, times(5)).apply(any());
-        verify(databaseProvider, times(4)).createDatabase(any());
+
+        // the additional call is caused by detecting the database type in ClassicConfiguration#setDataSource
+        // affected flyway versions: 9.20 - 10.1
+        if (flywayVersion.isLessThan("9.20") || flywayVersion.isGreaterThan("10.1")) {
+            verify(databaseProvider, times(4)).createDatabase(any());
+        } else {
+            verify(databaseProvider, times(5)).createDatabase(any());
+        }
 
         Mockito.reset(databaseContext, databaseProvider);
     }

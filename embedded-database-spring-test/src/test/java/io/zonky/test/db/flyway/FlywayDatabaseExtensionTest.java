@@ -36,6 +36,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.aop.framework.Advised;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -67,9 +68,10 @@ public class FlywayDatabaseExtensionTest {
     private FlywayDatabaseExtension extension = new FlywayDatabaseExtension();
 
     @Before
-    public void setUp() {
+    public void setUp() throws SQLException {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
         when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(databaseContext));
+        when(((DataSource) dataSource).getConnection()).thenThrow(SQLException.class);
 
         FlywayWrapper wrapper = FlywayWrapper.newInstance();
         wrapper.setLocations(ImmutableList.of("db/migration"));
@@ -182,7 +184,7 @@ public class FlywayDatabaseExtensionTest {
         InOrder inOrder = inOrder(databaseContext);
         inOrder.verify(databaseContext).reset();
 
-        if (FlywayClassUtils.getFlywayVersion() >= 41) {
+        if (FlywayClassUtils.getFlywayVersion().isGreaterThanOrEqualTo("4.1")) {
             inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
         } else {
             inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));

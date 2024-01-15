@@ -61,7 +61,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class FlywayDatabaseExtension implements BeanPostProcessor {
 
-    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
+    private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     private static final ConcurrentMap<FlywayDescriptor, Collection<ResolvedMigration>> resolvedMigrationsCache = new ConcurrentHashMap<>();
 
@@ -196,7 +196,7 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
             try {
                 return preparer.getResult().get(0, TimeUnit.MILLISECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                if (preparer instanceof MigrateFlywayDatabasePreparer && flywayVersion < 70) {
+                if (preparer instanceof MigrateFlywayDatabasePreparer && flywayVersion.isLessThan("7")) {
                     return 0;
                 }
             }
@@ -267,7 +267,7 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
             List<String> defaultLocations = flywayWrapper.getLocations();
             boolean ignoreMissingMigrations = flywayWrapper.isIgnoreMissingMigrations();
             try {
-                if (flywayVersion >= 41) {
+                if (flywayVersion.isGreaterThanOrEqualTo("4.1")) {
                     flywayWrapper.setLocations(testLocations);
                     flywayWrapper.setIgnoreMissingMigrations(true);
 
