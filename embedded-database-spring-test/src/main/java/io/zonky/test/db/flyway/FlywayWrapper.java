@@ -41,13 +41,13 @@ public class FlywayWrapper {
 
     private static final ClassLoader classLoader = FlywayWrapper.class.getClassLoader();
 
-    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
+    private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     private final Flyway flyway;
     private final Object config;
 
     public static FlywayWrapper newInstance() {
-        if (flywayVersion >= 60) {
+        if (flywayVersion.isGreaterThanOrEqualTo("6")) {
             Object config = invokeStaticMethod(Flyway.class, "configure");
             return new FlywayWrapper(invokeMethod(config, "load"));
         } else {
@@ -62,7 +62,7 @@ public class FlywayWrapper {
     private FlywayWrapper(Flyway flyway) {
         this.flyway = flyway;
 
-        if (flywayVersion >= 51) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             config = getField(getUltimateTargetObject(flyway), "configuration");
         } else {
             config = getUltimateTargetObject(flyway);
@@ -74,7 +74,7 @@ public class FlywayWrapper {
     }
 
     public Object getConfig() {
-        if (flywayVersion >= 99) {
+        if (flywayVersion.isGreaterThanOrEqualTo("9.9")) {
             Object modernConfig = getField(config, "modernConfig");
             return getField(modernConfig, "flyway");
         } else {
@@ -83,12 +83,10 @@ public class FlywayWrapper {
     }
 
     public Object getEnvConfig() {
-        if (flywayVersion >= 99) {
-            try {
-                return invokeMethod(config, "getCurrentResolvedEnvironment");
-            } catch (IllegalStateException e) {
-                return invokeMethod(config, "getCurrentEnvironment");
-            }
+        if (flywayVersion.isGreaterThanOrEqualTo("9.16")) {
+            return invokeMethod(config, "getCurrentResolvedEnvironment");
+        } else if (flywayVersion.isGreaterThanOrEqualTo("9.9")) {
+            return invokeMethod(config, "getCurrentEnvironment");
         } else {
             return null;
         }
@@ -111,9 +109,9 @@ public class FlywayWrapper {
             Flyway flyway = getUltimateTargetObject(this.flyway);
             MigrationResolver resolver = createMigrationResolver(flyway);
 
-            if (flywayVersion >= 90) {
+            if (flywayVersion.isGreaterThanOrEqualTo("9")) {
                 return invokeMethod(resolver, "resolveMigrations", config);
-            } else if (flywayVersion >= 52) {
+            } else if (flywayVersion.isGreaterThanOrEqualTo("5.2")) {
                 Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
                 Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
                         "getConfiguration".equals(invocation.getMethod().getName()) ? config : invocation.proceed());
@@ -127,7 +125,7 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion >= 80) {
+        if (flywayVersion.isGreaterThanOrEqualTo("8")) {
             Object executor = getField(flyway, "flywayExecutor");
             Object providers = invokeMethod(executor, "createResourceAndClassProviders", true);
             Object resourceProvider = getField(providers, "left");
@@ -135,32 +133,32 @@ public class FlywayWrapper {
             Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
             Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
             Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
-            if (flywayVersion >= 90) {
+            if (flywayVersion.isGreaterThanOrEqualTo("9")) {
                 return invokeMethod(executor, "createMigrationResolver", resourceProvider, classProvider, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext, null);
             } else {
                 return invokeMethod(executor, "createMigrationResolver", resourceProvider, classProvider, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
             }
-        } else if (flywayVersion >= 63) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("6.3")) {
             Object scanner = createScanner(flyway);
             Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
             Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
             Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext);
-        } else if (flywayVersion >= 60) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("6")) {
             Object scanner = createScanner(flyway);
             Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory");
             Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
             return invokeMethod(flyway, "createMigrationResolver", scanner, scanner, sqlScriptExecutorFactory, sqlScriptFactory);
-        } else if (flywayVersion >= 52) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("5.2")) {
             Object scanner = createScanner(flyway);
             Object placeholderReplacer = createMock("org.flywaydb.core.internal.placeholder.PlaceholderReplacer");
             Object factory = invokeConstructor("org.flywaydb.core.internal.database.postgresql.PostgreSQLSqlStatementBuilderFactory", placeholderReplacer);
             return invokeMethod(flyway, "createMigrationResolver", null, scanner, scanner, factory);
-        } else if (flywayVersion >= 51) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             Object scanner = createScanner(flyway);
             Object placeholderReplacer = invokeMethod(flyway, "createPlaceholderReplacer");
             return invokeMethod(flyway, "createMigrationResolver", null, scanner, placeholderReplacer);
-        } else if (flywayVersion >= 40) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("4")) {
             Object scanner = createScanner(flyway);
             return invokeMethod(flyway, "createMigrationResolver", null, scanner);
         } else {
@@ -169,7 +167,7 @@ public class FlywayWrapper {
     }
 
     private Object createScanner(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion >= 79) {
+        if (flywayVersion.isGreaterThanOrEqualTo("7.9")) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
                     Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
@@ -181,7 +179,7 @@ public class FlywayWrapper {
                     getField(flyway, "locationScannerCache"),
                     invokeMethod(config, "getFailOnMissingLocations"));
         }
-        if (flywayVersion >= 70) {
+        if (flywayVersion.isGreaterThanOrEqualTo("7")) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
                     Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
@@ -191,24 +189,16 @@ public class FlywayWrapper {
                     getField(flyway, "resourceNameCache"),
                     getField(flyway, "locationScannerCache"));
         }
-        if (flywayVersion >= 63) {
-            try {
-                // this code is only for version 6.3.3 and above
-                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                        invokeMethod(config, "getClassLoader"),
-                        invokeMethod(config, "getEncoding"),
-                        getField(flyway, "resourceNameCache"),
-                        getField(flyway, "locationScannerCache"));
-            } catch (RuntimeException ex) {
-                if (flywayVersion > 63) {
-                    throw ex;
-                }
-                // try next branch
-            }
+        if (flywayVersion.isGreaterThanOrEqualTo("6.3.3")) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"),
+                    getField(flyway, "resourceNameCache"),
+                    getField(flyway, "locationScannerCache"));
         }
-        if (flywayVersion >= 61) {
+        if (flywayVersion.isGreaterThanOrEqualTo("6.1")) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
                     Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
@@ -216,28 +206,23 @@ public class FlywayWrapper {
                     invokeMethod(config, "getEncoding"),
                     getField(flyway, "resourceNameCache"));
         }
-        if (flywayVersion >= 60) {
-            try {
-                // this code is only for version 6.0.7 and above
-                return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
-                        ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
-                        Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
-                        invokeMethod(config, "getClassLoader"),
-                        invokeMethod(config, "getEncoding"));
-            } catch (RuntimeException ex) {
-                // try next branch
-            }
+        if (flywayVersion.isGreaterThanOrEqualTo("6.0.3")) {
+            return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
+                    ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", classLoader),
+                    Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
+                    invokeMethod(config, "getClassLoader"),
+                    invokeMethod(config, "getEncoding"));
         }
-        if (flywayVersion >= 52) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.2")) {
             return invokeConstructor("org.flywaydb.core.internal.scanner.Scanner",
                     Arrays.asList((Object[]) invokeMethod(config, "getLocations")),
                     invokeMethod(config, "getClassLoader"),
                     invokeMethod(config, "getEncoding"));
         }
-        if (flywayVersion >= 51) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             return invokeConstructor("org.flywaydb.core.internal.util.scanner.Scanner", config);
         }
-        if (flywayVersion >= 40) {
+        if (flywayVersion.isGreaterThanOrEqualTo("4")) {
             return invokeConstructor("org.flywaydb.core.internal.util.scanner.Scanner",
                     (Object) invokeMethod(config, "getClassLoader"));
         }
@@ -254,7 +239,7 @@ public class FlywayWrapper {
     }
 
     public List<String> getLocations() {
-        if (flywayVersion >= 51) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             return ImmutableList.copyOf(Arrays.stream(getArray(config, "getLocations"))
                     .map(location -> (String) invokeMethod(location, "getDescriptor"))
                     .iterator());
@@ -264,7 +249,7 @@ public class FlywayWrapper {
     }
 
     public void setLocations(List<String> locations) {
-        if (flywayVersion >= 51) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             invokeMethod(config, "setLocationsAsStrings", (Object) locations.toArray(new String[0]));
         } else {
             invokeMethod(config, "setLocations", (Object) locations.toArray(new String[0]));
@@ -296,7 +281,7 @@ public class FlywayWrapper {
     }
 
     public String getRepeatableSqlMigrationPrefix() {
-        if (flywayVersion >= 40) {
+        if (flywayVersion.isGreaterThanOrEqualTo("4")) {
             return getValue(config, "getRepeatableSqlMigrationPrefix");
         } else {
             return "R";
@@ -304,7 +289,7 @@ public class FlywayWrapper {
     }
 
     public void setRepeatableSqlMigrationPrefix(String repeatableSqlMigrationPrefix) {
-        if (flywayVersion >= 40) {
+        if (flywayVersion.isGreaterThanOrEqualTo("4")) {
             setValue(config, "setRepeatableSqlMigrationPrefix", repeatableSqlMigrationPrefix);
         } else if (!Objects.equals(repeatableSqlMigrationPrefix, getRepeatableSqlMigrationPrefix())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
@@ -320,7 +305,7 @@ public class FlywayWrapper {
     }
 
     public List<String> getSqlMigrationSuffixes() {
-        if (flywayVersion >= 50) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5")) {
             return ImmutableList.copyOf(getArray(config, "getSqlMigrationSuffixes"));
         } else {
             return ImmutableList.of(getValue(config, "getSqlMigrationSuffix"));
@@ -328,7 +313,7 @@ public class FlywayWrapper {
     }
 
     public void setSqlMigrationSuffixes(List<String> sqlMigrationSuffixes) {
-        if (flywayVersion >= 50) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5")) {
             setValue(config, "setSqlMigrationSuffixes", sqlMigrationSuffixes.toArray(new String[0]));
         } else if (sqlMigrationSuffixes.size() == 1) {
             setValue(config, "setSqlMigrationSuffix", sqlMigrationSuffixes.get(0));
@@ -338,10 +323,10 @@ public class FlywayWrapper {
     }
 
     public boolean isIgnoreMissingMigrations() {
-        if (flywayVersion >= 90) {
+        if (flywayVersion.isGreaterThanOrEqualTo("9")) {
             Object[] patterns = getArray(config, "getIgnoreMigrationPatterns");
             return patterns.length > 0 && "*".equals(getField(patterns[patterns.length - 1], "migrationType")) && "missing".equalsIgnoreCase(getField(patterns[patterns.length - 1], "migrationState"));
-        } else if (flywayVersion >= 41) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("4.1")) {
             return getValue(config, "isIgnoreMissingMigrations");
         } else {
             return false;
@@ -349,7 +334,7 @@ public class FlywayWrapper {
     }
 
     public void setIgnoreMissingMigrations(boolean ignoreMissingMigrations) {
-        if (flywayVersion >= 90) {
+        if (flywayVersion.isGreaterThanOrEqualTo("9")) {
             Object[] patterns = getArray(config, "getIgnoreMigrationPatterns");
             if (isIgnoreMissingMigrations() && !ignoreMissingMigrations) {
                 setValue(config, "setIgnoreMigrationPatterns", Arrays.copyOf(patterns, patterns.length - 1));
@@ -361,7 +346,7 @@ public class FlywayWrapper {
                     throw new IllegalStateException("Class not found: " + e.getMessage());
                 }
             }
-        } else if (flywayVersion >= 41) {
+        } else if (flywayVersion.isGreaterThanOrEqualTo("4.1")) {
             setValue(config, "setIgnoreMissingMigrations", ignoreMissingMigrations);
         } else if (!Objects.equals(ignoreMissingMigrations, isIgnoreMissingMigrations())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
@@ -369,7 +354,7 @@ public class FlywayWrapper {
     }
 
     public boolean isIgnoreFutureMigrations() {
-        if (flywayVersion >= 40 && flywayVersion < 90) {
+        if (flywayVersion.isGreaterThanOrEqualTo("4") && flywayVersion.isLessThan("9")) {
             return getValue(config, "isIgnoreFutureMigrations");
         } else {
             return true;
@@ -377,7 +362,7 @@ public class FlywayWrapper {
     }
 
     public void setIgnoreFutureMigrations(boolean ignoreFutureMigrations) {
-        if (flywayVersion >= 40 && flywayVersion < 90) {
+        if (flywayVersion.isGreaterThanOrEqualTo("4") && flywayVersion.isLessThan("9")) {
             setValue(config, "setIgnoreFutureMigrations", ignoreFutureMigrations);
         } else if (!Objects.equals(ignoreFutureMigrations, isIgnoreFutureMigrations())) {
             throw new UnsupportedOperationException("This method is not supported in current Flyway version");
@@ -401,7 +386,7 @@ public class FlywayWrapper {
     }
 
     public List<Object> getConfigurationExtensions() {
-        if (flywayVersion >= 90) {
+        if (flywayVersion.isGreaterThanOrEqualTo("9")) {
             try {
                 Object pluginRegister = getField(config, "pluginRegister");
                 Class<?> pluginType = ClassUtils.forName("org.flywaydb.core.extensibility.ConfigurationExtension", classLoader);

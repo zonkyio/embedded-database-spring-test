@@ -20,7 +20,7 @@ import static org.mockito.Mockito.mock;
 @Category(FlywayTestSuite.class)
 public class FlywayDescriptorTest {
 
-    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
+    private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     @Test
     public void testBasicFields() {
@@ -29,11 +29,11 @@ public class FlywayDescriptorTest {
         wrapper1.setSchemas(ImmutableList.of("schema1", "schema2", "schema3"));
         wrapper1.setTable("table1");
         wrapper1.setSqlMigrationPrefix("VM");
-        wrapper1.setRepeatableSqlMigrationPrefix(flywayVersion < 40 ? "R" : "RM");
+        wrapper1.setRepeatableSqlMigrationPrefix(flywayVersion.isLessThan("4") ? "R" : "RM");
         wrapper1.setSqlMigrationSeparator("---");
         wrapper1.setSqlMigrationSuffixes(ImmutableList.of(".xql"));
-        wrapper1.setIgnoreMissingMigrations(flywayVersion >= 41);
-        wrapper1.setIgnoreFutureMigrations(flywayVersion < 40 || flywayVersion >= 90);
+        wrapper1.setIgnoreMissingMigrations(flywayVersion.isGreaterThanOrEqualTo("4.1"));
+        wrapper1.setIgnoreFutureMigrations(flywayVersion.isLessThan("4") || flywayVersion.isGreaterThanOrEqualTo("9"));
         wrapper1.setValidateOnMigrate(false);
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
@@ -41,11 +41,11 @@ public class FlywayDescriptorTest {
         wrapper2.setSchemas(ImmutableList.of("schema1", "schema2", "schema3"));
         wrapper2.setTable("table1");
         wrapper2.setSqlMigrationPrefix("VM");
-        wrapper2.setRepeatableSqlMigrationPrefix(flywayVersion < 40 ? "R" : "RM");
+        wrapper2.setRepeatableSqlMigrationPrefix(flywayVersion.isLessThan("4") ? "R" : "RM");
         wrapper2.setSqlMigrationSeparator("---");
         wrapper2.setSqlMigrationSuffixes(ImmutableList.of(".xql"));
-        wrapper2.setIgnoreMissingMigrations(flywayVersion >= 41);
-        wrapper2.setIgnoreFutureMigrations(flywayVersion < 40 || flywayVersion >= 90);
+        wrapper2.setIgnoreMissingMigrations(flywayVersion.isGreaterThanOrEqualTo("4.1"));
+        wrapper2.setIgnoreFutureMigrations(flywayVersion.isLessThan("4") || flywayVersion.isGreaterThanOrEqualTo("9"));
         wrapper2.setValidateOnMigrate(false);
 
         FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
@@ -68,9 +68,9 @@ public class FlywayDescriptorTest {
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
         invokeMethod(config1, "setOutOfOrder", true);
-        invokeMethod(config1, "setEncoding", flywayVersion < 51 || flywayVersion >= 99 ? "ISO-8859-1" : ISO_8859_1);
+        invokeMethod(config1, "setEncoding", flywayVersion.isLessThan("5.1") || flywayVersion.isGreaterThanOrEqualTo("9.9") ? "ISO-8859-1" : ISO_8859_1);
         invokeMethod(config1, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
-        if (flywayVersion < 99) {
+        if (flywayVersion.isLessThan("9.9")) {
             invokeMethod(config1, "setResolvers", mockResolvers);
             invokeMethod(config1, "setCallbacks", mockCallbacks);
         } else {
@@ -81,9 +81,9 @@ public class FlywayDescriptorTest {
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
         Object config2 = wrapper2.getConfig();
         invokeMethod(config2, "setOutOfOrder", true);
-        invokeMethod(config2, "setEncoding", flywayVersion < 51 || flywayVersion >= 99 ? "ISO-8859-1" : ISO_8859_1);
+        invokeMethod(config2, "setEncoding", flywayVersion.isLessThan("5.1") || flywayVersion.isGreaterThanOrEqualTo("9.9") ? "ISO-8859-1" : ISO_8859_1);
         invokeMethod(config2, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
-        if (flywayVersion < 99) {
+        if (flywayVersion.isLessThan("9.9")) {
             invokeMethod(config2, "setResolvers", mockResolvers);
             invokeMethod(config2, "setCallbacks", mockCallbacks);
         } else {
@@ -163,21 +163,21 @@ public class FlywayDescriptorTest {
     public void testExcludedFields() {
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
-        if (flywayVersion < 99) {
+        if (flywayVersion.isLessThan("9.9")) {
             setField(config1, "classLoader", mock(ClassLoader.class));
             setField(config1, "dataSource", mock(DataSource.class));
         }
-        if (flywayVersion < 51) {
+        if (flywayVersion.isLessThan("5.1")) {
             setField(config1, "dbConnectionInfoPrinted", true);
         }
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
         Object config2 = wrapper2.getConfig();
-        if (flywayVersion < 99) {
+        if (flywayVersion.isLessThan("9.9")) {
             setField(config2, "classLoader", mock(ClassLoader.class));
             setField(config2, "dataSource", mock(DataSource.class));
         }
-        if (flywayVersion < 51) {
+        if (flywayVersion.isLessThan("5.1")) {
             setField(config2, "dbConnectionInfoPrinted", false);
         }
 
@@ -203,7 +203,7 @@ public class FlywayDescriptorTest {
 
     private static Object createMockCallbacks() throws ClassNotFoundException {
         final Class<?> callbackType;
-        if (flywayVersion >= 51) {
+        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
             callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.Callback", null);
         } else {
             callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.FlywayCallback", null);

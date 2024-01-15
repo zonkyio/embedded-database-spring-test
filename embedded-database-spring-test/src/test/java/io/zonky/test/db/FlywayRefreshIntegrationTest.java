@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import io.zonky.test.category.FlywayTestSuite;
 import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.flyway.FlywayClassUtils;
+import io.zonky.test.db.flyway.FlywayVersion;
 import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.support.SpyPostProcessor;
@@ -32,7 +33,6 @@ import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
-import static io.zonky.test.db.util.ReflectionUtils.hasField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
@@ -52,7 +52,7 @@ public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener 
     private static final String SQL_SELECT_PERSONS = "select * from test.person";
     private static final String SQL_INSERT_PERSON = "insert into test.person (id, first_name, last_name) values (?, ?, ?);";
 
-    private static final int flywayVersion = FlywayClassUtils.getFlywayVersion();
+    private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
 
     @Configuration
     static class Config {
@@ -96,7 +96,7 @@ public class FlywayRefreshIntegrationTest extends AbstractTestExecutionListener 
 
         // the additional call is caused by detecting the database type in ClassicConfiguration#setDataSource
         // affected flyway versions: 9.20 - 10.1
-        if (flywayVersion < 99 || !hasField("org.flywaydb.core.api.configuration.ClassicConfiguration", "databaseType")) {
+        if (flywayVersion.isLessThan("9.20") || flywayVersion.isGreaterThan("10.1")) {
             verify(databaseProvider, times(3)).createDatabase(any());
         } else {
             verify(databaseProvider, times(4)).createDatabase(any());

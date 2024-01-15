@@ -184,7 +184,7 @@ public class FlywayDatabaseExtensionTest {
         InOrder inOrder = inOrder(databaseContext);
         inOrder.verify(databaseContext).reset();
 
-        if (FlywayClassUtils.getFlywayVersion() >= 41) {
+        if (FlywayClassUtils.getFlywayVersion().isGreaterThanOrEqualTo("4.1")) {
             inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/test_migration/appendable"), ignoreMissingMigrations()));
         } else {
             inOrder.verify(databaseContext).apply(migratePreparer(flywayWrapper, withLocations("db/migration", "db/test_migration/appendable")));

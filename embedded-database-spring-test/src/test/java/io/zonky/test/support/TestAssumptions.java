@@ -13,19 +13,19 @@ public class TestAssumptions {
     private TestAssumptions() {}
 
     public static void assumeFlywaySupportsBaselineOperation() {
-        assumeFlywayVersion(40);
+        assumeFlywayVersion("4");
     }
 
     public static void assumeFlywaySupportsRepeatableMigrations() {
-        assumeFlywayVersion(40);
+        assumeFlywayVersion("4");
     }
 
     public static void assumeFlywaySupportsRepeatableAnnotations() {
-        assumeFlywayVersion(42);
+        assumeFlywayVersion("4.2");
     }
 
-    private static void assumeFlywayVersion(int minVersion) {
-        assumeTrue(FlywayClassUtils.getFlywayVersion() >= minVersion);
+    private static void assumeFlywayVersion(String minVersion) {
+        assumeTrue(FlywayClassUtils.getFlywayVersion().isGreaterThanOrEqualTo(minVersion));
     }
 
     public static void assumeSpringSupportsInstanceSupplier() {
