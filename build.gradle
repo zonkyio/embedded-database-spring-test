@@ -274,8 +274,7 @@ project(':embedded-database-spring-test') {
         api 'org.springframework:spring-context:5.3.24'
         api 'org.springframework:spring-test:5.3.24'
 
-        compileOnly 'com.google.guava:guava:24.1.1-jre'
-        testImplementation 'com.google.guava:guava:24.1.1-jre'
+        optImplementation 'com.google.guava:guava:24.1.1-jre'
 
         api('com.cedarsoftware:java-util:1.68.0') {
             exclude group: 'org.apache.logging.log4j'

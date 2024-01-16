@@ -44,7 +44,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASS }}
         run: |
           cd /home/runner/work/embedded-database-spring-test/embedded-database && \
-            ./gradlew release --full-stacktrace \
+            ./gradlew release --info --full-stacktrace \
             -Prelease.useAutomaticVersion=true \
             -Prelease.releaseVersion=$RELEASE_VERSION \
             -Possrh.username=$MAVEN_USER \
