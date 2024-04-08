@@ -3,13 +3,17 @@ package io.zonky.test.db.flyway;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.zonky.test.category.FlywayTestSuite;
+import org.flywaydb.core.api.callback.BaseCallback;
+import org.flywaydb.core.api.callback.Event;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.flywaydb.core.api.resolver.MigrationResolver;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
-import java.lang.reflect.Array;
+import java.util.List;
 
 import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
 import static io.zonky.test.db.util.ReflectionUtils.setField;
@@ -63,7 +67,7 @@ public class FlywayDescriptorTest {
     @Test
     public void testDynamicFields() throws ClassNotFoundException {
         Object mockResolvers = createMockResolvers();
-        Object mockCallbacks = createMockCallbacks();
+        List<Object> mockCallbacks = createMockCallbacks();
 
         FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
         Object config1 = wrapper1.getConfig();
@@ -72,10 +76,10 @@ public class FlywayDescriptorTest {
         invokeMethod(config1, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
         if (flywayVersion.isLessThan("9.9")) {
             invokeMethod(config1, "setResolvers", mockResolvers);
-            invokeMethod(config1, "setCallbacks", mockCallbacks);
+            wrapper1.setCallbacks(mockCallbacks);
         } else {
             invokeMethod(config1, "setMigrationResolvers", ImmutableList.of("resolver1", "resolver2", "resolver3"));
-            invokeMethod(config1, "setCallbacks", ImmutableList.of("callback1", "callback2", "callback3"));
+            invokeMethod(config1, "setCallbacks", ImmutableList.of("db/migration/beforeMigrate.sql", "db/migration/afterMigrate.sql"));
         }
 
         FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
@@ -85,10 +89,10 @@ public class FlywayDescriptorTest {
         invokeMethod(config2, "setPlaceholders", ImmutableMap.of("key1", "value1", "key2", "value2"));
         if (flywayVersion.isLessThan("9.9")) {
             invokeMethod(config2, "setResolvers", mockResolvers);
-            invokeMethod(config2, "setCallbacks", mockCallbacks);
+            wrapper2.setCallbacks(mockCallbacks);
         } else {
             invokeMethod(config2, "setMigrationResolvers", ImmutableList.of("resolver1", "resolver2", "resolver3"));
-            invokeMethod(config2, "setCallbacks", ImmutableList.of("callback1", "callback2", "callback3"));
+            invokeMethod(config2, "setCallbacks", ImmutableList.of("db/migration/beforeMigrate.sql", "db/migration/afterMigrate.sql"));
         }
 
         FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
@@ -101,6 +105,53 @@ public class FlywayDescriptorTest {
         FlywayDescriptor descriptor3 = FlywayDescriptor.from(wrapper3);
 
         assertThat(descriptor1).isEqualTo(descriptor3);
+    }
+
+    @Test
+    public void testSpecialFields() throws ClassNotFoundException {
+        List<Object> mockMigrations1 = createMockMigrations();
+        List<Object> mockCallbacks1 = createMockCallbacks();
+
+        List<Object> mockMigrations2 = createMockMigrations();
+        List<Object> mockCallbacks2 = createMockCallbacks();
+
+        Object resourceProvider = null;
+        Object classProvider = null;
+
+        if (flywayVersion.isGreaterThanOrEqualTo("6.5")) {
+            Class<?> resourceProviderType = ClassUtils.forName("org.flywaydb.core.api.ResourceProvider", null);
+            Class<?> classProviderType = ClassUtils.forName("org.flywaydb.core.api.ClassProvider", null);
+            resourceProvider = mock(resourceProviderType);
+            classProvider = mock(classProviderType);
+        }
+
+        FlywayWrapper wrapper1 = FlywayWrapper.newInstance();
+        wrapper1.setJavaMigration(mockMigrations1);
+        wrapper1.setCallbacks(mockCallbacks1);
+        wrapper1.setResourceProvider(resourceProvider);
+        wrapper1.setJavaMigrationClassProvider(classProvider);
+
+        FlywayWrapper wrapper2 = FlywayWrapper.newInstance();
+        wrapper2.setJavaMigration(mockMigrations2);
+        wrapper2.setCallbacks(mockCallbacks2);
+        wrapper2.setResourceProvider(resourceProvider);
+        wrapper2.setJavaMigrationClassProvider(classProvider);
+
+        FlywayDescriptor descriptor1 = FlywayDescriptor.from(wrapper1);
+        FlywayDescriptor descriptor2 = FlywayDescriptor.from(wrapper2);
+
+        assertThat(descriptor1).isEqualTo(descriptor2);
+
+        FlywayWrapper wrapper3 = FlywayWrapper.newInstance();
+        descriptor1.applyTo(wrapper3);
+        FlywayDescriptor descriptor3 = FlywayDescriptor.from(wrapper3);
+
+        assertThat(descriptor1).isEqualTo(descriptor3);
+
+        FlywayWrapper wrapper4 = FlywayWrapper.newInstance();
+        FlywayDescriptor descriptor4 = FlywayDescriptor.from(wrapper4);
+
+        assertThat(descriptor1).isNotEqualTo(descriptor4);
     }
 
     @Test
@@ -201,18 +252,60 @@ public class FlywayDescriptorTest {
         return resolvers;
     }
 
-    private static Object createMockCallbacks() throws ClassNotFoundException {
-        final Class<?> callbackType;
-        if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
-            callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.Callback", null);
+    private static List<Object> callbacks;
+
+    private static List<Object> createMockCallbacks() throws ClassNotFoundException {
+        if (flywayVersion.isGreaterThanOrEqualTo("6")) { // Flyway 6 is required for BaseCallback
+            return ImmutableList.of(
+                    new TestCallback("1"),
+                    new TestCallback("2"),
+                    new TestCallback("3"));
         } else {
-            callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.FlywayCallback", null);
+            if (callbacks == null) {
+                Class<?> callbackType;
+                if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
+                    callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.Callback", null);
+                } else {
+                    callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.FlywayCallback", null);
+                }
+                callbacks = ImmutableList.of(mock(callbackType), mock(callbackType), mock(callbackType));
+            }
+            return callbacks;
+        }
+    }
+
+    private static class TestCallback extends BaseCallback {
+
+        private final String testParameter;
+
+        private TestCallback(String testParameter) {
+            this.testParameter = testParameter;
         }
 
-        Object[] callbacks = (Object[]) Array.newInstance(callbackType, 3);
-        for (int i = 0; i < callbacks.length; i++) {
-            callbacks[i] = mock(callbackType);
+        @Override
+        public void handle(Event event, org.flywaydb.core.api.callback.Context context) {}
+    }
+
+    private static List<Object> createMockMigrations() {
+        if (flywayVersion.isGreaterThanOrEqualTo("6")) {
+            return ImmutableList.of(
+                    new V1__TestJavaMigration("1"),
+                    new V1__TestJavaMigration("2"),
+                    new V1__TestJavaMigration("3"));
+        } else {
+            return ImmutableList.of();
         }
-        return callbacks;
+    }
+
+    private static class V1__TestJavaMigration extends BaseJavaMigration {
+
+        private final String testParameter;
+
+        private V1__TestJavaMigration(String testParameter) {
+            this.testParameter = testParameter;
+        }
+
+        @Override
+        public void migrate(Context context) throws Exception {}
     }
 }

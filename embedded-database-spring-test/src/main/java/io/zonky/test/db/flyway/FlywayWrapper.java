@@ -26,6 +26,7 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -383,6 +384,79 @@ public class FlywayWrapper {
 
     public void setCleanDisabled(boolean cleanDisabled) {
         setValue(config, "setCleanDisabled", cleanDisabled);
+    }
+
+    public Object getResourceProvider() {
+        if (flywayVersion.isGreaterThanOrEqualTo("6.5")) {
+            return getValue(config, "getResourceProvider");
+        } else {
+            return null;
+        }
+    }
+
+    public void setResourceProvider(Object resourceProvider) {
+        if (flywayVersion.isGreaterThanOrEqualTo("6.5")) {
+            setValue(config, "setResourceProvider", resourceProvider);
+        } else if (!Objects.equals(resourceProvider, getResourceProvider())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public Object getJavaMigrationClassProvider() {
+        if (flywayVersion.isGreaterThanOrEqualTo("6.5")) {
+            return getValue(config, "getJavaMigrationClassProvider");
+        } else {
+            return null;
+        }
+    }
+
+    public void setJavaMigrationClassProvider(Object javaMigrationClassProvider) {
+        if (flywayVersion.isGreaterThanOrEqualTo("6.5")) {
+            setValue(config, "setJavaMigrationClassProvider", javaMigrationClassProvider);
+        } else if (!Objects.equals(javaMigrationClassProvider, getJavaMigrationClassProvider())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public List<Object> getJavaMigration() {
+        if (flywayVersion.isGreaterThanOrEqualTo("6")) {
+            return ImmutableList.copyOf(getArray(config, "getJavaMigrations"));
+        } else {
+            return ImmutableList.of();
+        }
+    }
+
+    public void setJavaMigration(List<Object> javaMigrations) {
+        if (flywayVersion.isGreaterThanOrEqualTo("6")) {
+            try {
+                Class<?> javaMigrationType = ClassUtils.forName("org.flywaydb.core.api.migration.JavaMigration", null);
+                Object[] javaMigrationArray = (Object[]) Array.newInstance(javaMigrationType, javaMigrations.size());
+                setValue(config, "setJavaMigrations", javaMigrations.toArray(javaMigrationArray));
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException("Class not found: " + e.getMessage());
+            }
+        } else if (!Objects.equals(javaMigrations, getJavaMigration())) {
+            throw new UnsupportedOperationException("This method is not supported in current Flyway version");
+        }
+    }
+
+    public List<Object> getCallbacks() {
+        return ImmutableList.copyOf(getArray(config, "getCallbacks"));
+    }
+
+    public void setCallbacks(List<Object> callbacks) {
+        try {
+            final Class<?> callbackType;
+            if (flywayVersion.isGreaterThanOrEqualTo("5.1")) {
+                callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.Callback", null);
+            } else {
+                callbackType = ClassUtils.forName("org.flywaydb.core.api.callback.FlywayCallback", null);
+            }
+            Object[] callbackArray = (Object[]) Array.newInstance(callbackType, callbacks.size());
+            setValue(config, "setCallbacks", callbacks.toArray(callbackArray));
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Class not found: " + e.getMessage());
+        }
     }
 
     public List<Object> getConfigurationExtensions() {
