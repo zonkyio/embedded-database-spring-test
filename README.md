@@ -10,7 +10,7 @@ The primary goal of this project is to make it easier to write Spring-powered in
   * Spring `4.3.8` - `6.1.x`
   * Spring Boot `1.4.6` - `3.2.x`
 * Supports multiple different databases
-  * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb) and [Derby](#derby)
+  * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb), [Derby](#derby)
 * Supports multiple database providers
   * [Docker / Testcontainers](#using-docker-provider-default), [Zonky](#using-zonky-provider-previous-default), [OpenTable](#using-opentable-provider), [Yandex](#using-yandex-provider)
 * Supports various database migration tools
