@@ -246,10 +246,10 @@ project(':embedded-database-spring-test') {
     dependencies {
         api project(':embedded-database-spring-test-autoconfigure')
 
-        api 'org.testcontainers:postgresql:1.17.6'
-        api 'org.testcontainers:mssqlserver:1.17.6'
-        api 'org.testcontainers:mysql:1.17.6'
-        api 'org.testcontainers:mariadb:1.17.6'
+        api 'org.testcontainers:postgresql:1.18.3'
+        api 'org.testcontainers:mssqlserver:1.18.3'
+        api 'org.testcontainers:mysql:1.18.3'
+        api 'org.testcontainers:mariadb:1.18.3'
 
         optImplementation 'io.zonky.test:embedded-postgres:2.0.5'
         optImplementation 'com.opentable.components:otj-pg-embedded:0.13.4'
