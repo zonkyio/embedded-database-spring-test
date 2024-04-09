@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.flyway;
 
+import com.cedarsoftware.util.DeepEquals;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -49,6 +50,12 @@ public class FlywayDescriptor {
             "validateOnMigrate"
     );
 
+    // these objects require deep comparison of all nested fields
+    private static final Set<String> SPECIAL_FIELDS = ImmutableSet.of(
+            "resourceProvider", "javaMigrationClassProvider",
+            "javaMigrations", "callbacks"
+    );
+
     private static final Set<String> EXCLUDED_FIELDS = ImmutableSet.of(
             "cleanDisabled", "dbConnectionInfoPrinted", "classScanner", "pluginRegister"
     );
@@ -60,6 +67,7 @@ public class FlywayDescriptor {
     private static final FieldFilter OTHER_FIELDS =
             field -> !Modifier.isStatic(field.getModifiers())
                     && !BASIC_FIELDS.contains(field.getName())
+                    && !SPECIAL_FIELDS.contains(field.getName())
                     && !EXCLUDED_FIELDS.contains(field.getName())
                     && !EXCLUDED_TYPES.contains(field.getType());
 
@@ -77,6 +85,10 @@ public class FlywayDescriptor {
     private final boolean ignoreMissingMigrations;
     private final boolean ignoreFutureMigrations;
     private final boolean validateOnMigrate;
+    private final Object resourceProvider;
+    private final Object javaMigrationClassProvider;
+    private final List<Object> javaMigrations;
+    private final List<Object> callbacks;
     private final Map<Field, Object> otherFields;
     private final Map<Field, Object> envConfFields;
     private final Map<Class<?>, Map<Field, Object>> pluginsFields;
@@ -92,6 +104,11 @@ public class FlywayDescriptor {
         this.ignoreMissingMigrations = wrapper.isIgnoreMissingMigrations();
         this.ignoreFutureMigrations = wrapper.isIgnoreFutureMigrations();
         this.validateOnMigrate = wrapper.isValidateOnMigrate();
+
+        this.resourceProvider = wrapper.getResourceProvider();
+        this.javaMigrationClassProvider = wrapper.getJavaMigrationClassProvider();
+        this.javaMigrations = wrapper.getJavaMigration();
+        this.callbacks = wrapper.getCallbacks();
 
         this.otherFields = getFields(wrapper.getConfig(), OTHER_FIELDS);
         this.envConfFields = getFields(wrapper.getEnvConfig(), PLUGIN_FIELDS);
@@ -120,6 +137,11 @@ public class FlywayDescriptor {
         wrapper.setIgnoreMissingMigrations(ignoreMissingMigrations);
         wrapper.setIgnoreFutureMigrations(ignoreFutureMigrations);
         wrapper.setValidateOnMigrate(validateOnMigrate);
+
+        wrapper.setResourceProvider(resourceProvider);
+        wrapper.setJavaMigrationClassProvider(javaMigrationClassProvider);
+        wrapper.setJavaMigration(javaMigrations);
+        wrapper.setCallbacks(callbacks);
 
         setFields(wrapper.getConfig(), otherFields);
         setFields(wrapper.getEnvConfig(), envConfFields);
@@ -186,6 +208,10 @@ public class FlywayDescriptor {
                 && Objects.equals(repeatableSqlMigrationPrefix, that.repeatableSqlMigrationPrefix)
                 && Objects.equals(sqlMigrationSeparator, that.sqlMigrationSeparator)
                 && Objects.equals(sqlMigrationSuffixes, that.sqlMigrationSuffixes)
+                && DeepEquals.deepEquals(resourceProvider, that.resourceProvider)
+                && DeepEquals.deepEquals(javaMigrationClassProvider, that.javaMigrationClassProvider)
+                && DeepEquals.deepEquals(javaMigrations, that.javaMigrations)
+                && DeepEquals.deepEquals(callbacks, that.callbacks)
                 && Objects.equals(otherFields, that.otherFields)
                 && Objects.equals(envConfFields, that.envConfFields)
                 && Objects.equals(pluginsFields, that.pluginsFields);
@@ -197,7 +223,9 @@ public class FlywayDescriptor {
                 sqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationSuffixes,
                 ignoreMissingMigrations, ignoreFutureMigrations,
-                validateOnMigrate, otherFields, envConfFields, pluginsFields);
+                validateOnMigrate, resourceProvider,
+                javaMigrationClassProvider, javaMigrations, callbacks,
+                otherFields, envConfFields, pluginsFields);
     }
 
     private static void setCollection(Field field, Object target, Collection<?> value) {
