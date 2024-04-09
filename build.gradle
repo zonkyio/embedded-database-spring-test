@@ -251,11 +251,11 @@ project(':embedded-database-spring-test') {
         api 'org.testcontainers:mysql:1.17.6'
         api 'org.testcontainers:mariadb:1.17.6'
 
-        optImplementation 'io.zonky.test:embedded-postgres:2.0.5'
+        optImplementation 'io.zonky.test:embedded-postgres:2.0.7'
         optImplementation 'com.opentable.components:otj-pg-embedded:0.13.4'
         optImplementation 'ru.yandex.qatools.embed:postgresql-embedded:2.10'
 
-        optImplementation 'org.postgresql:postgresql:42.4.2'
+        optImplementation 'org.postgresql:postgresql:42.7.3'
         optImplementation 'com.microsoft.sqlserver:mssql-jdbc:11.2.0.jre8'
         optImplementation 'mysql:mysql-connector-java:8.0.30'
         optImplementation 'org.mariadb.jdbc:mariadb-java-client:3.1.0'
