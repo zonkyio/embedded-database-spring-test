@@ -87,6 +87,7 @@ public class EmbeddedDatabaseTestExecutionListener extends AbstractTestExecution
     private void forEachDatabase(TestContext testContext, RefreshMode[] refreshModes, BiConsumer<DatabaseContext, AutoConfigureEmbeddedDatabase> action) {
         Set<AutoConfigureEmbeddedDatabase> annotations = AnnotationUtils.getDatabaseAnnotations(testContext.getTestClass());
 
+        // prevent invocation of testContext.getApplicationContext() if not necessary
         if (annotations.isEmpty()) {
             return;
         }

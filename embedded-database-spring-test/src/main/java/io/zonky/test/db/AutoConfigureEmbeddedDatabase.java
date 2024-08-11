@@ -193,19 +193,28 @@ public @interface AutoConfigureEmbeddedDatabase {
         /**
          * Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database
          * (<a href="https://github.com/zonkyio/embedded-postgres">https://github.com/zonkyio/embedded-postgres</a>).
+         *
+         * @deprecated Use the {@link #EMBEDDED} value instead. Zonky provider has been renamed to the Embedded Postgres provider and this enum value is scheduled to be removed in the next major version.
          */
+        @Deprecated
         ZONKY,
 
         /**
          * Use OpenTable Embedded PostgreSQL Component to create the embedded database
          * (<a href="https://github.com/opentable/otj-pg-embedded">https://github.com/opentable/otj-pg-embedded</a>).
+         *
+         * @deprecated Use the {@link #EMBEDDED} value instead. OpenTable provider has been deprecated in favor of Zonky provider and is scheduled to be removed in the next major version.
          */
+        @Deprecated
         OPENTABLE,
 
         /**
          * Use Yandex's Embedded PostgreSQL Server to create the embedded database
          * (<a href="https://github.com/yandex-qatools/postgresql-embedded">https://github.com/yandex-qatools/postgresql-embedded</a>).
+         *
+         * @deprecated Use the {@link #EMBEDDED} value instead. Yandex provider has been deprecated in favor of Zonky provider and is scheduled to be removed in the next major version.
          */
+        @Deprecated
         YANDEX
 
     }
