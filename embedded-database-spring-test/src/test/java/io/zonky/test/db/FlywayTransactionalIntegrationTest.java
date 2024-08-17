@@ -53,7 +53,7 @@ import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGR
 import static io.zonky.test.db.context.DatabaseContext.ContextState.DIRTY;
 import static io.zonky.test.db.context.DatabaseContext.ContextState.FRESH;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 

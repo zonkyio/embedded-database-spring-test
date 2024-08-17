@@ -80,7 +80,7 @@ public class YandexPostgresDatabaseProvider implements TemplatableDatabaseProvid
     private final ClientConfig clientConfig;
 
     public YandexPostgresDatabaseProvider(Environment environment) {
-        String postgresVersion = environment.getProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "11.10-1");
+        String postgresVersion = environment.getProperty("zonky.test.database.postgres.yandex-provider.postgres-version", "10.23-1");
 
         Map<String, String> initdbProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.initdb.properties");
         Map<String, String> configProperties = PropertyUtils.extractAll(environment, "zonky.test.database.postgres.server.properties");

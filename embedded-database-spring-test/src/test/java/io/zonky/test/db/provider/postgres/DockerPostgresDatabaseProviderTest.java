@@ -128,7 +128,7 @@ public class DockerPostgresDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:9.6-alpine");
+        environment.setProperty("zonky.test.database.postgres.docker.image", "postgres:16-alpine");
         environment.setProperty("zonky.test.database.postgres.client.properties.stringtype", "unspecified");
         environment.setProperty("zonky.test.database.postgres.initdb.properties.lc-collate", "cs_CZ.UTF-8");
         environment.setProperty("zonky.test.database.postgres.server.properties.max_connections", "100");
@@ -143,9 +143,9 @@ public class DockerPostgresDatabaseProviderTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String postgresVersion = jdbcTemplate.queryForObject("show server_version", String.class);
-        assertThat(postgresVersion).startsWith("9.6.");
+        assertThat(postgresVersion).startsWith("16");
 
-        String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
+        String collate = jdbcTemplate.queryForObject("select datcollate from pg_database WHERE datname='test';", String.class);
         assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);

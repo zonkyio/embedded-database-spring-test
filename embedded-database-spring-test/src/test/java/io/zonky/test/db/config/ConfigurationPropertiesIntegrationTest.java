@@ -51,7 +51,7 @@ public class ConfigurationPropertiesIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
-        String collate = jdbcTemplate.queryForObject("show lc_collate", String.class);
+        String collate = jdbcTemplate.queryForObject("SELECT datcollate FROM pg_database WHERE datname='test'", String.class);
         assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);
@@ -61,4 +61,3 @@ public class ConfigurationPropertiesIntegrationTest {
         assertThat(sharedBuffers).isEqualTo("64MB");
     }
 }
-

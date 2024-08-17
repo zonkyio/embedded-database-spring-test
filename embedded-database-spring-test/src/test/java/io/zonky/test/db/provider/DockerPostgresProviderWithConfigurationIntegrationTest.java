@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(PostgresTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = DOCKER)
 @TestPropertySource(properties = {
-        "zonky.test.database.postgres.docker.image=postgres:9.6-alpine",
+        "zonky.test.database.postgres.docker.image=postgres:16-alpine",
         "zonky.test.database.postgres.docker.tmpfs.enabled=true"
 })
 @ContextConfiguration
@@ -66,6 +66,6 @@ public class DockerPostgresProviderWithConfigurationIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String version = jdbcTemplate.queryForObject("show server_version", String.class);
-        assertThat(version).startsWith("9.6.");
+        assertThat(version).startsWith("16.");
     }
 }

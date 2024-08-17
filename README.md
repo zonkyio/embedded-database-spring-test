@@ -526,19 +526,19 @@ The provider configuration can be managed via properties in the
 and `zonky.test.database.mssql.docker` groups as shown below.
 
 ```properties
-zonky.test.database.postgres.docker.image=postgres:11-alpine        # Docker image containing PostgreSQL database.
+zonky.test.database.postgres.docker.image=postgres:16-alpine        # Docker image containing PostgreSQL database.
 zonky.test.database.postgres.docker.tmpfs.enabled=false             # Whether to mount postgres data directory as tmpfs.
 zonky.test.database.postgres.docker.tmpfs.options=rw,noexec,nosuid  # Mount options used to configure the tmpfs filesystem.
 
-zonky.test.database.mysql.docker.image=mysql:5.7                    # Docker image containing MySQL database.
+zonky.test.database.mysql.docker.image=mysql:9                      # Docker image containing MySQL database (arm64 requires 8+).
 zonky.test.database.mysql.docker.tmpfs.enabled=false                # Whether to mount database data directory as tmpfs.
 zonky.test.database.mysql.docker.tmpfs.options=rw,noexec,nosuid     # Mount options used to configure the tmpfs filesystem.
 
-zonky.test.database.mariadb.docker.image=mariadb:10.4               # Docker image containing MariaDB database.
+zonky.test.database.mariadb.docker.image=mariadb:11.5               # Docker image containing MariaDB database.
 zonky.test.database.mariadb.docker.tmpfs.enabled=false              # Whether to mount database data directory as tmpfs.
 zonky.test.database.mariadb.docker.tmpfs.options=rw,noexec,nosuid   # Mount options used to configure the tmpfs filesystem.
 
-zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-latest # Docker image containing MSSQL database.
+zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2022-latest # Docker image containing MSSQL database.
 ``` 
 
 Or, the provider configuration can also be customized with a bean implementing `PostgreSQLContainerCustomizer` interface.
@@ -722,7 +722,7 @@ public class YandexProviderIntegrationTest {
 The provider configuration can be managed via properties in the `zonky.test.database.postgres.yandex-provider` group.
 
 ```properties
-zonky.test.database.postgres.yandex-provider.postgres-version=11.10-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
+zonky.test.database.postgres.yandex-provider.postgres-version=12.18-1 # Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).
 ```
 
 ## Advanced Topics

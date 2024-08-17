@@ -113,7 +113,7 @@
       "name": "zonky.test.database.postgres.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing PostgreSQL database.",
-      "defaultValue": "postgres:11-alpine"
+      "defaultValue": "postgres:16-alpine"
     },
     {
       "name": "zonky.test.database.postgres.docker.tmpfs.enabled",
@@ -130,8 +130,8 @@
     {
       "name": "zonky.test.database.postgres.yandex-provider.postgres-version",
       "type": "java.lang.String",
-      "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries).",
-      "defaultValue": "11.10-1"
+      "description": "Version of EnterpriseDB PostgreSQL binaries (https://www.enterprisedb.com/download-postgresql-binaries). 11+ for Linux available on https://www.postgresql.org/download/",
+      "defaultValue": "10.23-1"
     },
     {
       "name": "zonky.test.database.mssql.client.properties",
@@ -176,7 +176,7 @@
       "name": "zonky.test.database.mariadb.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing MariaDB database.",
-      "defaultValue": "mariadb:10.4"
+      "defaultValue": "mariadb:11.5"
     },
     {
       "name": "zonky.test.database.mariadb.docker.tmpfs.enabled",
@@ -256,22 +256,28 @@
       "name": "zonky.test.database.postgres.docker.image",
       "values": [
         {
+          "value": "postgres:16-alpine"
+        },
+        {
+          "value": "postgres:15-alpine"
+        },
+        {
+          "value": "postgres:14-alpine"
+        },
+        {
           "value": "postgres:13-alpine"
         },
         {
           "value": "postgres:12-alpine"
         },
         {
-          "value": "postgres:11-alpine"
+          "value": "postgres:16"
         },
         {
-          "value": "postgres:10-alpine"
+          "value": "postgres:15"
         },
         {
-          "value": "postgres:9.6-alpine"
-        },
-        {
-          "value": "postgres:9.5-alpine"
+          "value": "postgres:14"
         },
         {
           "value": "postgres:13"
@@ -280,52 +286,34 @@
           "value": "postgres:12"
         },
         {
-          "value": "postgres:11"
+          "value": "postgis/postgis:16-3.4-alpine"
         },
         {
-          "value": "postgres:10"
+          "value": "postgis/postgis:15-3.4-alpine"
         },
         {
-          "value": "postgres:9.6"
+          "value": "postgis/postgis:14-3.4-alpine"
         },
         {
-          "value": "postgres:9.5"
+          "value": "postgis/postgis:13-3.4-alpine"
         },
         {
-          "value": "postgis/postgis:13-3.1-alpine"
+          "value": "postgis/postgis:12-3.4-alpine"
         },
         {
-          "value": "postgis/postgis:12-3.1-alpine"
+          "value": "postgis/postgis:16-3.4"
         },
         {
-          "value": "postgis/postgis:11-3.1-alpine"
+          "value": "postgis/postgis:15-3.4"
         },
         {
-          "value": "postgis/postgis:10-3.1-alpine"
+          "value": "postgis/postgis:14-3.4"
         },
         {
-          "value": "postgis/postgis:9.6-3.1-alpine"
+          "value": "postgis/postgis:13-3.4"
         },
         {
-          "value": "postgis/postgis:9.5-3.0-alpine"
-        },
-        {
-          "value": "postgis/postgis:13-3.1"
-        },
-        {
-          "value": "postgis/postgis:12-3.1"
-        },
-        {
-          "value": "postgis/postgis:11-3.1"
-        },
-        {
-          "value": "postgis/postgis:10-3.1"
-        },
-        {
-          "value": "postgis/postgis:9.6-3.1"
-        },
-        {
-          "value": "postgis/postgis:9.5-3.0"
+          "value": "postgis/postgis:12-3.4"
         }
       ],
       "providers": [
@@ -357,13 +345,16 @@
       "name": "zonky.test.database.mysql.docker.image",
       "values": [
         {
+          "value": "mysql:9.0"
+        },
+        {
+          "value": "mysql:8.4"
+        },
+        {
           "value": "mysql:8.0"
         },
         {
           "value": "mysql:5.7"
-        },
-        {
-          "value": "mysql:5.6"
         }
       ],
       "providers": [
@@ -376,19 +367,25 @@
       "name": "zonky.test.database.mariadb.docker.image",
       "values": [
         {
+          "value": "mariadb:11.5"
+        },
+        {
+          "value": "mariadb:11.4"
+        },
+        {
+          "value": "mariadb:11.2"
+        },
+        {
+          "value": "mariadb:11.1"
+        },
+        {
+          "value": "mariadb:10.11"
+        },
+        {
+          "value": "mariadb:10.6"
+        },
+        {
           "value": "mariadb:10.5"
-        },
-        {
-          "value": "mariadb:10.4"
-        },
-        {
-          "value": "mariadb:10.3"
-        },
-        {
-          "value": "mariadb:10.2"
-        },
-        {
-          "value": "mariadb:10.1"
         }
       ],
       "providers": [

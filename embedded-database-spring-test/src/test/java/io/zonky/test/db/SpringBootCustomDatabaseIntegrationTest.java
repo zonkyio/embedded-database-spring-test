@@ -68,7 +68,7 @@ public class SpringBootCustomDatabaseIntegrationTest {
     public static ConditionalTestRule conditionalTestRule = new ConditionalTestRule(TestAssumptions::assumeSpringBootSupportsJdbcTestAnnotation);
 
     @ClassRule
-    public static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:11-alpine");
+    public static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:16-alpine");
 
     public static class DockerPropertiesInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
