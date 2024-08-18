@@ -145,7 +145,7 @@ public class DockerPostgresDatabaseProviderTest {
         String postgresVersion = jdbcTemplate.queryForObject("show server_version", String.class);
         assertThat(postgresVersion).startsWith("16");
 
-        String collate = jdbcTemplate.queryForObject("select datcollate from pg_database WHERE datname='test';", String.class);
+        String collate = jdbcTemplate.queryForObject("SELECT datcollate FROM pg_database WHERE datname NOT IN('template0', 'template1', 'postgres') LIMIT 1;", String.class);
         assertThat(collate).isEqualTo("cs_CZ.UTF-8");
 
         String maxConnections = jdbcTemplate.queryForObject("show max_connections", String.class);

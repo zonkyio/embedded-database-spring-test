@@ -53,10 +53,10 @@ ext {
                     [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
-                    [name: '12',  postgres: '12.18',  'zonky-postgres': '12.18.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '13',  postgres: '13.14',  'zonky-postgres': '13.14.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '14',  postgres: '14.11',  'zonky-postgres': '14.11.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '15',  postgres: '15.6',   'zonky-postgres': '15.6.0',   opentable: 'default',  yandex: 'default'],
+                    [name: '12',  postgres: '12.20',  'zonky-postgres': '12.20.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '13',  postgres: '13.16',  'zonky-postgres': '13.16.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '14',  postgres: '14.13',  'zonky-postgres': '14.13.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '15',  postgres: '15.8',   'zonky-postgres': '15.8.0',   opentable: 'default',  yandex: 'default'],
                     [name: '16',  postgres: '16.4',   'zonky-postgres': '16.4.0',   opentable: 'default',  yandex: 'default']
             ]],
             [name: 'mssql', versions: [
@@ -296,6 +296,9 @@ project(':embedded-database-spring-test') {
         testImplementation 'org.mockito:mockito-core:3.12.4' // 4.11.0 is Java 8
         testImplementation 'org.assertj:assertj-core:3.26.3'
         testImplementation 'com.zaxxer:HikariCP:4.0.3' // 4.0 is Java 8
+
+        implementation platform('io.zonky.test.postgres:embedded-postgres-binaries-bom:16.4.0') // Test with latest Postgres
+        testImplementation 'io.zonky.test.postgres:embedded-postgres-binaries-darwin-arm64v8' // Support testing on Apple Silicon
     }
 
     configurations {
