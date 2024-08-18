@@ -75,7 +75,7 @@ public class DockerMySQLDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public DockerMySQLDatabaseProvider(Environment environment, ObjectProvider<List<MySQLContainerCustomizer>> containerCustomizers) {
-        String dockerImage = environment.getProperty("zonky.test.database.mysql.docker.image", "mysql:8.4");
+        String dockerImage = environment.getProperty("zonky.test.database.mysql.docker.image", "mysql:9.0");
         String tmpfsOptions = environment.getProperty("zonky.test.database.mysql.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.mysql.docker.tmpfs.enabled", boolean.class, false);
 

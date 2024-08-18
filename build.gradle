@@ -65,8 +65,8 @@ ext {
                     [name: '2022',  'mssql': '2022-latest',  'mssql-driver': 'default']
             ]],
             [name: 'mysql', versions: [
-                    [name: '5.7',  'mysql': '5.7',  'mysql-driver': 'default'],
-                    [name: '8.2',  'mysql': '8.2',  'mysql-driver': 'default']
+                    [name: '8.4',  'mysql': '8.4',  'mysql-driver': 'default'],
+                    [name: '9.0',  'mysql': '9.0',  'mysql-driver': 'default']
             ]],
             [name: 'mariadb', versions: [
                     [name: '10.11',  'mariadb': '10.11',  'mariadb-driver': '2.7.12'],
@@ -268,7 +268,7 @@ project(':embedded-database-spring-test') {
 
         optImplementation 'org.postgresql:postgresql:42.7.3'
         optImplementation 'com.microsoft.sqlserver:mssql-jdbc:12.8.0.jre8'
-        optImplementation 'mysql:mysql-connector-java:8.0.33'
+        optImplementation 'com.mysql:mysql-connector-j:9.0.0'
         optImplementation 'org.mariadb.jdbc:mariadb-java-client:3.4.1'
         optImplementation 'com.h2database:h2:2.2.224'
         optImplementation 'org.hsqldb:hsqldb:2.5.2'
@@ -427,9 +427,10 @@ project(':embedded-database-spring-test') {
 
                         if (version['mysql-driver'] == null) { // optional dependencies are implicitly excluded
                             exclude group: 'mysql', module: 'mysql-connector-java'
+                            exclude group: 'com.mysql', module: 'mysql-connector-j'
                         } else if (version['mysql-driver'] != 'default') {
                             eachDependency { details ->
-                                if (details.requested.group == 'mysql' && details.requested.name == 'mysql-connector-java') {
+                                if (details.requested.group == 'com.mysql' && details.requested.name == 'mysql-connector-j') {
                                     details.useVersion "${version['mysql-driver']}"
                                 }
                             }

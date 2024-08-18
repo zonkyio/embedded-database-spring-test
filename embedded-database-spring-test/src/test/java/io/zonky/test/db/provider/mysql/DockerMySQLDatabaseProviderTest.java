@@ -168,7 +168,7 @@ public class DockerMySQLDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("zonky.test.database.mysql.docker.image", "mysql:5.6.48");
+        environment.setProperty("zonky.test.database.mysql.docker.image", "mysql:9.0");
         environment.setProperty("zonky.test.database.mysql.client.properties.socketTimeout", "30");
         environment.setProperty("zonky.test.database.mysql.client.properties.description", "test description");
         environment.setProperty("zonky.test.database.mysql.client.properties.autoReconnect", "true");
@@ -184,7 +184,7 @@ public class DockerMySQLDatabaseProviderTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("5.6.48");
+        assertThat(databaseVersion).startsWith("9.0");
 
         String maxConnections = jdbcTemplate.queryForObject("select @@max_connections", String.class);
         assertThat(maxConnections).isEqualTo("151");

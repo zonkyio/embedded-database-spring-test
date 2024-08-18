@@ -153,7 +153,7 @@
       "name": "zonky.test.database.mysql.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing MySQL database.",
-      "defaultValue": "mysql:5.7"
+      "defaultValue": "mysql:9.0"
     },
     {
       "name": "zonky.test.database.mysql.docker.tmpfs.enabled",
@@ -352,9 +352,6 @@
         },
         {
           "value": "mysql:8.0"
-        },
-        {
-          "value": "mysql:5.7"
         }
       ],
       "providers": [
