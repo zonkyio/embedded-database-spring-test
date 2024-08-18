@@ -116,8 +116,7 @@ public class LiquibaseDatabasePreparer implements DatabasePreparer {
         SpringLiquibase springLiquibase = new SpringLiquibase();
         springLiquibase.setResourceLoader(descriptor.getResourceLoader());
         if (ClassUtils.isPresent("liquibase.integration.spring.SpringLiquibase$SpringResourceOpener", null)) {
-            SpringLiquibase.SpringResourceOpener resourceAccessor = springLiquibase.new SpringResourceOpener(descriptor.getChangeLog());
-            return StreamUtil.singleInputStream(changeLogPath, resourceAccessor);
+            return StreamUtil.openStream(changeLogPath, null, null, null);
         } else if (ClassUtils.isPresent("liquibase.integration.spring.SpringLiquibase$SpringResourceAccessor", null)) {
             Object resourceAccessor = ReflectionUtils.invokeConstructor("liquibase.integration.spring.SpringLiquibase$SpringResourceAccessor", springLiquibase);
             return ReflectionUtils.invokeMethod(resourceAccessor, "openStream", null, changeLogPath);

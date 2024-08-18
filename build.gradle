@@ -41,14 +41,14 @@ ext {
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
-                    [name: '3.5.5',  liquibase: '3.5.5',  spring: '4.3.30.RELEASE',  'spring-boot': '1.5.22.RELEASE'],
-                    [name: '3.6.3',  liquibase: '3.6.3',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
-                    [name: '3.7.0',  liquibase: '3.7.0',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
-                    [name: '3.8.9',  liquibase: '3.8.9',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
-                    [name: '3.9.0',  liquibase: '3.9.0',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
-                    [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.13',          'spring-boot': '2.4.13'],
-                    [name: '4.4.3',  liquibase: '4.4.3',  spring: '5.3.27',          'spring-boot': '2.5.15'],
-                    [name: '4.5.0',  liquibase: '4.5.0',  spring: '5.3.27',          'spring-boot': '2.6.15'],
+//                    [name: '3.5.5',  liquibase: '3.5.5',  spring: '4.3.30.RELEASE',  'spring-boot': '1.5.22.RELEASE'],
+//                    [name: '3.6.3',  liquibase: '3.6.3',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
+//                    [name: '3.7.0',  liquibase: '3.7.0',  spring: '5.1.20.RELEASE',  'spring-boot': '2.1.18.RELEASE'],
+//                    [name: '3.8.9',  liquibase: '3.8.9',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
+//                    [name: '3.9.0',  liquibase: '3.9.0',  spring: '5.2.22.RELEASE',  'spring-boot': '2.2.13.RELEASE'],
+//                    [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.13',          'spring-boot': '2.4.13'],
+//                    [name: '4.4.3',  liquibase: '4.4.3',  spring: '5.3.27',          'spring-boot': '2.5.15'],
+//                    [name: '4.5.0',  liquibase: '4.5.0',  spring: '5.3.27',          'spring-boot': '2.6.15'],
                     [name: '4.9.1',  liquibase: '4.9.1',  spring: '5.3.31',          'spring-boot': '2.7.18'],
                     [name: 'no_sb',  liquibase: 'default']
             ]],
@@ -280,7 +280,7 @@ project(':embedded-database-spring-test') {
         optImplementation('org.springframework.boot:spring-boot-starter-test:2.7.18') {
             exclude group: 'org.mockito'
         }
-        optImplementation 'org.liquibase:liquibase-core:3.10.3'
+        optImplementation 'org.liquibase:liquibase-core:4.9.1'
 
         api 'org.springframework:spring-context:5.3.31'
         api 'org.springframework:spring-test:5.3.31'
