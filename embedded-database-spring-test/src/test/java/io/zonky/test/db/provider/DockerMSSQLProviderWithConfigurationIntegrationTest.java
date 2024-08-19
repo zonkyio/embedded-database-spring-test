@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(MSSQLTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = MSSQL)
 @TestPropertySource(properties = {
-        "zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-CU20"
+        "zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2022-CU14"
 })
 @ContextConfiguration
 public class DockerMSSQLProviderWithConfigurationIntegrationTest {

@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureEmbeddedDatabase(type = MARIADB)
 @ContextConfiguration
 @TestPropertySource(properties = {
-        "zonky.test.database.mariadb.docker.image=mariadb:10.1"
+        "zonky.test.database.mariadb.docker.image=mariadb:11.5"
 })
 public class DockerMariaDBProviderWithConfigurationIntegrationTest {
 
@@ -63,6 +63,6 @@ public class DockerMariaDBProviderWithConfigurationIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("10.1");
+        assertThat(databaseVersion).startsWith("11.5");
     }
 }

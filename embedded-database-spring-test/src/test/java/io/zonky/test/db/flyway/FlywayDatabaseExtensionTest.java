@@ -50,7 +50,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -86,7 +86,7 @@ public class FlywayDatabaseExtensionTest {
         OptimizedFlywayTestExecutionListener.dbResetWithAnnotation(flywayWrapper::clean);
 
         assertThat(extension.pendingOperations).hasSize(1);
-        verifyZeroInteractions(databaseContext);
+        verifyNoInteractions(databaseContext);
     }
 
     @Test
@@ -110,7 +110,7 @@ public class FlywayDatabaseExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(extension.pendingOperations).isEmpty();
-        verifyZeroInteractions(databaseContext);
+        verifyNoInteractions(databaseContext);
     }
 
     @Test
@@ -122,7 +122,7 @@ public class FlywayDatabaseExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(extension.pendingOperations).isEmpty();
-        verifyZeroInteractions(databaseContext);
+        verifyNoInteractions(databaseContext);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class FlywayDatabaseExtensionTest {
                 .hasMessageMatching("Using .* is forbidden, use io.zonky.test.db.flyway.OptimizedFlywayTestExecutionListener instead");
 
         assertThat(extension.pendingOperations).isEmpty();
-        verifyZeroInteractions(databaseContext);
+        verifyNoInteractions(databaseContext);
     }
 
     @Test

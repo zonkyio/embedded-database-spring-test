@@ -168,7 +168,7 @@ public class DockerMariaDBDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("zonky.test.database.mariadb.docker.image", "mariadb:10.1");
+        environment.setProperty("zonky.test.database.mariadb.docker.image", "mariadb:11.5");
         environment.setProperty("zonky.test.database.mariadb.client.properties.loginTimeout", "60");
 
         DatabasePreparer preparer = TestDatabasePreparer.empty();
@@ -180,10 +180,10 @@ public class DockerMariaDBDatabaseProviderTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("10.1");
+        assertThat(databaseVersion).startsWith("11.5");
 
         String maxConnections = jdbcTemplate.queryForObject("select @@max_connections", String.class);
-        assertThat(maxConnections).isEqualTo("100");
+        assertThat(maxConnections).isEqualTo("151");
     }
 
     @Test

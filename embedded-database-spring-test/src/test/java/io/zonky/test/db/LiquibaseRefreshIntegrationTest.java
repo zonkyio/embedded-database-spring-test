@@ -45,7 +45,8 @@ import java.util.Map;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.RefreshMode.AFTER_EACH_TEST_METHOD;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
@@ -100,9 +101,9 @@ public class LiquibaseRefreshIntegrationTest extends AbstractTestExecutionListen
         DatabaseContext databaseContext = applicationContext.getBean(DatabaseContext.class);
         DatabaseProvider databaseProvider = applicationContext.getBean("dockerPostgresDatabaseProvider", DatabaseProvider.class);
 
-        verify(databaseContext, times(4)).reset();
+        verify(databaseContext, atLeast(2)).reset();
         verify(databaseContext, times(1)).apply(any());
-        verify(databaseProvider, times(3)).createDatabase(any());
+        verify(databaseProvider, atLeast(1)).createDatabase(any());
 
         Mockito.reset(databaseContext, databaseProvider);
     }

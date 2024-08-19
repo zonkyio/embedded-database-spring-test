@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureEmbeddedDatabase(type = MYSQL)
 @ContextConfiguration
 @TestPropertySource(properties = {
-        "zonky.test.database.mysql.docker.image=mysql:5.6.48"
+        "zonky.test.database.mysql.docker.image=mysql:9.0"
 })
 public class DockerMySQLProviderWithConfigurationIntegrationTest {
 
@@ -64,6 +64,6 @@ public class DockerMySQLProviderWithConfigurationIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("5.6.48");
+        assertThat(databaseVersion).startsWith("9.0");
     }
 }

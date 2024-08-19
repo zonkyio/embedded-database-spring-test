@@ -75,7 +75,7 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
     private final ClientConfig clientConfig;
 
     public DockerMariaDBDatabaseProvider(Environment environment, ObjectProvider<List<MariaDBContainerCustomizer>> containerCustomizers) {
-        String dockerImage = environment.getProperty("zonky.test.database.mariadb.docker.image", "mariadb:10.4");
+        String dockerImage = environment.getProperty("zonky.test.database.mariadb.docker.image", "mariadb:11.5");
         String tmpfsOptions = environment.getProperty("zonky.test.database.mariadb.docker.tmpfs.options", "rw,noexec,nosuid");
         boolean tmpfsEnabled = environment.getProperty("zonky.test.database.mariadb.docker.tmpfs.enabled", boolean.class, false);
 
@@ -140,11 +140,16 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
 
         private final DatabasePool databasePool;
         private final MariaDBContainer container;
+        private final boolean useMariadbCommand;
         private final Semaphore semaphore;
 
         private DatabaseInstance(DatabaseConfig config, DatabasePool pool) {
             databasePool = pool;
             container = createContainer(config.dockerImage);
+
+            String version = DockerImageName.parse(config.dockerImage).getVersionPart().replaceFirst("^([0-9]+\\.[0-9]+).*", "$1");
+            Float containerVersion = Character.isDigit(version.charAt(0)) ? Float.parseFloat(version) : null;
+            useMariadbCommand = containerVersion != null && containerVersion >= 11;
 
             if (config.tmpfsEnabled) {
                 Consumer<CreateContainerCmd> consumer = cmd -> cmd.getHostConfig()
@@ -191,8 +196,9 @@ public class DockerMariaDBDatabaseProvider implements DatabaseProvider {
         }
 
         protected void cleanDatabase(ClientConfig config, String dbName) {
-            try {
-                String dropCommand = "mysql -uroot -pdocker -N -e \"show databases\" | grep -v -E \"^(information_schema|performance_schema|mysql|sys)$\" | awk '{print \"drop database \" $1 \"\"}' | mysql -uroot -pdocker";
+            try { // MariaDB 11 moved from mysql to mariadb binary
+                String dropCommand = useMariadbCommand ? "mariadb -uroot -pdocker -N -e \"show databases\" | grep -v -E \"^(information_schema|performance_schema|mysql|sys)$\" | awk '{print \"drop database \" $1 \"\"}' | mariadb -uroot -pdocker" :
+                    "mysql -uroot -pdocker -N -e \"show databases\" | grep -v -E \"^(information_schema|performance_schema|mysql|sys)$\" | awk '{print \"drop database \" $1 \"\"}' | mysql -uroot -pdocker";
                 ExecResult dropResult = container.execInContainer("sh", "-c", dropCommand);
                 if (dropResult.getExitCode() != 0) {
                     throw new ProviderException("Unexpected error when cleaning up the database");

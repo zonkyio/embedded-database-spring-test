@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(PostgresTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = POSTGRES, provider = YANDEX)
 @TestPropertySource(properties = {
-        "zonky.test.database.postgres.yandex-provider.postgres-version=9.6.11-1"
+        "zonky.test.database.postgres.yandex-provider.postgres-version=10.23-1"
 })
 @ContextConfiguration
 public class YandexProviderWithConfigurationIntegrationTest {
@@ -59,6 +59,6 @@ public class YandexProviderWithConfigurationIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String version = jdbcTemplate.queryForObject("show server_version", String.class);
-        assertThat(version).startsWith("9.6.");
+        assertThat(version).startsWith("16.");
     }
 }

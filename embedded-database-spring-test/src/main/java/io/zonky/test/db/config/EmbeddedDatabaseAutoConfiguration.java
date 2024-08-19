@@ -104,7 +104,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @ConditionalOnMissingBean(name = "dockerMySqlDatabaseProvider")
     public DatabaseProvider dockerMySqlDatabaseProvider(DatabaseProviderFactory mySqlDatabaseProviderFactory) {
         checkDependency("org.testcontainers", "mysql", "org.testcontainers.containers.MySQLContainer");
-        checkDependency("mysql", "mysql-connector-java", "com.mysql.cj.jdbc.MysqlDataSource");
+        checkDependency("com.mysql", "mysql-connector-j", "com.mysql.cj.jdbc.MysqlDataSource");
         return mySqlDatabaseProviderFactory.createProvider(DockerMySQLDatabaseProvider.class);
     }
 
