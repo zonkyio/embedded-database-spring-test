@@ -35,9 +35,9 @@ ext {
 //                    [name: '7.6.0',  flyway: '7.6.0',   'flyway-test': '7.0.0',    spring: '5.3.13',          'spring-boot': '2.4.13',          'zonky-postgres': 'default'],
 //                    [name: '7.15.0', flyway: '7.15.0',  'flyway-test': '7.0.0',    spring: '5.3.27',          'spring-boot': '2.5.15',          'zonky-postgres': 'default'],
 //                    [name: '8.0.5',  flyway: '8.0.5',   'flyway-test': '7.0.0',    spring: '5.3.27',          'spring-boot': '2.6.15',          'zonky-postgres': 'default'],
-//                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
+                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
 //                    [name: '9.0.4',  flyway: '9.0.4',   'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
-                    [name: '9.8.3',  flyway: '9.8.3',   'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
+//                    [name: '9.8.3',  flyway: '9.8.3',   'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
@@ -275,12 +275,14 @@ project(':embedded-database-spring-test') {
         optImplementation 'org.apache.derby:derby:10.14.2.0'
         optImplementation 'org.apache.derby:derbytools:10.14.2.0'
 
-        optImplementation 'org.flywaydb:flyway-core:9.8.3'
+        optImplementation 'org.flywaydb:flyway-core:8.5.13'
+        testImplementation 'org.flywaydb:flyway-core:8.5.13'
         optImplementation 'org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0'
         optImplementation('org.springframework.boot:spring-boot-starter-test:2.7.18') {
             exclude group: 'org.mockito'
         }
         optImplementation 'org.liquibase:liquibase-core:4.9.1'
+        testImplementation 'org.liquibase:liquibase-core:4.9.1'
 
         api 'org.springframework:spring-context:5.3.31'
         api 'org.springframework:spring-test:5.3.31'
