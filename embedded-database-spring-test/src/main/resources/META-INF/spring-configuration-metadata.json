@@ -142,7 +142,7 @@
       "name": "zonky.test.database.mssql.docker.image",
       "type": "java.lang.String",
       "description": "Docker image containing MSSQL database.",
-      "defaultValue": "mcr.microsoft.com/mssql/server:2017-latest"
+      "defaultValue": "mcr.microsoft.com/mssql/server:2022-latest"
     },
     {
       "name": "zonky.test.database.mysql.client.properties",

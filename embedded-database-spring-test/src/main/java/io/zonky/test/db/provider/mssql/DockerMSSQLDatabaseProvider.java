@@ -77,7 +77,7 @@ public class DockerMSSQLDatabaseProvider implements TemplatableDatabaseProvider 
     private final ClientConfig clientConfig;
 
     public DockerMSSQLDatabaseProvider(Environment environment, ObjectProvider<List<MSSQLServerContainerCustomizer>> containerCustomizers) {
-        String dockerImage = environment.getProperty("zonky.test.database.mssql.docker.image", "mcr.microsoft.com/mssql/server:2017-latest");
+        String dockerImage = environment.getProperty("zonky.test.database.mssql.docker.image", "mcr.microsoft.com/mssql/server:2022-latest");
         Map<String, String> connectProperties = PropertyUtils.extractAll(environment, "zonky.test.database.mssql.client.properties");
         List<MSSQLServerContainerCustomizer> customizers = Optional.ofNullable(containerCustomizers.getIfAvailable()).orElse(emptyList());
 
