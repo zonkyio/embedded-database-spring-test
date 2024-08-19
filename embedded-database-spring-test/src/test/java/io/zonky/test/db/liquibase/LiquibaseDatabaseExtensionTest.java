@@ -22,10 +22,12 @@ import io.zonky.test.db.context.DatabaseTargetSource;
 import liquibase.exception.LiquibaseException;
 import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.internal.runners.util.TestMethodsFinder;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.aop.framework.Advised;
 
@@ -45,8 +47,19 @@ public class LiquibaseDatabaseExtensionTest {
 
     private SpringLiquibase liquibase;
 
+    @BeforeClass
+    public static void beforeClass() throws ClassNotFoundException {
+        System.out.println("TestMethodsFinder.hasTestMethods(SpringLiquibase.class)...");
+        boolean hasTestMethods = TestMethodsFinder.hasTestMethods(SpringLiquibase.class);
+        System.out.println("TestMethodsFinder.hasTestMethods(SpringLiquibase.class): " + hasTestMethods);
+        System.out.println("TestMethodsFinder.hasTestMethods(LiquibaseException.class)...");
+        hasTestMethods = TestMethodsFinder.hasTestMethods(LiquibaseException.class);
+        System.out.println("TestMethodsFinder.hasTestMethods(LiquibaseException.class): " + hasTestMethods);
+        Class<?> liquibaseException = LiquibaseDatabaseExtensionTest.class.getClassLoader().loadClass("liquibase.exception.LiquibaseException");
+    }
+
     @Before
-    public void setUp() {
+    public void setUp() throws ClassNotFoundException {
         Advised dataSource = mock(Advised.class, withSettings().extraInterfaces(DataSource.class));
         when(dataSource.getTargetSource()).thenReturn(new DatabaseTargetSource(databaseContext));
 
