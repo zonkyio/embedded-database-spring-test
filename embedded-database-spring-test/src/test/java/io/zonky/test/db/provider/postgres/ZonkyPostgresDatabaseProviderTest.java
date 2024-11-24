@@ -20,6 +20,7 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.provider.support.BlockingDatabaseWrapper;
 import io.zonky.test.db.support.TestDatabasePreparer;
+import io.zonky.test.support.TestSocketUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +30,6 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.util.SocketUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -93,7 +93,7 @@ public class ZonkyPostgresDatabaseProviderTest {
 
     @Test
     public void testDatabaseCustomizers() throws Exception {
-        int randomPort = SocketUtils.findAvailableTcpPort();
+        int randomPort = TestSocketUtils.findAvailableTcpPort();
         when(databaseCustomizers.getIfAvailable()).thenReturn(Collections.singletonList(builder -> builder.setPort(randomPort)));
 
         DatabasePreparer preparer = TestDatabasePreparer.empty();

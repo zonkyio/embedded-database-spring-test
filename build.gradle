@@ -323,7 +323,7 @@ project(':embedded-database-spring-test') {
                 "testRuntimeClasspath_${suite.name}_${version.name}" {
                     extendsFrom testRuntimeClasspath
 
-                    if (version.flyway != null && version.flyway.startsWith('10.')) {
+                    if (version.flyway != null && (version.flyway.startsWith('10.') || version.flyway.startsWith('11.'))) {
                         dependencies.add(project.dependencies.create("org.flywaydb:flyway-database-postgresql:${version.flyway}"))
                     }
 

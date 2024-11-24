@@ -17,6 +17,7 @@
 package io.zonky.test.db.flyway;
 
 import com.google.common.collect.ImmutableList;
+import org.aopalliance.intercept.Interceptor;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.resolver.MigrationResolver;
@@ -113,8 +114,7 @@ public class FlywayWrapper {
             if (flywayVersion.isGreaterThanOrEqualTo("9")) {
                 return invokeMethod(resolver, "resolveMigrations", config);
             } else if (flywayVersion.isGreaterThanOrEqualTo("5.2")) {
-                Class<?> contextType = ClassUtils.forName("org.flywaydb.core.api.resolver.Context", classLoader);
-                Object contextInstance = ProxyFactory.getProxy(contextType, (MethodInterceptor) invocation ->
+                Object contextInstance = createMock("org.flywaydb.core.api.resolver.Context", (MethodInterceptor) invocation ->
                         "getConfiguration".equals(invocation.getMethod().getName()) ? config : invocation.proceed());
                 return invokeMethod(resolver, "resolveMigrations", contextInstance);
             } else {
@@ -126,7 +126,17 @@ public class FlywayWrapper {
     }
 
     private MigrationResolver createMigrationResolver(Flyway flyway) throws ClassNotFoundException {
-        if (flywayVersion.isGreaterThanOrEqualTo("8")) {
+        if (flywayVersion.isGreaterThanOrEqualTo("10.17.1")) {
+            Object executor = getField(flyway, "flywayExecutor");
+            Object providers = invokeMethod(executor, "createResourceAndClassProviders", true);
+            Object resourceProvider = getField(providers, "left");
+            Object classProvider = getField(providers, "right");
+            Object sqlScript = createMock("org.flywaydb.core.internal.sqlscript.SqlScript", (MethodInterceptor) invocation -> false);
+            Object sqlScriptFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptFactory", (MethodInterceptor) invocation -> sqlScript);
+            Object sqlScriptExecutorFactory = createMock("org.flywaydb.core.internal.sqlscript.SqlScriptExecutorFactory");
+            Object parsingContext = invokeConstructor("org.flywaydb.core.internal.parser.ParsingContext");
+            return invokeMethod(executor, "createMigrationResolver", resourceProvider, classProvider, sqlScriptExecutorFactory, sqlScriptFactory, parsingContext, null);
+        } else if (flywayVersion.isGreaterThanOrEqualTo("8")) {
             Object executor = getField(flyway, "flywayExecutor");
             Object providers = invokeMethod(executor, "createResourceAndClassProviders", true);
             Object resourceProvider = getField(providers, "left");
@@ -492,5 +502,10 @@ public class FlywayWrapper {
     private static Object createMock(String className) throws ClassNotFoundException {
         Class<?> proxyInterface = ClassUtils.forName(className, classLoader);
         return ProxyFactory.getProxy(proxyInterface, (MethodInterceptor) invocation -> null);
+    }
+
+    private static Object createMock(String className, Interceptor interceptor) throws ClassNotFoundException {
+        Class<?> proxyInterface = ClassUtils.forName(className, classLoader);
+        return ProxyFactory.getProxy(proxyInterface, interceptor);
     }
 }
