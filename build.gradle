@@ -53,11 +53,12 @@ ext {
                     [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
-                    [name: '12',  postgres: '12.18',  'zonky-postgres': '12.18.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '13',  postgres: '13.14',  'zonky-postgres': '13.14.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '14',  postgres: '14.11',  'zonky-postgres': '14.11.0',  opentable: 'default',  yandex: 'default'],
-                    [name: '15',  postgres: '15.6',   'zonky-postgres': '15.6.0',   opentable: 'default',  yandex: 'default'],
-                    [name: '16',  postgres: '16.2',   'zonky-postgres': '16.2.0',   opentable: 'default',  yandex: 'default']
+                    [name: '12',  postgres: '12.22',  'zonky-postgres': '12.22.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '13',  postgres: '13.18',  'zonky-postgres': '13.18.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '14',  postgres: '14.15',  'zonky-postgres': '14.15.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '15',  postgres: '15.10',  'zonky-postgres': '15.10.0',  opentable: 'default',  yandex: 'default'],
+                    [name: '16',  postgres: '16.6',   'zonky-postgres': '16.6.0',   opentable: 'default',  yandex: 'default'],
+                    [name: '17',  postgres: '17.2',   'zonky-postgres': '17.2.0',   opentable: 'default',  yandex: 'default']
             ]],
             [name: 'mssql', versions: [
                     [name: '2017',  'mssql': '2017-latest',  'mssql-driver': 'default'],
@@ -102,16 +103,19 @@ if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
 
     testSuites.find { it.name == 'flyway' }.versions += [
             [name: '9.9.0',   flyway: '9.9.0',   'flyway-test': '9.5.0',    spring: '6.0.14',  'spring-boot': '3.0.13',  'zonky-postgres': 'default'],
-            [name: '9.16.3',  flyway: '9.16.3',  'flyway-test': '9.5.0',    spring: '6.0.18',  'spring-boot': '3.1.10',  'zonky-postgres': 'default'],
-            [name: '9.22.3',  flyway: '9.22.3',  'flyway-test': '9.5.0',    spring: '6.1.5',   'spring-boot': '3.2.4',   'zonky-postgres': 'default'],
-            [name: '10.0.1',  flyway: '10.0.1',  'flyway-test': '10.0.0',   spring: '6.1.5',   'spring-boot': '3.2.4',   'zonky-postgres': 'default'],
-            [name: '10.11.0', flyway: '10.5.0',  'flyway-test': '10.0.0',   spring: '6.1.5',   'spring-boot': '3.2.4',   'zonky-postgres': 'default']
+            [name: '9.16.3',  flyway: '9.16.3',  'flyway-test': '9.5.0',    spring: '6.0.21',  'spring-boot': '3.1.12',  'zonky-postgres': 'default'],
+            [name: '9.22.3',  flyway: '9.22.3',  'flyway-test': '9.5.0',    spring: '6.1.15',   'spring-boot': '3.2.12',   'zonky-postgres': 'default'],
+            [name: '10.10.0',  flyway: '10.10.0',  'flyway-test': '10.0.0',   spring: '6.1.15',   'spring-boot': '3.3.6',   'zonky-postgres': 'default'],
+            [name: '10.20.1', flyway: '10.20.1',  'flyway-test': '10.0.0',   spring: '6.2.0',   'spring-boot': '3.4.0',   'zonky-postgres': 'default'],
+            [name: '11.0.0', flyway: '11.0.0',  'flyway-test': '10.0.0',   spring: '6.2.0',   'spring-boot': '3.4.0',   'zonky-postgres': 'default']
     ]
 
     testSuites.find { it.name == 'liquibase' }.versions += [
             [name: '4.17.2',  liquibase: '4.17.2',  spring: '6.0.14',  'spring-boot': '3.0.13'],
-            [name: '4.20.0',  liquibase: '4.20.0',  spring: '6.0.18',  'spring-boot': '3.1.10'],
-            [name: '4.24.0',  liquibase: '4.24.0',  spring: '6.1.5',   'spring-boot': '3.2.4']
+            [name: '4.20.0',  liquibase: '4.20.0',  spring: '6.0.21',  'spring-boot': '3.1.12'],
+            [name: '4.24.0',  liquibase: '4.24.0',  spring: '6.1.15',   'spring-boot': '3.2.12'],
+            [name: '4.27.0',  liquibase: '4.27.0',  spring: '6.1.15',   'spring-boot': '3.3.6'],
+            [name: '4.29.2',  liquibase: '4.29.2',  spring: '6.2.0',   'spring-boot': '3.4.0']
     ]
 }
 
@@ -258,7 +262,7 @@ project(':embedded-database-spring-test') {
         api 'org.testcontainers:mysql:1.18.3'
         api 'org.testcontainers:mariadb:1.18.3'
 
-        optImplementation 'io.zonky.test:embedded-postgres:2.0.7'
+        optImplementation 'io.zonky.test:embedded-postgres:2.1.0'
         optImplementation 'com.opentable.components:otj-pg-embedded:0.13.4'
         optImplementation 'ru.yandex.qatools.embed:postgresql-embedded:2.10'
 
@@ -319,7 +323,7 @@ project(':embedded-database-spring-test') {
                 "testRuntimeClasspath_${suite.name}_${version.name}" {
                     extendsFrom testRuntimeClasspath
 
-                    if (version.flyway != null && version.flyway.startsWith('10.')) {
+                    if (version.flyway != null && (version.flyway.startsWith('10.') || version.flyway.startsWith('11.'))) {
                         dependencies.add(project.dependencies.create("org.flywaydb:flyway-database-postgresql:${version.flyway}"))
                     }
 
