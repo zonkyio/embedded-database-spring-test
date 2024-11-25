@@ -28,10 +28,16 @@ import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class LiquibaseDatabaseExtension implements BeanPostProcessor {
+public class LiquibaseDatabaseExtension implements BeanPostProcessor, Ordered {
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE + 1;
+    }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {

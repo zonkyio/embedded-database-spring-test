@@ -19,8 +19,14 @@ package io.zonky.test.db.liquibase;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.core.Ordered;
 
-public class LiquibasePropertiesPostProcessor implements BeanPostProcessor {
+public class LiquibasePropertiesPostProcessor implements BeanPostProcessor, Ordered {
+
+    @Override
+    public int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE - 1;
+    }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
