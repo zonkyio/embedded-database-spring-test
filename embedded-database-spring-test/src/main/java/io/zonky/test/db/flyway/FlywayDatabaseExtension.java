@@ -40,6 +40,7 @@ import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.NameMatchMethodPointcutAdvisor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.Ordered;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,7 +60,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class FlywayDatabaseExtension implements BeanPostProcessor {
+public class FlywayDatabaseExtension implements BeanPostProcessor, Ordered {
 
     private static final FlywayVersion flywayVersion = FlywayClassUtils.getFlywayVersion();
 
@@ -67,6 +68,11 @@ public class FlywayDatabaseExtension implements BeanPostProcessor {
 
     protected final Multimap<DatabaseContext, Flyway> flywayBeans = HashMultimap.create();
     protected final BlockingQueue<FlywayOperation> pendingOperations = new LinkedBlockingQueue<>();
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE + 1;
+    }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {

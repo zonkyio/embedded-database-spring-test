@@ -3,8 +3,14 @@ package io.zonky.test.db.flyway;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
+import org.springframework.core.Ordered;
 
-public class FlywayPropertiesPostProcessor implements BeanPostProcessor {
+public class FlywayPropertiesPostProcessor implements BeanPostProcessor, Ordered {
+
+    @Override
+    public int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE - 1;
+    }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
