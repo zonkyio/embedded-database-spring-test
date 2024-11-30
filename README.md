@@ -26,21 +26,18 @@ You don't have to write any additional code, explore the internals of the Spring
 Just add a maven dependency to your project and declare the `@AutoConfigureEmbeddedDatabase` annotation on a test class and that's all!
 You can check out the [quick start](#quick-start) section for more information.
 
-### High Performance
+### Migration Caching
 
-This library uses [template databases](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) instead of spinning up multiple [Docker containers](https://www.baeldung.com/spring-boot-testcontainers-integration-test#1-one-database-per-test-with-configuration) to make tests isolated.
-That means that all databases are stored in a single container. This has two main implications.
-The first is that the creation of the second and any subsequent empty database is almost instant,
-as the library can reuse the existing container instead of wasting time by starting another one.
+The library can cache Flyway and Liquibase migrations in template databases, which means database migrations typically need to be executed only once,
+regardless of how many tests use the database. This dramatically reduces initialization time in projects with complex migration scripts.
 
-The second is that storing all databases in a single container makes it possible to efficiently transfer or share data across databases.
-This is the main prerequisite for the [refresh mode](#refreshing-the-database-during-tests),
-which can make a fast binary copy of the database (using a [template database](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) if possible)
-before the test is started to make the test completely isolated from other tests, even if changes have been committed to the database.
-This approach effectively rolls back any changes made by the test and ensures that even refreshing larger databases takes only a few milliseconds.
+### Efficient Database Isolation
 
-In addition, there are some other optimization techniques to increase overall performance,
-such as [database prefetching](#database-prefetching) or [background bootstrapping mode](#background-bootstrapping-mode).
+Using template databases enables fast binary copying of database state. This allows the [refresh mode](#refreshing-the-database-during-tests)
+to provide complete test isolation while keeping the refresh operation very fast (typically milliseconds), even for larger databases with committed changes.
+The refresh functionality effectively rolls back any changes made during tests.
+
+Additional performance features include [database prefetching](#database-prefetching) and [background bootstrapping mode](#background-bootstrapping-mode).
 
 ### Context Caching
 
