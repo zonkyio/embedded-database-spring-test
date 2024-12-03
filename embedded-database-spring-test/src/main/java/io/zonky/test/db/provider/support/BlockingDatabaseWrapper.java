@@ -120,6 +120,11 @@ public class BlockingDatabaseWrapper implements EmbeddedDatabase {
         delegate.close();
     }
 
+    @Override
+    public void shutdown() {
+        delegate.shutdown();
+    }
+
     protected static class BlockingConnectionWrapper implements Connection {
 
         private final Connection delegate;

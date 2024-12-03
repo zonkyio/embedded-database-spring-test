@@ -26,9 +26,13 @@ public class PostgresEmbeddedDatabase extends AbstractEmbeddedDatabase {
 
     private final PGSimpleDataSource dataSource;
 
-    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, Runnable closeCallback) {
-        super(closeCallback);
+    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, Runnable closeCallback, Runnable shutdownCallback) {
+        super(closeCallback, shutdownCallback);
         this.dataSource = dataSource;
+    }
+
+    public PostgresEmbeddedDatabase(PGSimpleDataSource dataSource, Runnable closeCallback) {
+        this(dataSource, closeCallback, null);
     }
 
     @Override

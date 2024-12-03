@@ -25,4 +25,5 @@ public interface EmbeddedDatabase extends DataSource, Closeable {
 
     void close();
 
+    void shutdown();
 }

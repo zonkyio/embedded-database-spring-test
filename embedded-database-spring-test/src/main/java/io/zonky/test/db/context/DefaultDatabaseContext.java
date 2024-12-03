@@ -221,9 +221,9 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
         logger.trace("Closing database context bean - context={}", beanName);
         if (database != null) {
             try {
-                awaitDatabase().close();
+                awaitDatabase().shutdown();
             } catch (Throwable t) {
-                // TODO: do nothing - consider logging the error
+                logger.error("There was a error while shutting down database", t);
             }
         }
     }

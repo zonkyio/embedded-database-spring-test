@@ -2,6 +2,7 @@ package io.zonky.test.db.provider.support;
 
 import io.zonky.test.db.provider.EmbeddedDatabase;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -12,9 +13,15 @@ import java.util.logging.Logger;
 public abstract class AbstractEmbeddedDatabase implements EmbeddedDatabase {
 
     private final Runnable closeCallback;
+    private final Runnable shutdownCallback;
 
     protected AbstractEmbeddedDatabase(Runnable closeCallback) {
+        this(closeCallback, null);
+    }
+
+    protected AbstractEmbeddedDatabase(Runnable closeCallback,Runnable shutdownCallback) {
         this.closeCallback = closeCallback;
+        this.shutdownCallback = shutdownCallback;
     }
 
     protected abstract DataSource getDataSource();
@@ -79,5 +86,10 @@ public abstract class AbstractEmbeddedDatabase implements EmbeddedDatabase {
     @Override
     public synchronized void close() {
         closeCallback.run();
+    }
+
+    @Override
+    public void shutdown() {
+        shutdownCallback.run();
     }
 }

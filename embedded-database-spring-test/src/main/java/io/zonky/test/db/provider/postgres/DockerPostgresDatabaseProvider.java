@@ -257,7 +257,7 @@ public class DockerPostgresDatabaseProvider implements TemplatableDatabaseProvid
                 dataSource.setProperty(entry.getKey(), entry.getValue());
             }
 
-            return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName)), semaphore);
+            return new BlockingDatabaseWrapper(new PostgresEmbeddedDatabase(dataSource, () -> dropDatabase(config, dbName), container::close), semaphore);
         }
     }
 
