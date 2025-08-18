@@ -49,3 +49,23 @@ jobs:
             -Prelease.releaseVersion=$RELEASE_VERSION \
             -Possrh.username=$MAVEN_USER \
             -Possrh.password=$MAVEN_PASS
+      - name: Upload staged artifacts to Central Sonatype
+        env:
+          SONATYPE_USERNAME: ${{ secrets.MAVEN_USER }}
+          SONATYPE_PASSWORD: ${{ secrets.MAVEN_PASS }}
+        run: |
+          SONATYPE_TOKEN=$(printf "$SONATYPE_USERNAME:$SONATYPE_PASSWORD" | base64)
+          PUBLISH_NAMESPACE="io.zonky"
+          echo "Uploading artifacts from OSSRH-Staging to Central Sonatype..."
+          RESPONSE=$(curl -s -w "%{http_code}" -o response_body.txt -X POST \
+            -H "Authorization: Bearer $SONATYPE_TOKEN" \
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/$PUBLISH_NAMESPACE?publishing_type=user_managed")
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Failed to upload artifacts to Central Sonatype. Response code: $RESPONSE. Response body: "
+            cat response_body.txt
+            echo "Visit https://central.sonatype.com/publishing/deployments for more information."
+            exit 1
+          else
+            echo "Artifacts were uploaded successfully to Central Sonatype."
+            echo "Visit https://central.sonatype.com/publishing/deployments to view your artifacts."
+          fi
