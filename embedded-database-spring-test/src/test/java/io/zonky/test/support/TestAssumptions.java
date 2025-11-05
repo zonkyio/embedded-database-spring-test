@@ -2,6 +2,8 @@ package io.zonky.test.support;
 
 import io.zonky.test.db.flyway.FlywayClassUtils;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.ClassUtils;
 
 import java.util.function.Supplier;
@@ -30,6 +32,10 @@ public class TestAssumptions {
 
     public static void assumeSpringSupportsInstanceSupplier() {
         assumeTrue(ClassUtils.hasMethod(AbstractBeanDefinition.class, "setInstanceSupplier", Supplier.class));
+    }
+
+    public static void assumeSpringSupportsStreamJdbcQueries() {
+        assumeTrue(ClassUtils.hasMethod(JdbcTemplate.class, "queryForStream", String.class, RowMapper.class));
     }
 
     public static void assumeSpringBootSupportsJdbcTestAnnotation() {
