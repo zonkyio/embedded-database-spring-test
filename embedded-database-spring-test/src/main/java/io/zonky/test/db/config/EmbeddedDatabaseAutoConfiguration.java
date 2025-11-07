@@ -64,6 +64,15 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     }
 
     @Bean
+    @Provider(type = "embedded", database = "postgres")
+    @ConditionalOnMissingBean(name = "embeddedPostgresDatabaseProvider")
+    public DatabaseProvider embeddedPostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {
+        checkDependency("io.zonky.test", "embedded-postgres", "io.zonky.test.db.postgres.embedded.EmbeddedPostgres");
+        checkDependency("org.postgresql", "postgresql", "org.postgresql.ds.PGSimpleDataSource");
+        return postgresDatabaseProviderFactory.createProvider(ZonkyPostgresDatabaseProvider.class);
+    }
+
+    @Bean
     @Provider(type = "zonky", database = "postgres")
     @ConditionalOnMissingBean(name = "zonkyPostgresDatabaseProvider")
     public DatabaseProvider zonkyPostgresDatabaseProvider(DatabaseProviderFactory postgresDatabaseProviderFactory) {

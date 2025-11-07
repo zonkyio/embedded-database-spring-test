@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER;
-import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY;
+import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseProvider.EMBEDDED;
 import static io.zonky.test.db.AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -49,9 +49,9 @@ import static org.assertj.core.api.Assertions.tuple;
 
 @RunWith(SpringRunner.class)
 @Category(FlywayTestSuite.class)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource1", type = POSTGRES, provider = ZONKY)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource1", type = POSTGRES, provider = EMBEDDED)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource2", type = POSTGRES, provider = DOCKER)
-@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", type = POSTGRES, provider = ZONKY)
+@AutoConfigureEmbeddedDatabase(beanName = "dataSource3", type = POSTGRES, provider = EMBEDDED)
 @ContextConfiguration
 public class MultipleDatabasesIntegrationTest {
 
