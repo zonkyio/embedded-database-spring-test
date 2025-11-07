@@ -23,17 +23,16 @@ import io.zonky.test.db.flyway.FlywayWrapper;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.SettableListenableFuture;
 
 import javax.sql.DataSource;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class FlywayDatabasePreparer implements DatabasePreparer {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected final SettableListenableFuture<Object> result = new SettableListenableFuture<>();
+    protected final CompletableFuture<Object> result = new CompletableFuture<>();
     protected final FlywayDescriptor descriptor;
 
     public FlywayDatabasePreparer(FlywayDescriptor descriptor) {
@@ -44,7 +43,7 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
         return descriptor;
     }
 
-    public ListenableFuture<Object> getResult() {
+    public CompletableFuture<Object> getResult() {
         return result;
     }
 
@@ -59,10 +58,10 @@ public abstract class FlywayDatabasePreparer implements DatabasePreparer {
         wrapper.setDataSource(dataSource);
 
         try {
-            result.set(doOperation(wrapper));
+            result.complete(doOperation(wrapper));
             logger.trace("Database has been successfully prepared in {}", stopwatch);
         } catch (RuntimeException e) {
-            result.setException(e);
+            result.completeExceptionally(e);
             throw e;
         }
     }

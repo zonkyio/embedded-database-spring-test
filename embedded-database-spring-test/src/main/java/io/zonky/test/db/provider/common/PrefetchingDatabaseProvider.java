@@ -29,8 +29,6 @@ import io.zonky.test.db.util.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.util.concurrent.ListenableFutureCallback;
-import org.springframework.util.concurrent.ListenableFutureTask;
 
 import java.util.Comparator;
 import java.util.List;
@@ -43,6 +41,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -167,7 +167,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             databaseCount.decrementAndGet();
 
             if (databaseToRemove.getKey().equals(key)) {
-                return executeTask(key, PrefetchingTask.withDatabase(databaseToRemove.getValue(), priority));
+                return executeTask(PrefetchingTask.withDatabase(key, databaseToRemove.getValue(), priority));
             } else {
                 databaseToRemove.getValue().close();
                 DatabasePipeline pipeline = pipelines.get(databaseToRemove.getKey());
@@ -175,7 +175,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
             }
         }
 
-        return executeTask(key, PrefetchingTask.forPreparer(key.provider, key.preparer, priority));
+        return executeTask(PrefetchingTask.forPreparer(key, key.provider, key.preparer, priority));
     }
 
     protected Optional<PrefetchingTask> prepareExistingDatabase(PipelineKey key, int priority) {
@@ -197,7 +197,7 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
                 if (result != null) {
                     CompositeDatabasePreparer complementaryPreparer = new CompositeDatabasePreparer(preparers.subList(i, preparers.size()));
                     logger.trace("Preparing existing database from {} pipeline by using the complementary preparer {}", existingPipeline.key, complementaryPreparer);
-                    PrefetchingTask task = executeTask(key, PrefetchingTask.withDatabase(result.get(), complementaryPreparer, priority));
+                    PrefetchingTask task = executeTask(PrefetchingTask.withDatabase(key, result.get(), complementaryPreparer, priority));
 
                     prepareDatabase(pipelineKey, LOWEST_PRECEDENCE);
                     reschedulePipeline(pipelineKey);
@@ -223,33 +223,13 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
 
             for (int i = 0; i < cancelledTasks.size(); i++) {
                 int priority = -1 * (int) (invocationCount / cancelledTasks.size() * (i + 1));
-                executeTask(key, PrefetchingTask.fromTask(cancelledTasks.get(i), priority));
+                executeTask(PrefetchingTask.fromTask(key, cancelledTasks.get(i), priority));
             }
         }
     }
 
-    protected PrefetchingTask executeTask(PipelineKey key, PrefetchingTask task) {
-        DatabasePipeline pipeline = pipelines.get(key);
-
-        task.addCallback(new ListenableFutureCallback<EmbeddedDatabase>() {
-            @Override
-            public void onSuccess(EmbeddedDatabase result) {
-                if (task.type == NEW_DATABASE) {
-                    pipeline.state.set(INITIALIZED);
-                }
-                pipeline.tasks.remove(task);
-                pipeline.results.offer(PreparedResult.success(result));
-            }
-
-            @Override
-            public void onFailure(Throwable error) {
-                pipeline.tasks.remove(task);
-                if (!(error instanceof CancellationException)) {
-                    pipeline.results.offer(PreparedResult.failure(error));
-                }
-            }
-        });
-
+    protected PrefetchingTask executeTask(PrefetchingTask task) {
+        DatabasePipeline pipeline = pipelines.get(task.key);
         pipeline.tasks.add(task);
         taskExecutor.execute(task);
         return task;
@@ -379,36 +359,38 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         }
     }
 
-    protected static class PrefetchingTask extends ListenableFutureTask<EmbeddedDatabase> implements Comparable<PrefetchingTask> {
+    protected static class PrefetchingTask extends FutureTask<EmbeddedDatabase> implements Comparable<PrefetchingTask> {
 
         private final AtomicBoolean executed = new AtomicBoolean(false);
 
+        public final PipelineKey key;
         public final Callable<EmbeddedDatabase> action;
         public final TaskType type;
         public final int priority;
 
-        public static PrefetchingTask forPreparer(DatabaseProvider provider, DatabasePreparer preparer, int priority) {
-            return new PrefetchingTask(priority, NEW_DATABASE, () -> provider.createDatabase(preparer));
+        public static PrefetchingTask forPreparer(PipelineKey key, DatabaseProvider provider, DatabasePreparer preparer, int priority) {
+            return new PrefetchingTask(key, priority, NEW_DATABASE, () -> provider.createDatabase(preparer));
         }
 
-        public static PrefetchingTask withDatabase(EmbeddedDatabase database, DatabasePreparer preparer, int priority) {
-            return new PrefetchingTask(priority, EXISTING_DATABASE, () -> {
+        public static PrefetchingTask withDatabase(PipelineKey key, EmbeddedDatabase database, DatabasePreparer preparer, int priority) {
+            return new PrefetchingTask(key, priority, EXISTING_DATABASE, () -> {
                 preparer.prepare(database);
                 return database;
             });
         }
 
-        public static PrefetchingTask withDatabase(EmbeddedDatabase database, int priority) {
-            return new PrefetchingTask(priority, EXISTING_DATABASE, () -> database);
+        public static PrefetchingTask withDatabase(PipelineKey key, EmbeddedDatabase database, int priority) {
+            return new PrefetchingTask(key, priority, EXISTING_DATABASE, () -> database);
         }
 
-        public static PrefetchingTask fromTask(PrefetchingTask task, int priority) {
-            return new PrefetchingTask(priority, task.type, task.action);
+        public static PrefetchingTask fromTask(PipelineKey key, PrefetchingTask task, int priority) {
+            return new PrefetchingTask(key, priority, task.type, task.action);
         }
 
-        private PrefetchingTask(int priority, TaskType type, Callable<EmbeddedDatabase> action) {
+        private PrefetchingTask(PipelineKey key, int priority, TaskType type, Callable<EmbeddedDatabase> action) {
             super(action);
 
+            this.key = key;
             this.action = action;
             this.type = type;
             this.priority = priority;
@@ -418,6 +400,37 @@ public class PrefetchingDatabaseProvider implements DatabaseProvider {
         public void run() {
             if (executed.compareAndSet(false, true)) {
                 super.run();
+            }
+        }
+
+        @Override
+        protected void done() {
+            DatabasePipeline pipeline = pipelines.get(key);
+            Throwable cause;
+
+            try {
+                EmbeddedDatabase result = get();
+
+                if (type == NEW_DATABASE) {
+                    pipeline.state.set(INITIALIZED);
+                }
+                pipeline.tasks.remove(this);
+                pipeline.results.offer(PreparedResult.success(result));
+                return;
+            }
+            catch (ExecutionException ex) {
+                cause = ex.getCause();
+                if (cause == null) {
+                    cause = ex;
+                }
+            }
+            catch (Throwable ex) {
+                cause = ex;
+            }
+
+            pipeline.tasks.remove(this);
+            if (!(cause instanceof CancellationException)) {
+                pipeline.results.offer(PreparedResult.failure(cause));
             }
         }
 
