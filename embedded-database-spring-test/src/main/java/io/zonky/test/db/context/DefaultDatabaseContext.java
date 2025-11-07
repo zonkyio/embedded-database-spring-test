@@ -44,11 +44,11 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.test.context.transaction.TestTransaction;
-import org.springframework.util.concurrent.SettableListenableFuture;
 
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 
@@ -283,8 +283,8 @@ public class DefaultDatabaseContext implements DatabaseContext, BeanNameAware, B
     }
 
     private Future<EmbeddedDatabase> databaseFuture(Object database) {
-        SettableListenableFuture<EmbeddedDatabase> future = new SettableListenableFuture<>();
-        future.set((EmbeddedDatabase) database);
+        CompletableFuture<EmbeddedDatabase> future = new CompletableFuture<>();
+        future.complete((EmbeddedDatabase) database);
         return future;
     }
 
