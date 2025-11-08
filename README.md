@@ -472,6 +472,11 @@ zonky.test.database.provider=default              # Provider to be used to creat
 zonky.test.database.refresh=never                 # Determines the refresh mode of the embedded database.
 zonky.test.database.replace=any                   # Determines what type of existing DataSource beans can be replaced.
 
+zonky.test.database.init.script-locations=        # Locations of the SQL scripts to apply to the database.
+zonky.test.database.init.continue-on-error=false  # Whether initialization should continue when an error occurs.
+zonky.test.database.init.separator=;              # Statement separator in the SQL scripts.
+zonky.test.database.init.encoding=                # Encoding of the SQL scripts.
+
 zonky.test.database.postgres.client.properties.*= # Additional PostgreSQL options used to configure the test data source.
 zonky.test.database.mssql.client.properties.*=    # Additional MSSQL options used to configure the test data source.
 zonky.test.database.mysql.client.properties.*=    # Additional MySQL options used to configure the test data source.

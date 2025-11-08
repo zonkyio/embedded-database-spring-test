@@ -5,6 +5,10 @@
       "description": "Configuration properties for Zonky Embedded Database library."
     },
     {
+      "name": "zonky.test.database.init",
+      "description": "Configuration properties to initialize the database."
+    },
+    {
       "name": "zonky.test.database.prefetching",
       "description": "Configuration properties to configure prefetching of prepared databases."
     },
@@ -69,6 +73,28 @@
       "type": "io.zonky.test.db.AutoConfigureEmbeddedDatabase$Replace",
       "description": "Determines what type of existing DataSource beans can be replaced.",
       "defaultValue": "any"
+    },
+    {
+      "name": "zonky.test.database.init.script-locations",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Locations of the SQL scripts to apply to the database."
+    },
+    {
+      "name": "zonky.test.database.init.continue-on-error",
+      "type": "java.lang.Boolean",
+      "description": "Whether initialization should continue when an error occurs.",
+      "defaultValue": false
+    },
+    {
+      "name": "zonky.test.database.init.separator",
+      "type": "java.lang.String",
+      "description": "Statement separator in the SQL scripts.",
+      "defaultValue": ";"
+    },
+    {
+      "name": "zonky.test.database.init.encoding",
+      "type": "java.nio.charset.Charset",
+      "description": "Encoding of the SQL scripts."
     },
     {
       "name": "zonky.test.database.prefetching.thread-name-prefix",

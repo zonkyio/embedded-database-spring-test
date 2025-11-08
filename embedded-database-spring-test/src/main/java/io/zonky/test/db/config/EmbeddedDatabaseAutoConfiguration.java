@@ -18,6 +18,8 @@ package io.zonky.test.db.config;
 
 import io.zonky.test.db.flyway.FlywayDatabaseExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
+import io.zonky.test.db.init.EmbeddedDatabaseInitializer;
+import io.zonky.test.db.init.ScriptDatabasePreparer;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -43,6 +45,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
+
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 @Configuration
 public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
@@ -272,6 +277,22 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
     public LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean(name = "embeddedDatabaseInitializer")
+    public EmbeddedDatabaseInitializer embeddedDatabaseInitializer(Environment environment) {
+        String[] scriptLocations = environment.getProperty("zonky.test.database.init.script-locations", String[].class);
+        boolean continueOnError = environment.getProperty("zonky.test.database.init.continue-on-error", boolean.class, false);
+        String separator = environment.getProperty("zonky.test.database.init.separator", ";");
+        Charset encoding = environment.getProperty("zonky.test.database.init.encoding", Charset.class);
+
+        ScriptDatabasePreparer scriptPreparer = null;
+        if (scriptLocations != null) {
+            scriptPreparer = new ScriptDatabasePreparer(Arrays.asList(scriptLocations), continueOnError, separator, encoding);
+        }
+        return new EmbeddedDatabaseInitializer(scriptPreparer);
     }
 
     private void checkDependency(String groupId, String artifactId, String className) {
