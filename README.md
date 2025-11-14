@@ -7,8 +7,8 @@ The primary goal of this project is to make it easier to write Spring-powered in
 ## Supported Integrations
 
 * Supports both `Spring` and `Spring Boot` frameworks
-  * Spring `4.3.8` - `6.2.x`
-  * Spring Boot `1.4.6` - `3.4.x`
+  * Spring `4.3.8` - `7.0.x`
+  * Spring Boot `1.4.6` - `4.0.x`
 * Supports multiple different databases
   * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb), [Derby](#derby)
 * Supports multiple database providers
@@ -259,7 +259,7 @@ Before you use PostgreSQL database, you have to add the following Maven dependen
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.2.18</version>
+    <version>42.7.8</version>
 </dependency>
 ```
 
@@ -274,7 +274,7 @@ Before you use Microsoft SQL Server, you have to add the following Maven depende
 <dependency>
     <groupId>com.microsoft.sqlserver</groupId>
     <artifactId>mssql-jdbc</artifactId>
-    <version>8.4.1.jre8</version>
+    <version>13.2.1.jre11</version>
 </dependency>
 ```
 
@@ -295,7 +295,7 @@ Before you use MySQL database, you have to add the following Maven dependency:
 <dependency>
     <groupId>mysql</groupId>
     <artifactId>mysql-connector-java</artifactId>
-    <version>8.0.22</version>
+    <version>8.0.33</version>
 </dependency>
 ```
 
@@ -314,7 +314,7 @@ Before you use MariaDB database, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
-    <version>2.7.0</version>
+    <version>3.5.6</version>
 </dependency>
 ```
 
@@ -338,7 +338,7 @@ Before you use H2 database, you have to add the following Maven dependency:
 <dependency>
     <groupId>com.h2database</groupId>
     <artifactId>h2</artifactId>
-    <version>2.1.214</version>
+    <version>2.4.240</version>
 </dependency>
 ```
 
@@ -358,7 +358,7 @@ Before you use HSQLDB database, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.hsqldb</groupId>
     <artifactId>hsqldb</artifactId>
-    <version>2.7.1</version>
+    <version>2.7.4</version>
 </dependency>
 ```
 
@@ -378,7 +378,7 @@ Before you use Apache Derby database, you have to add the following Maven depend
 <dependency>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby</artifactId>
-    <version>10.16.1.1</version>
+    <version>10.17.1.0</version>
 </dependency>
 ```
 
@@ -399,7 +399,7 @@ Before you use Flyway, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.flywaydb</groupId>
     <artifactId>flyway-core</artifactId>
-    <version>7.3.0</version>
+    <version>11.14.1</version>
 </dependency>
 ```
 
@@ -409,7 +409,7 @@ Optionally, you may also add the dependency for Flyway test extensions, which al
 <dependency>
     <groupId>org.flywaydb.flyway-test-extensions</groupId>
     <artifactId>flyway-spring-test</artifactId>
-    <version>7.0.0</version>
+    <version>10.0.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -427,7 +427,7 @@ Before you use Liquibase, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.liquibase</groupId>
     <artifactId>liquibase-core</artifactId>
-    <version>3.10.3</version>
+    <version>5.0.1</version>
 </dependency>
 ```
 
@@ -575,7 +575,7 @@ Before you use the Zonky provider, you have to add the following Maven dependenc
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-postgres</artifactId>
-    <version>1.2.10</version>
+    <version>2.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -603,7 +603,7 @@ The version of the binaries is configurable at compile time by importing `embedd
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>13.2.0</version>
+            <version>18.1.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -875,10 +875,10 @@ extracted from the JDK download.
 
 ## Project dependencies
 
-* [Spring Framework](https://spring.io/) (5.3.24) - `spring-test`, `spring-context` modules
-* [Testcontainers](https://www.testcontainers.org) (1.17.6)
+* [Spring Framework](https://spring.io/) (5.3.39) - `spring-test`, `spring-context` modules
+* [Testcontainers](https://www.testcontainers.org) (1.18.3)
 * [Cedarsoftware](https://github.com/jdereg/java-util) (1.68.0)
-* [Guava](https://github.com/google/guava) (24.1.1-jre)
+* [Guava](https://github.com/google/guava) (32.1.3-jre)
 
 ## License
 The project is released under version 2.0 of the [Apache License](http://www.apache.org/licenses/LICENSE-2.0.html).
