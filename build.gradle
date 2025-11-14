@@ -35,9 +35,9 @@ ext {
                     [name: '7.6.0',  flyway: '7.6.0',   'flyway-test': '7.0.0',    spring: '5.3.13',          'spring-boot': '2.4.13',          'zonky-postgres': 'default'],
                     [name: '7.15.0', flyway: '7.15.0',  'flyway-test': '7.0.0',    spring: '5.3.27',          'spring-boot': '2.5.15',          'zonky-postgres': 'default'],
                     [name: '8.0.5',  flyway: '8.0.5',   'flyway-test': '7.0.0',    spring: '5.3.27',          'spring-boot': '2.6.15',          'zonky-postgres': 'default'],
-                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
-                    [name: '9.0.4',  flyway: '9.0.4',   'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
-                    [name: '9.8.3',  flyway: '9.8.3',   'flyway-test': '7.0.0',    spring: '5.3.31',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
+                    [name: '8.5.13', flyway: '8.5.13',  'flyway-test': '7.0.0',    spring: '5.3.39',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
+                    [name: '9.0.4',  flyway: '9.0.4',   'flyway-test': '7.0.0',    spring: '5.3.39',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
+                    [name: '9.8.3',  flyway: '9.8.3',   'flyway-test': '7.0.0',    spring: '5.3.39',          'spring-boot': '2.7.18',          'zonky-postgres': 'default'],
                     [name: 'no_sb',  flyway: 'default', 'flyway-test': 'default',                                                               'zonky-postgres': 'default']
             ]],
             [name: 'liquibase', versions: [
@@ -49,7 +49,7 @@ ext {
                     [name: '3.10.3', liquibase: '3.10.3', spring: '5.3.13',          'spring-boot': '2.4.13'],
                     [name: '4.4.3',  liquibase: '4.4.3',  spring: '5.3.27',          'spring-boot': '2.5.15'],
                     [name: '4.5.0',  liquibase: '4.5.0',  spring: '5.3.27',          'spring-boot': '2.6.15'],
-                    [name: '4.9.1',  liquibase: '4.9.1',  spring: '5.3.31',          'spring-boot': '2.7.18'],
+                    [name: '4.9.1',  liquibase: '4.9.1',  spring: '5.3.39',          'spring-boot': '2.7.18'],
                     [name: 'no_sb',  liquibase: 'default']
             ]],
             [name: 'postgres', versions: [
@@ -269,10 +269,10 @@ project(':embedded-database-spring-test') {
         optImplementation 'com.opentable.components:otj-pg-embedded:0.13.4'
         optImplementation 'ru.yandex.qatools.embed:postgresql-embedded:2.10'
 
-        optImplementation 'org.postgresql:postgresql:42.7.3'
-        optImplementation 'com.microsoft.sqlserver:mssql-jdbc:11.2.0.jre8'
-        optImplementation 'mysql:mysql-connector-java:8.0.30'
-        optImplementation 'org.mariadb.jdbc:mariadb-java-client:3.1.0'
+        optImplementation 'org.postgresql:postgresql:42.7.8'
+        optImplementation 'com.microsoft.sqlserver:mssql-jdbc:12.4.3.jre8'
+        optImplementation 'mysql:mysql-connector-java:8.0.33'
+        optImplementation 'org.mariadb.jdbc:mariadb-java-client:3.5.6'
         optImplementation 'com.h2database:h2:2.1.214'
         optImplementation 'org.hsqldb:hsqldb:2.5.2'
         optImplementation 'org.apache.derby:derby:10.14.2.0'
@@ -285,16 +285,16 @@ project(':embedded-database-spring-test') {
         }
         optImplementation 'org.liquibase:liquibase-core:3.5.5'
 
-        api 'org.springframework:spring-context:5.3.31'
-        api 'org.springframework:spring-test:5.3.31'
+        api 'org.springframework:spring-context:5.3.39'
+        api 'org.springframework:spring-test:5.3.39'
 
-        optImplementation 'com.google.guava:guava:24.1.1-jre'
+        optImplementation 'com.google.guava:guava:32.1.3-jre'
 
         api('com.cedarsoftware:java-util:1.68.0') {
             exclude group: 'org.apache.logging.log4j'
         }
 
-        testImplementation 'org.springframework:spring-jdbc:5.3.31'
+        testImplementation 'org.springframework:spring-jdbc:5.3.39'
         testImplementation 'ch.qos.logback:logback-classic:1.2.11'
         testImplementation 'org.mockito:mockito-core:3.12.4'
         testImplementation 'org.assertj:assertj-core:3.23.1'
