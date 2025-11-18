@@ -488,6 +488,7 @@ project(':embedded-database-spring-test') {
 
         dependencies {
             include(dependency('com.google.guava:guava'))
+            include(dependency('com.google.guava:failureaccess'))
         }
 
         relocate 'com.google.common', 'io.zonky.test.db.shaded.com.google.common'
