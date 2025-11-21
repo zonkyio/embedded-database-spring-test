@@ -24,6 +24,8 @@ import io.zonky.test.db.context.DatabaseContext;
 import io.zonky.test.db.context.DatabaseTargetSource;
 import io.zonky.test.db.context.DefaultDatabaseContext;
 import io.zonky.test.db.context.EmbeddedDatabaseFactoryBean;
+import io.zonky.test.db.flyway.EmbeddedDatabaseFlywayConnectionDetails;
+import io.zonky.test.db.liquibase.EmbeddedDatabaseLiquibaseConnectionDetails;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.support.DatabaseDefinition;
 import io.zonky.test.db.support.DatabaseProviders;
@@ -286,6 +288,29 @@ public class EmbeddedDatabaseContextCustomizerFactory implements ContextCustomiz
             if (replace == Replace.NONE) {
                 logger.info("The use of the embedded database has been disabled");
                 return;
+            }
+
+            for (int i = 0; i < 2; i++) {
+                String beanTypeName = i == 0 ?
+                        "org.springframework.boot.flyway.autoconfigure.FlywayConnectionDetails" :
+                        "org.springframework.boot.liquibase.autoconfigure.LiquibaseConnectionDetails";
+                try {
+                    Class<?> beanType = ClassUtils.forName(beanTypeName, null);
+                    String[] beanNames = beanFactory.getBeanNamesForType(beanType);
+                    if (beanNames.length == 1) {
+                        String beanName = beanNames[0];
+                        BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
+
+                        RootBeanDefinition connDetailsDefinition = new RootBeanDefinition();
+                        connDetailsDefinition.setBeanClass(i == 0
+                                ? EmbeddedDatabaseFlywayConnectionDetails.class
+                                : EmbeddedDatabaseLiquibaseConnectionDetails.class);
+                        connDetailsDefinition.setPrimary(beanDefinition.isPrimary());
+
+                        registry.removeBeanDefinition(beanName);
+                        registry.registerBeanDefinition(beanName, connDetailsDefinition);
+                    }
+                } catch (ClassNotFoundException e) {}
             }
 
             for (DatabaseDefinition databaseDefinition : databaseDefinitions) {

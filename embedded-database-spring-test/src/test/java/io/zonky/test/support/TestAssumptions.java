@@ -42,6 +42,10 @@ public class TestAssumptions {
         assumeTrue(ClassUtils.isPresent("org.springframework.boot.test.autoconfigure.jdbc.JdbcTest", TestAssumptions.class.getClassLoader()));
     }
 
+    public static void assumeSpringBoot4SupportsJdbcTestAnnotation() {
+        assumeTrue(ClassUtils.isPresent("org.springframework.boot.jdbc.test.autoconfigure.JdbcTest", TestAssumptions.class.getClassLoader()));
+    }
+
     public static void assumeLicenceAcceptance() {
         assumeTrue(TestAssumptions.class.getResource("/container-license-acceptance.txt") != null);
     }

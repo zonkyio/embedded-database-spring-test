@@ -105,20 +105,20 @@ if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
             [name: '9.9.0',   flyway: '9.9.0',   'flyway-test': '9.5.0',    spring: '6.0.14',  'spring-boot': '3.0.13',  'zonky-postgres': 'default'],
             [name: '9.16.3',  flyway: '9.16.3',  'flyway-test': '9.5.0',    spring: '6.0.21',  'spring-boot': '3.1.12',  'zonky-postgres': 'default'],
             [name: '9.22.3',  flyway: '9.22.3',  'flyway-test': '9.5.0',    spring: '6.1.15',   'spring-boot': '3.2.12',   'zonky-postgres': 'default'],
-            [name: '10.10.0', flyway: '10.10.0', 'flyway-test': '10.0.0',   spring: '6.1.15',   'spring-boot': '3.3.6',   'zonky-postgres': 'default'],
-            [name: '10.20.1', flyway: '10.20.1', 'flyway-test': '10.0.0',   spring: '6.2.12',   'spring-boot': '3.4.11',   'zonky-postgres': 'default'],
-            [name: '11.7.2',  flyway: '11.7.2',  'flyway-test': '10.0.0',   spring: '6.2.12',   'spring-boot': '3.5.7',   'zonky-postgres': 'default'],
-            [name: '11.14.1', flyway: '11.14.1', 'flyway-test': '10.0.0',   spring: '7.0.0-RC3',   'spring-boot': '4.0.0-RC2',   'zonky-postgres': 'default']
+            [name: '10.10.0', flyway: '10.10.0', 'flyway-test': '10.0.0',   spring: '6.1.21',   'spring-boot': '3.3.13',   'zonky-postgres': 'default'],
+            [name: '10.20.1', flyway: '10.20.1', 'flyway-test': '10.0.0',   spring: '6.2.15',   'spring-boot': '3.4.13',   'zonky-postgres': 'default'],
+            [name: '11.7.2',  flyway: '11.7.2',  'flyway-test': '10.0.0',   spring: '6.2.16',   'spring-boot': '3.5.11',   'zonky-postgres': 'default'],
+            [name: '11.14.1', flyway: '11.14.1', 'flyway-test': '10.0.0',   spring: '7.0.5',   'spring-boot': '4.0.3',   'zonky-postgres': 'default']
     ]
 
     testSuites.find { it.name == 'liquibase' }.versions += [
             [name: '4.17.2',  liquibase: '4.17.2',  spring: '6.0.14',  'spring-boot': '3.0.13'],
             [name: '4.20.0',  liquibase: '4.20.0',  spring: '6.0.21',  'spring-boot': '3.1.12'],
             [name: '4.24.0',  liquibase: '4.24.0',  spring: '6.1.15',   'spring-boot': '3.2.12'],
-            [name: '4.27.0',  liquibase: '4.27.0',  spring: '6.1.15',   'spring-boot': '3.3.6'],
-            [name: '4.29.2',  liquibase: '4.29.2',  spring: '6.2.12',   'spring-boot': '3.4.11'],
-            [name: '4.31.1',  liquibase: '4.31.1',  spring: '6.2.12',   'spring-boot': '3.5.7'],
-            [name: '5.0.1',   liquibase: '5.0.1',   spring: '7.0.0-RC3',   'spring-boot': '4.0.0-RC2']
+            [name: '4.27.0',  liquibase: '4.27.0',  spring: '6.1.21',   'spring-boot': '3.3.13'],
+            [name: '4.29.2',  liquibase: '4.29.2',  spring: '6.2.15',   'spring-boot': '3.4.13'],
+            [name: '4.31.1',  liquibase: '4.31.1',  spring: '6.2.16',   'spring-boot': '3.5.11'],
+            [name: '5.0.1',   liquibase: '5.0.1',   spring: '7.0.5',   'spring-boot': '4.0.3']
     ]
 }
 
@@ -251,6 +251,13 @@ project(':embedded-database-spring-test-autoconfigure') {
     }
 }
 
+project(':spring-boot-4-stubs') {
+    // This module contains stub copies of Spring Boot 4 interfaces
+    // used only for compilation, not published or shipped at runtime.
+    shadowJar { enabled = false }
+    publishMavenJavaPublicationToMavenRepository { enabled = false }
+}
+
 project(':embedded-database-spring-test') {
 
     configurations {
@@ -259,6 +266,8 @@ project(':embedded-database-spring-test') {
 
     dependencies {
         api project(':embedded-database-spring-test-autoconfigure')
+        compileOnly project(':spring-boot-4-stubs')
+        testCompileOnly project(':spring-boot-4-stubs')
 
         api 'org.testcontainers:postgresql:1.18.3'
         api 'org.testcontainers:mssqlserver:1.18.3'
@@ -326,8 +335,14 @@ project(':embedded-database-spring-test') {
                 "testRuntimeClasspath_${suite.name}_${version.name}" {
                     extendsFrom testRuntimeClasspath
 
-                    if (version.flyway != null && (version.flyway.startsWith('10.') || version.flyway.startsWith('11.'))) {
+                    if (version.flyway != null && (version.flyway.startsWith('10.') || version.flyway.startsWith('11.') || version.flyway.startsWith('12.'))) {
                         dependencies.add(project.dependencies.create("org.flywaydb:flyway-database-postgresql:${version.flyway}"))
+                    }
+
+                    if (version['spring-boot'] != null && (version['spring-boot'].startsWith('4.'))) {
+                        dependencies.add(project.dependencies.create("org.springframework.boot:spring-boot-starter-data-jpa-test:${version['spring-boot']}"))
+                        dependencies.add(project.dependencies.create("org.springframework.boot:spring-boot-starter-flyway:${version['spring-boot']}"))
+                        dependencies.add(project.dependencies.create("org.springframework.boot:spring-boot-starter-liquibase:${version['spring-boot']}"))
                     }
 
                     resolutionStrategy {
@@ -335,6 +350,9 @@ project(':embedded-database-spring-test') {
                         eachDependency { details ->
                             if (details.requested.group == 'junit') {
                                 details.useVersion "4.12"
+                            }
+                            if (details.requested.group == 'org.mockito') {
+                                details.useVersion "3.12.4"
                             }
                         }
 

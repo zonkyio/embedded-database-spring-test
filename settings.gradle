@@ -2,3 +2,4 @@ rootProject.name = 'embedded-database-spring-test-parent'
 
 include 'embedded-database-spring-test'
 include 'embedded-database-spring-test-autoconfigure'
+include 'spring-boot-4-stubs'
