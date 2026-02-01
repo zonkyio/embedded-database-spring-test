@@ -108,7 +108,7 @@ if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
             [name: '10.10.0', flyway: '10.10.0', 'flyway-test': '10.0.0',   spring: '6.1.15',   'spring-boot': '3.3.6',   'zonky-postgres': 'default'],
             [name: '10.20.1', flyway: '10.20.1', 'flyway-test': '10.0.0',   spring: '6.2.12',   'spring-boot': '3.4.11',   'zonky-postgres': 'default'],
             [name: '11.7.2',  flyway: '11.7.2',  'flyway-test': '10.0.0',   spring: '6.2.12',   'spring-boot': '3.5.7',   'zonky-postgres': 'default'],
-            [name: '11.14.1', flyway: '11.14.1', 'flyway-test': '10.0.0',   spring: '7.0.0-RC3',   'spring-boot': '4.0.0-RC2',   'zonky-postgres': 'default']
+            [name: '11.14.1', flyway: '11.14.1', 'flyway-test': '10.0.0',   spring: '7.0.3',   'spring-boot': '4.0.2',   'zonky-postgres': 'default']
     ]
 
     testSuites.find { it.name == 'liquibase' }.versions += [
@@ -118,7 +118,7 @@ if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
             [name: '4.27.0',  liquibase: '4.27.0',  spring: '6.1.15',   'spring-boot': '3.3.6'],
             [name: '4.29.2',  liquibase: '4.29.2',  spring: '6.2.12',   'spring-boot': '3.4.11'],
             [name: '4.31.1',  liquibase: '4.31.1',  spring: '6.2.12',   'spring-boot': '3.5.7'],
-            [name: '5.0.1',   liquibase: '5.0.1',   spring: '7.0.0-RC3',   'spring-boot': '4.0.0-RC2']
+            [name: '5.0.1',   liquibase: '5.0.1',   spring: '7.0.3',   'spring-boot': '4.0.2']
     ]
 }
 
@@ -132,7 +132,7 @@ subprojects {
     apply plugin: 'signing'
     apply plugin: 'com.github.johnrengelman.shadow'
 
-    sourceCompatibility = 1.8
+    sourceCompatibility = 17
 
     repositories {
         mavenCentral()
@@ -284,6 +284,14 @@ project(':embedded-database-spring-test') {
             exclude group: 'org.mockito'
         }
         optImplementation 'org.liquibase:liquibase-core:3.5.5'
+
+        // Spring Boot 4 compatibility for Liquibase/Flyway
+        optImplementation('org.springframework.boot:spring-boot-liquibase:4.0.2'){
+            exclude group: 'org.liquibase'
+        }
+        optImplementation('org.springframework.boot:spring-boot-flyway:4.0.2'){
+            exclude group: 'org.flyway'
+        }
 
         api 'org.springframework:spring-context:5.3.39'
         api 'org.springframework:spring-test:5.3.39'

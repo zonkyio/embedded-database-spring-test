@@ -18,10 +18,12 @@ package io.zonky.test.db.config;
 
 import io.zonky.test.db.flyway.FlywayDatabaseExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
+import io.zonky.test.db.flyway.SpringBoot4FlywayPropertiesPostProcessor;
 import io.zonky.test.db.init.EmbeddedDatabaseInitializer;
 import io.zonky.test.db.init.ScriptDatabasePreparer;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
+import io.zonky.test.db.liquibase.SpringBoot4LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
 import io.zonky.test.db.provider.derby.DerbyDatabaseProvider;
 import io.zonky.test.db.provider.h2.H2DatabaseProvider;
@@ -274,6 +276,14 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnClass(name = "org.springframework.boot.flyway.autoconfigure.FlywayProperties")
+    @ConditionalOnMissingBean(name = "springBoot4FlywayPropertiesPostProcessor")
+    public SpringBoot4FlywayPropertiesPostProcessor springBoot4FlywayPropertiesPostProcessor() {
+        return new SpringBoot4FlywayPropertiesPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
     @ConditionalOnMissingBean(name = "liquibaseDatabaseExtension")
     public LiquibaseDatabaseExtension liquibaseDatabaseExtension() {
@@ -286,6 +296,14 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
     public LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnClass(name = "org.springframework.boot.liquibase.autoconfigure.LiquibaseProperties")
+    @ConditionalOnMissingBean(name = "springBoot4LiquibasePropertiesPostProcessor")
+    public SpringBoot4LiquibasePropertiesPostProcessor springBoot4LiquibasePropertiesPostProcessor() {
+        return new SpringBoot4LiquibasePropertiesPostProcessor();
     }
 
     @Bean
