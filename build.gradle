@@ -181,6 +181,7 @@ subprojects {
                     name = project.name
                     description = 'A library for creating isolated embedded databases for Spring-powered integration tests.'
                     url = 'https://github.com/zonkyio/embedded-database-spring-test'
+                    packaging = 'jar'
 
                     licenses {
                         license {
