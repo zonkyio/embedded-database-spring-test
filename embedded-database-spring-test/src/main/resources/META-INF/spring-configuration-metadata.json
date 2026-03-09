@@ -47,6 +47,10 @@
     {
       "name": "zonky.test.database.mariadb.docker",
       "description": "Additional configuration properties for MariaDB database running in a Docker container. Only available if database provider is set to Docker."
+    },
+    {
+      "name": "zonky.test.database.spring.optimized-sql-init",
+      "description": "Configuration properties for optimized integration with Spring Boot's DataSourceScriptDatabaseInitializer."
     }
   ],
   "properties": [
@@ -215,6 +219,12 @@
       "type": "java.lang.String",
       "description": "Mount options used to configure the tmpfs filesystem.",
       "defaultValue": "rw,noexec,nosuid"
+    },
+    {
+      "name": "zonky.test.database.spring.optimized-sql-init.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable optimized processing of Spring Boot's SQL initialization scripts.",
+      "defaultValue": true
     }
   ],
   "hints": [
@@ -260,16 +270,32 @@
           "description": "Run the embedded database in Docker as a container."
         },
         {
+          "value": "embedded",
+          "description": "Use an embedded database provider."
+        },
+        {
           "value": "zonky",
-          "description": "Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/zonkyio/embedded-postgres)."
+          "description": "Use Zonky's fork of OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/zonkyio/embedded-postgres).",
+          "deprecation": {
+            "replacement": "embedded",
+            "reason": "Zonky provider has been renamed to the Embedded Postgres provider and is scheduled to be removed in the next major version."
+          }
         },
         {
           "value": "opentable",
-          "description": "Use OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/opentable/otj-pg-embedded)."
+          "description": "Use OpenTable Embedded PostgreSQL Component to create the embedded database (https://github.com/opentable/otj-pg-embedded).",
+          "deprecation": {
+            "replacement": "embedded",
+            "reason": "OpenTable provider has been deprecated in favor of Zonky provider and is scheduled to be removed in the next major version."
+          }
         },
         {
           "value": "yandex",
-          "description": "Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded)."
+          "description": "Use Yandex's Embedded PostgreSQL Server to create the embedded database (https://github.com/yandex-qatools/postgresql-embedded).",
+          "deprecation": {
+            "replacement": "embedded",
+            "reason": "Yandex provider has been deprecated in favor of Zonky provider and is scheduled to be removed in the next major version."
+          }
         }
       ],
       "providers": [
