@@ -18,6 +18,7 @@ package io.zonky.test.db.config;
 
 import io.zonky.test.db.flyway.FlywayDatabaseExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
+import io.zonky.test.db.init.DataSourceScriptDatabaseExtension;
 import io.zonky.test.db.init.EmbeddedDatabaseInitializer;
 import io.zonky.test.db.init.ScriptDatabasePreparer;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
@@ -287,6 +288,14 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
     public BeanPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnClass(name = "org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer")
+    @ConditionalOnMissingBean(name = "dataSourceScriptDatabaseExtension")
+    public DataSourceScriptDatabaseExtension dataSourceScriptDatabaseExtension(Environment environment) {
+        return new DataSourceScriptDatabaseExtension(environment);
     }
 
     @Bean

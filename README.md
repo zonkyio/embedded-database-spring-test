@@ -434,6 +434,14 @@ Before you use Liquibase, you have to add the following Maven dependency:
 Given that Liquibase does not offer an analogy to the `@FlywayTest` annotation,
 you may consider using the [refresh mode](#refreshing-the-database-during-tests) to refresh an embedded database during tests.
 
+### Spring Boot SQL Init
+
+The library also includes optimized processing of Spring Boot's `spring.sql.init` scripts. If this optimization causes any issues, it can be disabled:
+
+```properties
+zonky.test.database.spring.optimized-sql-init.enabled=false
+```
+
 ## Database Providers
 
 The library can be combined with different database providers.
