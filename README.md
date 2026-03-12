@@ -6,15 +6,11 @@ The primary goal of this project is to make it easier to write Spring-powered in
 
 ## Supported Integrations
 
-* Supports both `Spring` and `Spring Boot` frameworks
-  * Spring `4.3.8` - `7.0.x`
-  * Spring Boot `1.4.6` - `4.0.x`
-* Supports multiple different databases
-  * [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb), [Derby](#derby)
-* Supports multiple database providers
-  * [Docker / Testcontainers](#using-docker-provider-default), [Zonky](#using-zonky-provider-previous-default), [OpenTable](#using-opentable-provider), [Yandex](#using-yandex-provider)
-* Supports various database migration tools
-  * [Flyway](#flyway), [Liquibase](#liquibase), [Spring `@Sql` annotation](#using-spring-sql-annotation) and others
+* 🌱 **Frameworks:** `Spring` `4.3.8` - `7.0.x`, `Spring Boot` `1.4.6` - `4.0.x`
+* 🧪 **Testing frameworks:** `JUnit 5`, `JUnit 4`, `TestNG` and any other supported by Spring
+* 🗄️ **Databases:** [PostgreSQL](#postgresql), [MSSQL](#microsoft-sql-server), [MySQL](#mysql), [MariaDB](#mariadb), [H2](#h2), [HSQLDB](#hsqldb), [Derby](#derby)
+* 🐳 **Database providers:** [Docker (Testcontainers)](#using-docker-provider-default), [Embedded (Zonky)](#using-zonky-provider-previous-default), ~~[OpenTable](#using-opentable-provider)~~, ~~[Yandex](#using-yandex-provider)~~
+* 🔄 **Migration tools:** [Flyway](#flyway), [Liquibase](#liquibase), [Spring `@Sql` annotation](#using-spring-sql-annotation) and others
 
 ## Main Goals
 
@@ -81,7 +77,7 @@ The configuration of the embedded database is driven by the `@AutoConfigureEmbed
 A new data source will be created and injected into all related components. You can also inject it into a test class as shown below. 
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase
 public class EmptyDatabaseIntegrationTest {
     
@@ -98,7 +94,7 @@ In case the test class uses a spring context that already contains a data source
 The newly created data source bean will be injected into all related components, and you can also inject it into a test class.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase
 @ContextConfiguration("path/to/application-config.xml")
 public class EmptyDatabaseIntegrationTest {
@@ -114,7 +110,7 @@ The `@AutoConfigureEmbeddedDatabase` is a repeatable annotation, so you can anno
 Each of them may have completely different configuration parameters, including the database provider as demonstrated in the example below.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource1")
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource2", provider = ZONKY)
 @AutoConfigureEmbeddedDatabase(beanName = "dataSource3", provider = YANDEX)
@@ -142,17 +138,17 @@ and whether the refresh should take place before or after the test execution.
 Please note that by default, if you do not specify the refresh mode explicitly, all tests in the project share the same database. 
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(refresh = AFTER_EACH_TEST_METHOD)
 public class EmptyDatabaseIntegrationTest {
 
         @Test
-        public void testMethod1() {
+        void testMethod1() {
             // fresh database
         }
 
         @Test
-        public void testMethod2() {
+        void testMethod2() {
             // fresh database
         }
 }
@@ -173,7 +169,7 @@ But if the `@DataJpaTest` annotation is used together with the `@AutoConfigureEm
 the in-memory database is automatically disabled and replaced with an embedded database. 
 
 ```java
-@RunWith(SpringRunner.class)
+// @ExtendWith(SpringExtension.class) // not needed — @DataJpaTest, @JdbcTest, @JsonTest, @SpringBootTest already include this extension
 @DataJpaTest
 @AutoConfigureEmbeddedDatabase
 public class SpringDataJpaAnnotationTest {
@@ -220,7 +216,7 @@ You can also consider creating a custom [composed annotation](https://github.com
 Spring provides the `@Sql` annotation that can be used to annotate a test class or test method to configure sql scripts to be run against an embedded database during tests.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @Sql({"/test-schema.sql", "/test-user-data.sql"})
 @AutoConfigureEmbeddedDatabase
 public class SpringSqlAnnotationTest {
@@ -238,7 +234,7 @@ Please note that if you declare the annotation on a class, all tests within the 
 Alternatively, you can also use the [refresh mode](#refreshing-the-database-during-tests).
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @FlywayTest // performs clean and migrate operations, with the same effect as the refresh mode
 @AutoConfigureEmbeddedDatabase
 @ContextConfiguration("path/to/application-config.xml")
@@ -518,7 +514,7 @@ This is the default provider, so you do not have to do anything special,
 just use the `@AutoConfigureEmbeddedDatabase` annotation in its basic form without specifying any provider.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase
 public class DefaultProviderIntegrationTest {
     // class body...
@@ -567,7 +563,7 @@ public class EmbeddedPostgresConfiguration {
 ```
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase
 @ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
 public class EmbeddedPostgresIntegrationTest {
@@ -591,7 +587,7 @@ Before you use the Zonky provider, you have to add the following Maven dependenc
 Then, you can use the `@AutoConfigureEmbeddedDatabase` annotation to set up the `DatabaseProvider.ZONKY` provider.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(provider = ZONKY)
 public class ZonkyProviderIntegrationTest {
     // class body...
@@ -646,7 +642,7 @@ public class EmbeddedPostgresConfiguration {
 ```
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(provider = ZONKY)
 @ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
 public class EmbeddedPostgresIntegrationTest {
@@ -655,6 +651,8 @@ public class EmbeddedPostgresIntegrationTest {
 ```
 
 ### Using OpenTable Provider
+
+> **Deprecated:** OpenTable provider has been deprecated in favor of Embedded (Zonky) provider and is scheduled to be removed in the next major version.
 
 Before you use the OpenTable provider, you have to add the following Maven dependency:
 
@@ -670,7 +668,7 @@ Before you use the OpenTable provider, you have to add the following Maven depen
 Then, you can use the `@AutoConfigureEmbeddedDatabase` annotation to set up the `DatabaseProvider.OPENTABLE` provider.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(provider = OPENTABLE)
 public class OpenTableProviderIntegrationTest {
     // class body...
@@ -696,7 +694,7 @@ public class EmbeddedPostgresConfiguration {
 ```
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(provider = OPENTABLE)
 @ContextConfiguration(classes = EmbeddedPostgresConfiguration.class)
 public class EmbeddedPostgresIntegrationTest {
@@ -705,6 +703,8 @@ public class EmbeddedPostgresIntegrationTest {
 ```
 
 ### Using Yandex Provider
+
+> **Deprecated:** Yandex provider has been deprecated in favor of Embedded (Zonky) provider and is scheduled to be removed in the next major version.
 
 Before you use the Yandex provider, you have to add the following Maven dependency:
 
@@ -720,7 +720,7 @@ Before you use the Yandex provider, you have to add the following Maven dependen
 Then, you can use the `@AutoConfigureEmbeddedDatabase` annotation to set up the `DatabaseProvider.YANDEX` provider.
 
 ```java
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @AutoConfigureEmbeddedDatabase(provider = YANDEX)
 public class YandexProviderIntegrationTest {
     // class body...
