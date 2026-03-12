@@ -259,7 +259,7 @@ Before you use PostgreSQL database, you have to add the following Maven dependen
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.7.8</version>
+    <version>42.7.10</version>
 </dependency>
 ```
 
@@ -314,7 +314,7 @@ Before you use MariaDB database, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
-    <version>3.5.6</version>
+    <version>3.5.7</version>
 </dependency>
 ```
 
@@ -399,7 +399,7 @@ Before you use Flyway, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.flywaydb</groupId>
     <artifactId>flyway-core</artifactId>
-    <version>11.14.1</version>
+    <version>11.20.3</version>
 </dependency>
 ```
 
@@ -427,7 +427,7 @@ Before you use Liquibase, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.liquibase</groupId>
     <artifactId>liquibase-core</artifactId>
-    <version>5.0.1</version>
+    <version>5.0.2</version>
 </dependency>
 ```
 
@@ -583,7 +583,7 @@ Before you use the Zonky provider, you have to add the following Maven dependenc
 <dependency>
     <groupId>io.zonky.test</groupId>
     <artifactId>embedded-postgres</artifactId>
-    <version>2.2.0</version>
+    <version>2.2.2</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -611,7 +611,7 @@ The version of the binaries is configurable at compile time by importing `embedd
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>18.1.0</version>
+            <version>18.3.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -884,7 +884,7 @@ extracted from the JDK download.
 ## Project dependencies
 
 * [Spring Framework](https://spring.io/) (5.3.39) - `spring-test`, `spring-context` modules
-* [Testcontainers](https://www.testcontainers.org) (1.18.3)
+* [Testcontainers](https://www.testcontainers.org) (1.21.4)
 * [Cedarsoftware](https://github.com/jdereg/java-util) (1.68.0)
 * [Guava](https://github.com/google/guava) (33.4.8-jre)
 
