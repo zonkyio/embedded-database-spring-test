@@ -20,7 +20,6 @@ import com.cedarsoftware.util.DeepEquals;
 import io.zonky.test.db.preparer.DatabasePreparer;
 import io.zonky.test.db.util.ReflectionUtils;
 import org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer;
-
 import org.springframework.util.ReflectionUtils.FieldFilter;
 
 import javax.sql.DataSource;
@@ -33,19 +32,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.util.ReflectionUtils.makeAccessible;
 
-public class DataSourceScriptDatabasePreparer implements DatabasePreparer {
+public class SpringScriptDatabasePreparer implements DatabasePreparer {
 
     private static final Set<String> EXCLUDED_FIELDS = new HashSet<>(Arrays.asList("dataSource", "resourceLoader"));
 
     private static final FieldFilter FIELD_FILTER =
             field -> !Modifier.isStatic(field.getModifiers()) && !EXCLUDED_FIELDS.contains(field.getName());
 
-    private final DataSourceScriptDatabaseInitializer initializer;
-    private final ThreadLocalDataSource threadLocalDataSource;
+    private static final ThreadLocalDataSource threadLocalDataSource = new ThreadLocalDataSource();
 
-    public DataSourceScriptDatabasePreparer(DataSourceScriptDatabaseInitializer initializer) {
+    private final DataSourceScriptDatabaseInitializer initializer;
+
+    public SpringScriptDatabasePreparer(DataSourceScriptDatabaseInitializer initializer) {
         this.initializer = initializer;
-        this.threadLocalDataSource = new ThreadLocalDataSource();
         ReflectionUtils.setField(initializer, "dataSource", threadLocalDataSource);
     }
 
@@ -68,7 +67,7 @@ public class DataSourceScriptDatabasePreparer implements DatabasePreparer {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DataSourceScriptDatabasePreparer that = (DataSourceScriptDatabasePreparer) o;
+        SpringScriptDatabasePreparer that = (SpringScriptDatabasePreparer) o;
         if (initializer.getClass() != that.initializer.getClass()) return false;
         AtomicBoolean equal = new AtomicBoolean(true);
         org.springframework.util.ReflectionUtils.doWithFields(initializer.getClass(),
