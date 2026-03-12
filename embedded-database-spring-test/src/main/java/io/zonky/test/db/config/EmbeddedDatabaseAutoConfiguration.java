@@ -18,9 +18,9 @@ package io.zonky.test.db.config;
 
 import io.zonky.test.db.flyway.FlywayDatabaseExtension;
 import io.zonky.test.db.flyway.FlywayPropertiesPostProcessor;
-import io.zonky.test.db.init.DataSourceScriptDatabaseExtension;
 import io.zonky.test.db.init.EmbeddedDatabaseInitializer;
 import io.zonky.test.db.init.ScriptDatabasePreparer;
+import io.zonky.test.db.init.SpringScriptDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibaseDatabaseExtension;
 import io.zonky.test.db.liquibase.LiquibasePropertiesPostProcessor;
 import io.zonky.test.db.provider.DatabaseProvider;
@@ -232,7 +232,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
         int concurrency = environment.getProperty("zonky.test.database.prefetching.concurrency", int.class, 3);
         int pipelineCacheSize = environment.getProperty("zonky.test.database.prefetching.pipeline-cache-size", int.class, 5);
         int maxPreparedTemplates = environment.getProperty("zonky.test.database.prefetching.max-prepared-templates", int.class, 10);
-        int maxPreparedDatabases = (maxPreparedTemplates * 2/3 * 2) + pipelineCacheSize;
+        int maxPreparedDatabases = (maxPreparedTemplates * 2 / 3 * 2) + pipelineCacheSize;
 
         return new DatabaseProviderFactory(beanFactory)
                 .customizeTemplating(builder -> builder
@@ -293,9 +293,9 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer")
-    @ConditionalOnMissingBean(name = "dataSourceScriptDatabaseExtension")
-    public DataSourceScriptDatabaseExtension dataSourceScriptDatabaseExtension(Environment environment) {
-        return new DataSourceScriptDatabaseExtension(environment);
+    @ConditionalOnMissingBean(name = "springScriptDatabaseExtension")
+    public SpringScriptDatabaseExtension springScriptDatabaseExtension(Environment environment) {
+        return new SpringScriptDatabaseExtension(environment);
     }
 
     @Bean
