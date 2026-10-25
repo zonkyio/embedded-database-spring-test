@@ -262,7 +262,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.flywaydb.core.Flyway")
     @ConditionalOnMissingBean(name = "flywayDatabaseExtension")
-    public FlywayDatabaseExtension flywayDatabaseExtension() {
+    public static FlywayDatabaseExtension flywayDatabaseExtension() {
         return new FlywayDatabaseExtension();
     }
 
@@ -270,7 +270,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
     @ConditionalOnMissingBean(name = "flywayPropertiesPostProcessor")
-    public BeanPostProcessor flywayPropertiesPostProcessor() {
+    public static BeanPostProcessor flywayPropertiesPostProcessor() {
         return new FlywayPropertiesPostProcessor();
     }
 
@@ -278,7 +278,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
     @ConditionalOnMissingBean(name = "liquibaseDatabaseExtension")
-    public LiquibaseDatabaseExtension liquibaseDatabaseExtension() {
+    public static LiquibaseDatabaseExtension liquibaseDatabaseExtension() {
         return new LiquibaseDatabaseExtension();
     }
 
@@ -286,7 +286,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties")
     @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
-    public BeanPostProcessor liquibasePropertiesPostProcessor() {
+    public static BeanPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
     }
 
@@ -294,14 +294,14 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer")
     @ConditionalOnMissingBean(name = "springScriptDatabaseExtension")
-    public SpringScriptDatabaseExtension springScriptDatabaseExtension(Environment environment) {
+    public static SpringScriptDatabaseExtension springScriptDatabaseExtension(Environment environment) {
         return new SpringScriptDatabaseExtension(environment);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "embeddedDatabaseInitializer")
-    public EmbeddedDatabaseInitializer embeddedDatabaseInitializer(Environment environment) {
+    public static EmbeddedDatabaseInitializer embeddedDatabaseInitializer(Environment environment) {
         String[] scriptLocations = environment.getProperty("zonky.test.database.init.script-locations", String[].class);
         boolean continueOnError = environment.getProperty("zonky.test.database.init.continue-on-error", boolean.class, false);
         String separator = environment.getProperty("zonky.test.database.init.separator", ";");
