@@ -40,7 +40,6 @@ import io.zonky.test.db.support.ProviderResolver;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -270,7 +269,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.flyway.FlywayProperties")
     @ConditionalOnMissingBean(name = "flywayPropertiesPostProcessor")
-    public static BeanPostProcessor flywayPropertiesPostProcessor() {
+    public static FlywayPropertiesPostProcessor flywayPropertiesPostProcessor() {
         return new FlywayPropertiesPostProcessor();
     }
 
@@ -286,7 +285,7 @@ public class EmbeddedDatabaseAutoConfiguration implements BeanClassLoaderAware {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnClass(name = "org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties")
     @ConditionalOnMissingBean(name = "liquibasePropertiesPostProcessor")
-    public static BeanPostProcessor liquibasePropertiesPostProcessor() {
+    public static LiquibasePropertiesPostProcessor liquibasePropertiesPostProcessor() {
         return new LiquibasePropertiesPostProcessor();
     }
 
