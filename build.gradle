@@ -595,11 +595,6 @@ project(':embedded-database-spring-test') {
     }
 
     tasks.withType(Test) {
-        if (JavaVersion.current().isJava9Compatible()) {
-            // CGLIB in old Spring versions needs deep reflection; Gradle < 7.5 opened these modules implicitly
-            jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED', '--add-opens=java.base/java.util=ALL-UNNAMED'
-        }
-
         testLogging {
             showStandardStreams = true
             showStackTraces = true
