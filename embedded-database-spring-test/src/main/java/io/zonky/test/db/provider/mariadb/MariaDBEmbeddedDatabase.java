@@ -37,6 +37,7 @@ public class MariaDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
         this.dataSource = dataSource;
 
         if (ClassUtils.hasMethod(MariaDbDataSource.class, "getUrl")) {
+            dataSource.getUrl(); // since driver 3.5.11, the conf field is lazily initialized by this call
             conf = getField(dataSource, "conf");
         } else {
             conf = null;
@@ -83,7 +84,11 @@ public class MariaDBEmbeddedDatabase extends AbstractEmbeddedDatabase {
     }
 
     private String getPassword() {
-        return getField(dataSource, "password");
+        if (conf != null) {
+            return getField(conf, "password");
+        } else {
+            return getField(dataSource, "password");
+        }
     }
 
     private Object getHostAddress() {
