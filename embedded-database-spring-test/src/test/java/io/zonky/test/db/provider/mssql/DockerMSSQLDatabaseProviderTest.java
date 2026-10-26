@@ -118,7 +118,7 @@ public class DockerMSSQLDatabaseProviderTest {
     @Test
     public void testConfigurationProperties() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("zonky.test.database.mssql.docker.image", "mcr.microsoft.com/mssql/server:2017-CU20");
+        environment.setProperty("zonky.test.database.mssql.docker.image", "mcr.microsoft.com/mssql/server:2017-CU30-ubuntu-18.04");
         environment.setProperty("zonky.test.database.mssql.client.properties.queryTimeout", "30");
         environment.setProperty("zonky.test.database.mssql.client.properties.description", "test description");
         environment.setProperty("zonky.test.database.mssql.client.properties.sendTimeAsDatetime", "false");
@@ -134,7 +134,7 @@ public class DockerMSSQLDatabaseProviderTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("Microsoft SQL Server 2017 (RTM-CU20)");
+        assertThat(databaseVersion).startsWith("Microsoft SQL Server 2017 (RTM-CU30)");
 
         String maxConnections = jdbcTemplate.queryForObject("select @@max_connections", String.class);
         assertThat(maxConnections).isEqualTo("32767");

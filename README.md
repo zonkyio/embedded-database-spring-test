@@ -255,7 +255,7 @@ Before you use PostgreSQL database, you have to add the following Maven dependen
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.7.10</version>
+    <version>42.7.14</version>
 </dependency>
 ```
 
@@ -310,7 +310,7 @@ Before you use MariaDB database, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
-    <version>3.5.7</version>
+    <version>3.5.11</version>
 </dependency>
 ```
 
@@ -334,7 +334,7 @@ Before you use H2 database, you have to add the following Maven dependency:
 <dependency>
     <groupId>com.h2database</groupId>
     <artifactId>h2</artifactId>
-    <version>2.4.240</version>
+    <version>2.5.252</version>
 </dependency>
 ```
 
@@ -395,7 +395,7 @@ Before you use Flyway, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.flywaydb</groupId>
     <artifactId>flyway-core</artifactId>
-    <version>11.20.3</version>
+    <version>13.11.1</version>
 </dependency>
 ```
 
@@ -423,7 +423,7 @@ Before you use Liquibase, you have to add the following Maven dependency:
 <dependency>
     <groupId>org.liquibase</groupId>
     <artifactId>liquibase-core</artifactId>
-    <version>5.0.2</version>
+    <version>5.0.4</version>
 </dependency>
 ```
 
@@ -607,7 +607,7 @@ The version of the binaries is configurable at compile time by importing `embedd
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>18.3.0</version>
+            <version>18.6.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
