@@ -308,6 +308,21 @@
       "name": "zonky.test.database.postgres.docker.image",
       "values": [
         {
+          "value": "postgres:18-alpine"
+        },
+        {
+          "value": "postgres:17-alpine"
+        },
+        {
+          "value": "postgres:16-alpine"
+        },
+        {
+          "value": "postgres:15-alpine"
+        },
+        {
+          "value": "postgres:14-alpine"
+        },
+        {
           "value": "postgres:13-alpine"
         },
         {
@@ -317,13 +332,19 @@
           "value": "postgres:11-alpine"
         },
         {
-          "value": "postgres:10-alpine"
+          "value": "postgres:18"
         },
         {
-          "value": "postgres:9.6-alpine"
+          "value": "postgres:17"
         },
         {
-          "value": "postgres:9.5-alpine"
+          "value": "postgres:16"
+        },
+        {
+          "value": "postgres:15"
+        },
+        {
+          "value": "postgres:14"
         },
         {
           "value": "postgres:13"
@@ -335,13 +356,19 @@
           "value": "postgres:11"
         },
         {
-          "value": "postgres:10"
+          "value": "postgis/postgis:18-3.6-alpine"
         },
         {
-          "value": "postgres:9.6"
+          "value": "postgis/postgis:17-3.5-alpine"
         },
         {
-          "value": "postgres:9.5"
+          "value": "postgis/postgis:16-3.5-alpine"
+        },
+        {
+          "value": "postgis/postgis:15-3.5-alpine"
+        },
+        {
+          "value": "postgis/postgis:14-3.5-alpine"
         },
         {
           "value": "postgis/postgis:13-3.1-alpine"
@@ -353,13 +380,19 @@
           "value": "postgis/postgis:11-3.1-alpine"
         },
         {
-          "value": "postgis/postgis:10-3.1-alpine"
+          "value": "postgis/postgis:18-3.6"
         },
         {
-          "value": "postgis/postgis:9.6-3.1-alpine"
+          "value": "postgis/postgis:17-3.5"
         },
         {
-          "value": "postgis/postgis:9.5-3.0-alpine"
+          "value": "postgis/postgis:16-3.5"
+        },
+        {
+          "value": "postgis/postgis:15-3.5"
+        },
+        {
+          "value": "postgis/postgis:14-3.5"
         },
         {
           "value": "postgis/postgis:13-3.1"
@@ -369,15 +402,6 @@
         },
         {
           "value": "postgis/postgis:11-3.1"
-        },
-        {
-          "value": "postgis/postgis:10-3.1"
-        },
-        {
-          "value": "postgis/postgis:9.6-3.1"
-        },
-        {
-          "value": "postgis/postgis:9.5-3.0"
         }
       ],
       "providers": [
@@ -389,6 +413,9 @@
     {
       "name": "zonky.test.database.mssql.docker.image",
       "values": [
+        {
+          "value": "mcr.microsoft.com/mssql/server:2025-latest"
+        },
         {
           "value": "mcr.microsoft.com/mssql/server:2022-latest"
         },
@@ -409,13 +436,10 @@
       "name": "zonky.test.database.mysql.docker.image",
       "values": [
         {
-          "value": "mysql:8.0"
+          "value": "mysql:8.4"
         },
         {
           "value": "mysql:5.7"
-        },
-        {
-          "value": "mysql:5.6"
         }
       ],
       "providers": [
@@ -428,19 +452,19 @@
       "name": "zonky.test.database.mariadb.docker.image",
       "values": [
         {
-          "value": "mariadb:10.5"
+          "value": "mariadb:13.0"
+        },
+        {
+          "value": "mariadb:12.3"
+        },
+        {
+          "value": "mariadb:11.8"
+        },
+        {
+          "value": "mariadb:10.11"
         },
         {
           "value": "mariadb:10.4"
-        },
-        {
-          "value": "mariadb:10.3"
-        },
-        {
-          "value": "mariadb:10.2"
-        },
-        {
-          "value": "mariadb:10.1"
         }
       ],
       "providers": [

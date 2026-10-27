@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(MSSQLTestSuite.class)
 @AutoConfigureEmbeddedDatabase(type = MSSQL)
 @TestPropertySource(properties = {
-        "zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-CU20"
+        "zonky.test.database.mssql.docker.image=mcr.microsoft.com/mssql/server:2017-CU30-ubuntu-18.04"
 })
 @ContextConfiguration
 public class DockerMSSQLProviderWithConfigurationIntegrationTest {
@@ -54,6 +54,6 @@ public class DockerMSSQLProviderWithConfigurationIntegrationTest {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         String databaseVersion = jdbcTemplate.queryForObject("select @@version", String.class);
-        assertThat(databaseVersion).startsWith("Microsoft SQL Server 2017 (RTM-CU20)");
+        assertThat(databaseVersion).startsWith("Microsoft SQL Server 2017 (RTM-CU30)");
     }
 }
