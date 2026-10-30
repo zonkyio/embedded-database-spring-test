@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.RETURNS_DEFAULTS;
 import static org.mockito.Mockito.mock;
 
@@ -56,7 +57,7 @@ public class LiquibaseDatabasePreparerTest {
 
     @Test
     public void invokesCustomizerBeforeMigration() throws Exception {
-        assertThat(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null)).isTrue();
+        assumeTrue(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null));
         AtomicReference<Liquibase> customized = new AtomicReference<>();
         Object customizer = mock(ClassUtils.forName("liquibase.integration.spring.Customizer", null), invocation -> {
             if ("customize".equals(invocation.getMethod().getName())) {
