@@ -18,7 +18,6 @@ package io.zonky.test.db.liquibase;
 
 import io.zonky.test.category.LiquibaseTestSuite;
 import io.zonky.test.db.util.ReflectionUtils;
-import liquibase.Liquibase;
 import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +26,6 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.util.ClassUtils;
 
 import javax.sql.DataSource;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,42 +36,38 @@ import static org.mockito.Mockito.mock;
 @Category(LiquibaseTestSuite.class)
 public class LiquibaseDatabasePreparerTest {
 
-    private LiquibaseDatabasePreparer preparer;
+    private SpringLiquibase liquibase;
 
     @Before
-    public void setUp() throws Exception {
-        SpringLiquibase liquibase = new SpringLiquibase();
+    public void setUp() {
+        liquibase = new SpringLiquibase();
         liquibase.setChangeLog("classpath:/db/changelog/db.changelog-master.yaml");
         liquibase.setResourceLoader(new DefaultResourceLoader());
-        LiquibaseDescriptor descriptor = LiquibaseDescriptor.from(liquibase);
-
-        preparer = new LiquibaseDatabasePreparer(descriptor);
     }
 
     @Test
     public void estimatedDuration() {
+        LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+
         assertThat(preparer.estimatedDuration()).isEqualTo(214);
     }
 
     @Test
-    public void invokesCustomizerBeforeMigration() throws Exception {
+    public void prepareInvokesCustomizer() throws Exception {
         assumeTrue(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null));
-        AtomicReference<Liquibase> customized = new AtomicReference<>();
         Object customizer = mock(ClassUtils.forName("liquibase.integration.spring.Customizer", null), invocation -> {
             if ("customize".equals(invocation.getMethod().getName())) {
-                customized.set((Liquibase) invocation.getArguments()[0]);
-                // Stop before migration so this test needs no database server or driver.
-                throw new IllegalStateException("Customizer invoked before migration");
+                throw new CustomizerInvokedException();
             }
             return RETURNS_DEFAULTS.answer(invocation);
         });
-        SpringLiquibase liquibase = new SpringLiquibase();
-        liquibase.setChangeLog("classpath:/db/changelog/db.changelog-master.yaml");
-        liquibase.setResourceLoader(new DefaultResourceLoader());
         ReflectionUtils.invokeMethod(liquibase, "setCustomizer", customizer);
-        preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+        LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+
+        // The customizer aborts the run before any migration, so no real database is needed
         assertThatThrownBy(() -> preparer.prepare(mock(DataSource.class)))
-                .hasRootCauseMessage("Customizer invoked before migration");
-        assertThat(customized.get()).isNotNull();
+                .hasRootCauseInstanceOf(CustomizerInvokedException.class);
     }
+
+    private static class CustomizerInvokedException extends RuntimeException {}
 }

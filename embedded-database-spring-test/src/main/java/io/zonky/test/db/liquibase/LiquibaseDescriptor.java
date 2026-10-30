@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.liquibase;
 
+import com.cedarsoftware.util.DeepEquals;
 import com.google.common.collect.ImmutableMap;
 import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.core.io.ResourceLoader;
@@ -141,13 +142,15 @@ public class LiquibaseDescriptor {
                 Objects.equals(tag, that.tag) &&
                 Objects.equals(parameters, that.parameters) &&
                 Objects.equals(defaultSchema, that.defaultSchema) &&
-                Objects.equals(customizer, that.customizer);
+                DeepEquals.deepEquals(customizer, that.customizer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(
+        int result = Objects.hash(
                 changeLog, contexts, labels, tag, parameters,
-                defaultSchema, dropFirst, shouldRun, customizer);
+                defaultSchema, dropFirst, shouldRun);
+        result = 31 * result + DeepEquals.deepHashCode(customizer);
+        return result;
     }
 }

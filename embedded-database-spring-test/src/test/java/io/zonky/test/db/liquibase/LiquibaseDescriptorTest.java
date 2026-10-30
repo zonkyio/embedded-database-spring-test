@@ -19,20 +19,25 @@ package io.zonky.test.db.liquibase;
 import io.zonky.test.category.LiquibaseTestSuite;
 import io.zonky.test.db.util.ReflectionUtils;
 import liquibase.integration.spring.SpringLiquibase;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.modifier.Visibility;
+import net.bytebuddy.implementation.StubMethod;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.util.ClassUtils;
 
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
 
 @Category(LiquibaseTestSuite.class)
 public class LiquibaseDescriptorTest {
 
+    private static Class<?> customizerType;
+
     @Test
     public void preservesCustomizer() throws Exception {
-        Object customizer = newCustomizer();
+        Object customizer = newCustomizer("customizer");
         SpringLiquibase original = new SpringLiquibase();
         ReflectionUtils.invokeMethod(original, "setCustomizer", customizer);
 
@@ -44,20 +49,20 @@ public class LiquibaseDescriptorTest {
 
     @Test
     public void customizerIsPartOfPreparerCacheIdentity() throws Exception {
-        Object customizer = newCustomizer();
         SpringLiquibase first = new SpringLiquibase();
         SpringLiquibase second = new SpringLiquibase();
         first.setChangeLog("classpath:/db/changelog/db.changelog-master.yaml");
         second.setChangeLog(first.getChangeLog());
         LiquibaseDatabasePreparer withoutCustomizer = preparer(first);
-        ReflectionUtils.invokeMethod(first, "setCustomizer", customizer);
-        ReflectionUtils.invokeMethod(second, "setCustomizer", customizer);
+        // Distinct but equivalent instances, as created by separate application contexts
+        ReflectionUtils.invokeMethod(first, "setCustomizer", newCustomizer("first"));
+        ReflectionUtils.invokeMethod(second, "setCustomizer", newCustomizer("first"));
 
         assertThat(preparer(first)).isEqualTo(preparer(second));
         assertThat(preparer(first).hashCode()).isEqualTo(preparer(second).hashCode());
         assertThat(preparer(first)).isNotEqualTo(withoutCustomizer);
 
-        ReflectionUtils.invokeMethod(second, "setCustomizer", newCustomizer());
+        ReflectionUtils.invokeMethod(second, "setCustomizer", newCustomizer("second"));
         assertThat(preparer(first)).isNotEqualTo(preparer(second));
     }
 
@@ -72,10 +77,23 @@ public class LiquibaseDescriptorTest {
         assertThat(LiquibaseDescriptor.from(copy)).isEqualTo(LiquibaseDescriptor.from(original));
     }
 
-    private Object newCustomizer() throws Exception {
+    private Object newCustomizer(String value) throws Exception {
         // Compile against Liquibase 3.x; exercise the optional API on newer runtimes.
         assumeTrue(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null));
-        return mock(ClassUtils.forName("liquibase.integration.spring.Customizer", null));
+        if (customizerType == null) {
+            // Unlike a mock, it has no equals() of its own, like a typical lambda or bean customizer
+            customizerType = new ByteBuddy()
+                    .subclass(Object.class)
+                    .implement(ClassUtils.forName("liquibase.integration.spring.Customizer", null))
+                    .defineField("value", String.class, Visibility.PUBLIC)
+                    .method(named("customize")).intercept(StubMethod.INSTANCE)
+                    .make()
+                    .load(getClass().getClassLoader())
+                    .getLoaded();
+        }
+        Object customizer = customizerType.getDeclaredConstructor().newInstance();
+        customizerType.getField("value").set(customizer, value);
+        return customizer;
     }
 
     private LiquibaseDatabasePreparer preparer(SpringLiquibase liquibase) {
