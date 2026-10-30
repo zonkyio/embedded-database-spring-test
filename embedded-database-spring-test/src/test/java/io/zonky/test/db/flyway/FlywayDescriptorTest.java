@@ -141,6 +141,7 @@ public class FlywayDescriptorTest {
         FlywayDescriptor descriptor2 = FlywayDescriptor.from(wrapper2);
 
         assertThat(descriptor1).isEqualTo(descriptor2);
+        assertThat(descriptor1.hashCode()).isEqualTo(descriptor2.hashCode());
 
         FlywayWrapper wrapper3 = FlywayWrapper.newInstance();
         descriptor1.applyTo(wrapper3);

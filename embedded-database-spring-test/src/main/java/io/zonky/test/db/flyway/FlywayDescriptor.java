@@ -219,13 +219,16 @@ public class FlywayDescriptor {
 
     @Override
     public int hashCode() {
-        return Objects.hash(locations, schemas, table,
+        int result = Objects.hash(locations, schemas, table,
                 sqlMigrationPrefix, repeatableSqlMigrationPrefix,
                 sqlMigrationSeparator, sqlMigrationSuffixes,
                 ignoreMissingMigrations, ignoreFutureMigrations,
-                validateOnMigrate, resourceProvider,
-                javaMigrationClassProvider, javaMigrations, callbacks,
-                otherFields, envConfFields, pluginsFields);
+                validateOnMigrate, otherFields, envConfFields, pluginsFields);
+        result = 31 * result + DeepEquals.deepHashCode(resourceProvider);
+        result = 31 * result + DeepEquals.deepHashCode(javaMigrationClassProvider);
+        result = 31 * result + DeepEquals.deepHashCode(javaMigrations);
+        result = 31 * result + DeepEquals.deepHashCode(callbacks);
+        return result;
     }
 
     private static void setCollection(Field field, Object target, Collection<?> value) {

@@ -17,31 +17,57 @@
 package io.zonky.test.db.liquibase;
 
 import io.zonky.test.category.LiquibaseTestSuite;
+import io.zonky.test.db.util.ReflectionUtils;
 import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.util.ClassUtils;
+
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.RETURNS_DEFAULTS;
+import static org.mockito.Mockito.mock;
 
 @Category(LiquibaseTestSuite.class)
 public class LiquibaseDatabasePreparerTest {
 
-    private LiquibaseDatabasePreparer preparer;
+    private SpringLiquibase liquibase;
 
     @Before
-    public void setUp() throws Exception {
-        SpringLiquibase liquibase = new SpringLiquibase();
+    public void setUp() {
+        liquibase = new SpringLiquibase();
         liquibase.setChangeLog("classpath:/db/changelog/db.changelog-master.yaml");
         liquibase.setResourceLoader(new DefaultResourceLoader());
-        LiquibaseDescriptor descriptor = LiquibaseDescriptor.from(liquibase);
-
-        preparer = new LiquibaseDatabasePreparer(descriptor);
     }
 
     @Test
     public void estimatedDuration() {
+        LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+
         assertThat(preparer.estimatedDuration()).isEqualTo(214);
     }
+
+    @Test
+    public void prepareInvokesCustomizer() throws Exception {
+        assumeTrue(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null));
+        Object customizer = mock(ClassUtils.forName("liquibase.integration.spring.Customizer", null), invocation -> {
+            if ("customize".equals(invocation.getMethod().getName())) {
+                throw new CustomizerInvokedException();
+            }
+            return RETURNS_DEFAULTS.answer(invocation);
+        });
+        ReflectionUtils.invokeMethod(liquibase, "setCustomizer", customizer);
+        LiquibaseDatabasePreparer preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+
+        // The customizer aborts the run before any migration, so no real database is needed
+        assertThatThrownBy(() -> preparer.prepare(mock(DataSource.class)))
+                .hasRootCauseInstanceOf(CustomizerInvokedException.class);
+    }
+
+    private static class CustomizerInvokedException extends RuntimeException {}
 }
