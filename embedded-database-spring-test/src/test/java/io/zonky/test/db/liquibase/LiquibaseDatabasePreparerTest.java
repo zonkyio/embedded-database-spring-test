@@ -17,13 +17,22 @@
 package io.zonky.test.db.liquibase;
 
 import io.zonky.test.category.LiquibaseTestSuite;
+import io.zonky.test.db.util.ReflectionUtils;
+import liquibase.Liquibase;
 import liquibase.integration.spring.SpringLiquibase;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.util.ClassUtils;
+
+import javax.sql.DataSource;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.RETURNS_DEFAULTS;
+import static org.mockito.Mockito.mock;
 
 @Category(LiquibaseTestSuite.class)
 public class LiquibaseDatabasePreparerTest {
@@ -43,5 +52,27 @@ public class LiquibaseDatabasePreparerTest {
     @Test
     public void estimatedDuration() {
         assertThat(preparer.estimatedDuration()).isEqualTo(214);
+    }
+
+    @Test
+    public void invokesCustomizerBeforeMigration() throws Exception {
+        assertThat(ClassUtils.isPresent("liquibase.integration.spring.Customizer", null)).isTrue();
+        AtomicReference<Liquibase> customized = new AtomicReference<>();
+        Object customizer = mock(ClassUtils.forName("liquibase.integration.spring.Customizer", null), invocation -> {
+            if ("customize".equals(invocation.getMethod().getName())) {
+                customized.set((Liquibase) invocation.getArguments()[0]);
+                // Stop before migration so this test needs no database server or driver.
+                throw new IllegalStateException("Customizer invoked before migration");
+            }
+            return RETURNS_DEFAULTS.answer(invocation);
+        });
+        SpringLiquibase liquibase = new SpringLiquibase();
+        liquibase.setChangeLog("classpath:/db/changelog/db.changelog-master.yaml");
+        liquibase.setResourceLoader(new DefaultResourceLoader());
+        ReflectionUtils.invokeMethod(liquibase, "setCustomizer", customizer);
+        preparer = new LiquibaseDatabasePreparer(LiquibaseDescriptor.from(liquibase));
+        assertThatThrownBy(() -> preparer.prepare(mock(DataSource.class)))
+                .hasRootCauseMessage("Customizer invoked before migration");
+        assertThat(customized.get()).isNotNull();
     }
 }
