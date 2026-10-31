@@ -16,6 +16,7 @@
 
 package io.zonky.test.db.liquibase;
 
+import com.cedarsoftware.util.DeepEquals;
 import com.google.common.collect.ImmutableMap;
 import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.core.io.ResourceLoader;
@@ -24,8 +25,12 @@ import java.util.Map;
 import java.util.Objects;
 
 import static io.zonky.test.db.util.ReflectionUtils.getField;
+import static io.zonky.test.db.util.ReflectionUtils.invokeMethod;
+import static org.springframework.util.ReflectionUtils.findMethod;
 
 public class LiquibaseDescriptor {
+
+    private static final boolean CUSTOMIZER_SUPPORTED = findMethod(SpringLiquibase.class, "getCustomizer") != null;
 
     // not included in equals and hashCode methods
     private final String beanName;
@@ -40,6 +45,7 @@ public class LiquibaseDescriptor {
     private final String defaultSchema;
     private final boolean dropFirst;
     private final boolean shouldRun;
+    private final Object customizer;
 
     ResourceLoader getResourceLoader() {
         return resourceLoader;
@@ -77,7 +83,7 @@ public class LiquibaseDescriptor {
         return shouldRun;
     }
 
-    private LiquibaseDescriptor(String beanName, ResourceLoader resourceLoader, String changeLog, String contexts, String labels, String tag, Map<String, String> parameters, String defaultSchema, boolean dropFirst, boolean shouldRun) {
+    private LiquibaseDescriptor(String beanName, ResourceLoader resourceLoader, String changeLog, String contexts, String labels, String tag, Map<String, String> parameters, String defaultSchema, boolean dropFirst, boolean shouldRun, Object customizer) {
         this.beanName = beanName;
         this.resourceLoader = resourceLoader;
         this.changeLog = changeLog;
@@ -88,6 +94,7 @@ public class LiquibaseDescriptor {
         this.defaultSchema = defaultSchema;
         this.dropFirst = dropFirst;
         this.shouldRun = shouldRun;
+        this.customizer = customizer;
     }
 
     public static LiquibaseDescriptor from(SpringLiquibase liquibase) {
@@ -101,7 +108,8 @@ public class LiquibaseDescriptor {
                 getField(liquibase, "parameters"),
                 liquibase.getDefaultSchema(),
                 liquibase.isDropFirst(),
-                getField(liquibase, "shouldRun")
+                getField(liquibase, "shouldRun"),
+                CUSTOMIZER_SUPPORTED ? invokeMethod(liquibase, "getCustomizer") : null
         );
     }
 
@@ -116,6 +124,9 @@ public class LiquibaseDescriptor {
         liquibase.setDefaultSchema(defaultSchema);
         liquibase.setDropFirst(dropFirst);
         liquibase.setShouldRun(shouldRun);
+        if (CUSTOMIZER_SUPPORTED) {
+            invokeMethod(liquibase, "setCustomizer", customizer);
+        }
     }
 
     @Override
@@ -130,13 +141,16 @@ public class LiquibaseDescriptor {
                 Objects.equals(labels, that.labels) &&
                 Objects.equals(tag, that.tag) &&
                 Objects.equals(parameters, that.parameters) &&
-                Objects.equals(defaultSchema, that.defaultSchema);
+                Objects.equals(defaultSchema, that.defaultSchema) &&
+                DeepEquals.deepEquals(customizer, that.customizer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(
+        int result = Objects.hash(
                 changeLog, contexts, labels, tag, parameters,
                 defaultSchema, dropFirst, shouldRun);
+        result = 31 * result + DeepEquals.deepHashCode(customizer);
+        return result;
     }
 }
