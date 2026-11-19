@@ -607,7 +607,7 @@ The version of the binaries is configurable at compile time by importing `embedd
         <dependency>
             <groupId>io.zonky.test.postgres</groupId>
             <artifactId>embedded-postgres-binaries-bom</artifactId>
-            <version>18.6.0</version>
+            <version>19.0.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
